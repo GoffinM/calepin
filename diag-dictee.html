@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Diagnostic dictée — Calepin</title>
+<style>
+  body{ font-family: -apple-system, sans-serif; background:#14170F; color:#EDE8DC; padding:20px; max-width:520px; margin:0 auto; }
+  h1{ font-size:18px; }
+  h2{ font-size:15px; color:#C9A227; margin-top:28px; }
+  button{ display:block; width:100%; padding:14px; margin:10px 0; border-radius:8px; border:1px solid #33392A; background:#262B1D; color:#EDE8DC; font-size:15px; }
+  button.stop{ background:#B5462E; color:white; }
+  pre{ background:#1D2116; border:1px solid #33392A; border-radius:8px; padding:10px; white-space:pre-wrap; word-break:break-word; min-height:60px; font-size:13px; }
+  .log{ font-size:12px; color:#A6A896; margin-top:6px; }
+</style>
+</head>
+<body>
+<h1>Diagnostic dict\u00e9e \u2014 Calepin</h1>
+<p>Ne remplace pas Calepin, sert juste \u00e0 isoler le probl\u00e8me. Aucune donn\u00e9e sauvegard\u00e9e nulle part.</p>
+
+<h2>Test A \u2014 dict\u00e9e SEULE (sans enregistrement audio)</h2>
+<button id="btnA">D\u00e9marrer Test A</button>
+<pre id="outA">(rien encore)</pre>
+<div class="log" id="logA"></div>
+
+<h2>Test B \u2014 dict\u00e9e + enregistrement SIMULTAN\u00e9 (reproduit Calepin)</h2>
+<button id="btnB">D\u00e9marrer Test B</button>
+<pre id="outB">(rien encore)</pre>
+<div class="log" id="logB"></div>
+
+<script>
+const SpeechRecCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+function log(id, msg){
+  const el = document.getElementById(id);
+  el.textContent += (el.textContent ? " | " : "") + msg;
+}
+
+/* ---- Test A : SpeechRecognition seule ---- */
+let recA = null;
+document.getElementById("btnA").addEventListener("click", function(){
+  const btn = this;
+  const out = document.getElementById("outA");
+  document.getElementById("logA").textContent = "";
+  if(recA){ recA.stop(); return; }
+  if(!SpeechRecCtor){ log("logA", "SpeechRecognition non support\u00e9e sur ce navigateur."); return; }
+  out.textContent = "(\u00e9coute...)";
+  recA = new SpeechRecCtor();
+  recA.lang = "fr-FR"; recA.continuous = true; recA.interimResults = true;
+  recA.onresult = (e) => {
+    let txt = "";
+    for(let i=0;i<e.results.length;i++) txt += e.results[i][0].transcript + (e.results[i].isFinal ? " [FINAL] " : " [...] ");
+    out.textContent = txt || "(aucun texte)";
+  };
+  recA.onerror = (e) => log("logA", "ERREUR: " + e.error);
+  recA.onstart = () => log("logA", "d\u00e9marr\u00e9e");
+  recA.onend = () => { log("logA", "termin\u00e9e"); recA = null; btn.textContent = "D\u00e9marrer Test A"; };
+  recA.start();
+  btn.textContent = "Arr\u00eater Test A";
+});
+
+/* ---- Test B : SpeechRecognition + MediaRecorder simultan\u00e9s (comme Calepin) ---- */
+let recB = null, mrB = null, streamB = null;
+document.getElementById("btnB").addEventListener("click", async function(){
+  const btn = this;
+  const out = document.getElementById("outB");
+  document.getElementById("logB").textContent = "";
+  if(recB || mrB){
+    if(recB) recB.stop();
+    if(mrB && mrB.state === "recording") mrB.stop();
+    return;
+  }
+  out.textContent = "(\u00e9coute...)";
+  try{
+    streamB = await navigator.mediaDevices.getUserMedia({ audio: true });
+    log("logB", "micro obtenu (getUserMedia OK)");
+  }catch(err){ log("logB", "getUserMedia refus\u00e9: " + err.message); return; }
+
+  mrB = new MediaRecorder(streamB);
+  const chunks = [];
+  mrB.ondataavailable = (e) => { if(e.data.size > 0) chunks.push(e.data); };
+  mrB.onstop = () => {
+    log("logB", "MediaRecorder arr\u00eat\u00e9, taille audio: " + chunks.reduce((a,c)=>a+c.size,0) + " octets");
+    streamB.getTracks().forEach(t => t.stop());
+  };
+  mrB.start();
+  log("logB", "MediaRecorder d\u00e9marr\u00e9");
+
+  if(!SpeechRecCtor){ log("logB", "SpeechRecognition non support\u00e9e."); return; }
+  recB = new SpeechRecCtor();
+  recB.lang = "fr-FR"; recB.continuous = true; recB.interimResults = true;
+  recB.onresult = (e) => {
+    let txt = "";
+    for(let i=0;i<e.results.length;i++) txt += e.results[i][0].transcript + (e.results[i].isFinal ? " [FINAL] " : " [...] ");
+    out.textContent = txt || "(aucun texte)";
+  };
+  recB.onerror = (e) => log("logB", "ERREUR reconnaissance: " + e.error);
+  recB.onstart = () => log("logB", "reconnaissance d\u00e9marr\u00e9e (en simultan\u00e9)");
+  recB.onend = () => { log("logB", "reconnaissance termin\u00e9e"); recB = null; if(mrB && mrB.state==="recording"){} btn.textContent = "D\u00e9marrer Test B"; };
+  recB.start();
+  btn.textContent = "Arr\u00eater Test B";
+});
+</script>
+</body>
+</html>
