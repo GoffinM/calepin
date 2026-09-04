@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#171A16">
+<title>Calepin</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{
+    --bg: #14170F;
+    --surface: #1D2116;
+    --surface-raised: #262B1D;
+    --paper: #EDE8DC;
+    --ink: #1B1B15;
+    --text: #EDE8DC;
+    --text-dim: #A6A896;
+    --accent: #C9A227;
+    --accent-ink: #171A16;
+    --danger: #B5462E;
+    --warn: #C97B27;
+    --line: #33392A;
+    --radius: 10px;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: "SF Mono", "SFMono-Regular", Consolas, Menlo, monospace;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; }
+  body{
+    background: var(--bg); color: var(--text); font-family: var(--sans);
+    -webkit-font-smoothing: antialiased; min-height: 100vh; min-height: 100dvh;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  button{ font-family: inherit; }
+  :focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .appbar{
+    position: sticky; top:0; z-index: 20;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 14px 18px 14px 18px; padding-top: calc(14px + env(safe-area-inset-top));
+    background: var(--bg); border-bottom: 1px solid var(--line);
+  }
+  .appbar h1{ font-size: 19px; margin:0; font-weight: 700; letter-spacing: 0.2px; }
+  .appbar button.icon-btn{
+    background:none; border:none; color: var(--text); font-size: 20px;
+    padding: 4px 6px; cursor:pointer; line-height:1;
+  }
+  .appbar .left{ display:flex; align-items:center; gap:4px; width:36px; }
+  .appbar .right{ width:36px; display:flex; justify-content:flex-end; }
+
+  main{ max-width: 560px; margin: 0 auto; padding: 16px 16px 100px 16px; }
+
+  .filters{ display:flex; gap:8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filters select, .filters input[type="search"]{
+    background: var(--surface); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; font-size: 14px;
+  }
+  .filters input[type="search"]{ flex: 1; min-width: 120px; }
+
+  .visit-list{ display:flex; flex-direction:column; gap:10px; }
+  .visit-card{
+    display:flex; align-items:center; gap:12px;
+    background: var(--surface); border:1px solid var(--line); border-radius: var(--radius);
+    padding: 12px 14px; text-align:left; width:100%; cursor:pointer; color: var(--text);
+  }
+  .visit-card .glyph{
+    font-size: 22px; width:38px; height:38px; border-radius:8px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; background: var(--surface-raised);
+  }
+  .visit-card .info{ flex:1; min-width:0; }
+  .visit-card .tag{ font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .visit-card .meta{ font-size:12px; color: var(--text-dim); font-family: var(--mono); margin-top:2px; }
+  .visit-card .counts{ font-size:12px; color: var(--text-dim); display:flex; gap:8px; flex-shrink:0; }
+
+  .empty-state{ text-align:center; padding: 60px 20px; color: var(--text-dim); }
+  .empty-state .glyph{ font-size:32px; margin-bottom:10px; }
+  .empty-state p{ margin: 4px 0; font-size: 14px; line-height:1.5; }
+
+  .fab{
+    position: fixed; right: 20px; bottom: calc(24px + env(safe-area-inset-bottom));
+    width: 58px; height: 58px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-ink); border:none;
+    font-size: 28px; line-height:1; cursor:pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+    display:flex; align-items:center; justify-content:center; z-index: 15;
+  }
+
+  .field{ margin-bottom: 18px; }
+  .field label{ display:block; font-size:13px; color: var(--text-dim); margin-bottom:6px; }
+  .field select, .field input[type="text"], .field input[type="date"], .field textarea{
+    width:100%; background: var(--surface); color: var(--text); border:1px solid var(--line);
+    border-radius: 8px; padding: 11px 12px; font-size: 15px; font-family: inherit;
+  }
+  .field textarea{ min-height: 80px; resize: vertical; line-height:1.5; }
+  .cat-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(90px,1fr)); gap:8px; }
+  .cat-btn{
+    background: var(--surface); border:1px solid var(--line); border-radius: 8px;
+    padding: 12px 6px; color: var(--text); cursor:pointer; text-align:center; font-size:13px;
+  }
+  .cat-btn .glyph{ font-size:20px; display:block; margin-bottom:4px; }
+  .cat-btn.selected{ border-color: var(--accent); background: var(--surface-raised); }
+  .cat-btn.add-new{ color: var(--text-dim); }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    background: var(--surface-raised); color: var(--text); border:1px solid var(--line);
+    border-radius: 8px; padding: 10px 14px; font-size: 14px; cursor:pointer;
+  }
+  .btn.primary{ background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight:600; }
+  .btn.danger{ color: #E6A18C; border-color: var(--danger); }
+  .btn:disabled{ opacity: 0.5; cursor:default; }
+  .form-actions{ position: sticky; bottom:0; background: var(--bg); padding: 14px 0 6px 0; margin-top: 20px; }
+
+  .detail-head{ margin-bottom: 16px; }
+  .detail-head .cat-line{ display:flex; align-items:center; gap:8px; font-size:14px; color: var(--text-dim); margin-bottom:4px; }
+  .detail-head h2{ font-size: 21px; margin: 2px 0 4px 0; }
+  .detail-head .meta{ font-size:12px; font-family: var(--mono); color: var(--text-dim); }
+
+  .weight-banner{
+    display:flex; justify-content:space-between; align-items:center;
+    background: var(--surface); border:1px solid var(--line); border-radius:8px;
+    padding: 8px 12px; font-size:12px; font-family: var(--mono); color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  .weight-banner.warn{ border-color: var(--warn); color: var(--warn); }
+  .weight-banner.danger{ border-color: var(--danger); color: #E6A18C; }
+
+  .add-row{ display:flex; gap:8px; margin-bottom: 18px; flex-wrap: wrap; }
+  .add-row .btn{ flex:1; min-width: 100px; }
+
+  .rec-status{ display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+  .rec-timer{ font-family: var(--mono); font-size: 14px; color: var(--danger); }
+  .capture-hint{ font-size:12px; color: var(--text-dim); margin: -10px 0 18px 0; line-height:1.5; }
+
+  .entry-list{ display:flex; flex-direction:column; gap:10px; }
+  .entry-card{
+    background: var(--surface); border:1px solid var(--line); border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .entry-card .entry-head{
+    display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;
+  }
+  .entry-card .entry-meta{ font-size:12px; color: var(--text-dim); font-family: var(--mono); display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .entry-card .del{ background:none; border:none; color: var(--text-dim); font-size:16px; cursor:pointer; padding:2px 6px; }
+  .entry-card audio{ width:100%; height:32px; margin-bottom:8px; }
+  .entry-card img{ width:100%; border-radius:6px; display:block; margin-bottom:8px; max-height:280px; object-fit:cover; }
+  .entry-card textarea{
+    width:100%; background: var(--surface-raised); color: var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:8px 10px; font-size:14px; min-height:52px; line-height:1.4;
+  }
+  .label-btn{ background:none; border:none; color: var(--accent); font-size:12px; cursor:pointer; padding:0; }
+
+  .group-toggle{ display:flex; gap:8px; margin-bottom: 16px; }
+  .group-toggle button{
+    flex:1; background: var(--surface); border:1px solid var(--line); border-radius:8px;
+    padding: 9px; color: var(--text-dim); font-size:13px; cursor:pointer;
+  }
+  .group-toggle button.active{ border-color: var(--accent); color: var(--text); background: var(--surface-raised); }
+
+  .report-group{ margin-bottom: 22px; }
+  .report-group h3{ font-size:14px; color: var(--accent); margin: 0 0 10px 0; font-weight:600; }
+  .report-entry{ font-size:14px; line-height:1.6; margin-bottom:10px; }
+  .report-entry .rmeta{ font-size:11px; color: var(--text-dim); font-family: var(--mono); display:block; margin-bottom:2px; }
+  .report-entry img{ width:100%; max-width:260px; border-radius:6px; display:block; margin-top:4px; }
+
+  .settings-group{ margin-bottom: 26px; }
+  .settings-group h3{ font-size:14px; color: var(--text-dim); margin: 0 0 10px 0; font-weight:600; }
+  .lang-grid, .quality-grid{ display:flex; flex-direction:column; gap:8px; }
+  .opt-btn{
+    display:flex; justify-content:space-between; align-items:center;
+    background: var(--surface); border:1px solid var(--line); border-radius:8px;
+    padding: 12px 14px; color: var(--text); cursor:pointer; text-align:left; font-size:14px;
+  }
+  .opt-btn.selected{ border-color: var(--accent); }
+  .opt-btn .sub{ font-size:12px; color: var(--text-dim); font-family: var(--mono); }
+  .storage-line{ font-size:13px; color: var(--text-dim); font-family: var(--mono); }
+
+  .toast{
+    position: fixed; left:50%; bottom: 90px; transform: translateX(-50%);
+    background: var(--paper); color: var(--ink); padding: 10px 16px; border-radius: 8px;
+    font-size: 13px; z-index: 50; box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    opacity:0; pointer-events:none; transition: opacity 0.2s ease;
+  }
+  .toast.show{ opacity:1; }
+  .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+  @media (prefers-reduced-motion: reduce){ .toast{ transition: none; } }
+</style>
+</head>
+<body>
+
+<div id="appbar" class="appbar">
+  <div class="left"><button class="icon-btn" id="btnBack" aria-label="Retour" hidden>&#8592;</button></div>
+  <h1 id="pageTitle">Calepin</h1>
+  <div class="right"><button class="icon-btn" id="btnSettings" aria-label="R\u00e9glages">&#9881;</button></div>
+</div>
+
+<main id="main"></main>
+<button class="fab" id="fabNew" aria-label="Nouvelle visite">+</button>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   Internationalisation — FR (base) / EN / SW, extensible
+   ============================================================ */
+const STRINGS = {
+  fr: {
+    appName: "Calepin", settings: "R\u00e9glages", back: "Retour",
+    filterAllCat: "Toutes cat\u00e9gories", filterAllPeriod: "Toute p\u00e9riode",
+    period7: "7 derniers jours", period30: "30 derniers jours", search: "Rechercher (rep\u00e8re, contenu)",
+    emptyTitle: "Aucune visite ici.", emptyBody: "Touchez + pour cr\u00e9er la premi\u00e8re visite \u2014 audio, photos et notes s'y ajoutent ensuite.",
+    newVisit: "Nouvelle visite", category: "Cat\u00e9gorie", newCategory: "Nouvelle",
+    newCategoryPrompt: "Nom de la nouvelle cat\u00e9gorie :",
+    landmark: "Rep\u00e8re (adresse, r\u00e9f\u00e9rence, nom)", landmarkPh: "Ex. Appartement rue X, Toyota RAV4...",
+    date: "Date", createVisit: "Cr\u00e9er la visite", visitCreated: "Visite cr\u00e9\u00e9e",
+    cat_immobilier: "Immobilier", cat_vehicule: "V\u00e9hicule", cat_technique: "Technique", cat_autre: "Autre",
+    addAudio: "Enregistrer", addPhoto: "Photo", addText: "Note texte",
+    captureHint: "Parlez distinctement, une id\u00e9e \u00e0 la fois.",
+    entryLabelPrompt: "Nommer ce rep\u00e8re (facultatif) :",
+    transcriptPh: "Transcription (\u00e0 compl\u00e9ter)...", textEntryPh: "\u00c9crivez votre observation...",
+    save: "Enregistrer", cancel: "Annuler",
+    consolidate: "Consolider / Rapport", exportVisit: "Exporter cette visite", deleteVisit: "Supprimer la visite",
+    confirmDeleteVisit: "Supprimer d\u00e9finitivement cette visite et tous ses fichiers ?",
+    deletedVisit: "Visite supprim\u00e9e", exportLaunched: "Export lanc\u00e9",
+    micDenied: "Acc\u00e8s au micro refus\u00e9.", micUnavailable: "Micro non disponible sur cet appareil.",
+    photoUnreadable: "Photo illisible, ignor\u00e9e.", photosAdded: "Photo(s) ajout\u00e9e(s)", audioSaved: "Audio enregistr\u00e9",
+    noEntries: "Aucune entr\u00e9e pour l'instant.",
+    reportTitle: "Rapport", groupChrono: "Chronologique", groupLandmark: "Par rep\u00e8re",
+    noLandmark: "Sans rep\u00e8re", exportReport: "Exporter le texte du rapport", reportExported: "Rapport export\u00e9",
+    settingsLang: "Langue", settingsQuality: "Qualit\u00e9 des photos", settingsStorage: "Stockage",
+    qualityEco: "\u00c9conome", qualityStd: "Standard", qualityHi: "D\u00e9taill\u00e9e",
+    qualityEcoSub: "~80 Ko/photo \u2014 lisible, tr\u00e8s l\u00e9ger", qualityStdSub: "~250 Ko/photo \u2014 bon \u00e9quilibre (recommand\u00e9)",
+    qualityHiSub: "~600 Ko/photo \u2014 zoom fin (plaques, inscriptions)",
+    storageUsed: "utilis\u00e9 sur cet appareil", storageUnknown: "Estimation indisponible sur ce navigateur.",
+    weightLabel: "entr\u00e9es"
+  },
+  en: {
+    appName: "Calepin", settings: "Settings", back: "Back",
+    filterAllCat: "All categories", filterAllPeriod: "Any period",
+    period7: "Last 7 days", period30: "Last 30 days", search: "Search (landmark, content)",
+    emptyTitle: "No visits yet.", emptyBody: "Tap + to create the first visit \u2014 audio, photos and notes come next.",
+    newVisit: "New visit", category: "Category", newCategory: "New",
+    newCategoryPrompt: "Name of the new category:",
+    landmark: "Landmark (address, reference, name)", landmarkPh: "E.g. Apartment on X street, Toyota RAV4...",
+    date: "Date", createVisit: "Create visit", visitCreated: "Visit created",
+    cat_immobilier: "Real estate", cat_vehicule: "Vehicle", cat_technique: "Technical", cat_autre: "Other",
+    addAudio: "Record", addPhoto: "Photo", addText: "Text note",
+    captureHint: "Speak clearly, one idea at a time.",
+    entryLabelPrompt: "Name this landmark (optional):",
+    transcriptPh: "Transcript (to complete)...", textEntryPh: "Write your observation...",
+    save: "Save", cancel: "Cancel",
+    consolidate: "Consolidate / Report", exportVisit: "Export this visit", deleteVisit: "Delete visit",
+    confirmDeleteVisit: "Permanently delete this visit and all its files?",
+    deletedVisit: "Visit deleted", exportLaunched: "Export started",
+    micDenied: "Microphone access denied.", micUnavailable: "Microphone unavailable on this device.",
+    photoUnreadable: "Unreadable photo, skipped.", photosAdded: "Photo(s) added", audioSaved: "Audio saved",
+    noEntries: "No entries yet.",
+    reportTitle: "Report", groupChrono: "Chronological", groupLandmark: "By landmark",
+    noLandmark: "No landmark", exportReport: "Export report text", reportExported: "Report exported",
+    settingsLang: "Language", settingsQuality: "Photo quality", settingsStorage: "Storage",
+    qualityEco: "Economical", qualityStd: "Standard", qualityHi: "Detailed",
+    qualityEcoSub: "~80 KB/photo \u2014 readable, very light", qualityStdSub: "~250 KB/photo \u2014 good balance (recommended)",
+    qualityHiSub: "~600 KB/photo \u2014 fine zoom (plates, labels)",
+    storageUsed: "used on this device", storageUnknown: "Estimate unavailable in this browser.",
+    weightLabel: "entries"
+  },
+  sw: {
+    appName: "Calepin", settings: "Mipangilio", back: "Rudi",
+    filterAllCat: "Jamii zote", filterAllPeriod: "Muda wowote",
+    period7: "Siku 7 zilizopita", period30: "Siku 30 zilizopita", search: "Tafuta (alama, maudhui)",
+    emptyTitle: "Hakuna ziara bado.", emptyBody: "Gusa + kuunda ziara ya kwanza \u2014 sauti, picha na maelezo huongezwa baadaye.",
+    newVisit: "Ziara mpya", category: "Jamii", newCategory: "Mpya",
+    newCategoryPrompt: "Jina la jamii mpya:",
+    landmark: "Alama (anwani, rejeleo, jina)", landmarkPh: "Mfano: Nyumba mtaa X, Toyota RAV4...",
+    date: "Tarehe", createVisit: "Unda ziara", visitCreated: "Ziara imeundwa",
+    cat_immobilier: "Mali isiyohamishika", cat_vehicule: "Gari", cat_technique: "Kiufundi", cat_autre: "Nyingine",
+    addAudio: "Rekodi", addPhoto: "Picha", addText: "Maandishi",
+    captureHint: "Ongea wazi, wazo moja kwa wakati.",
+    entryLabelPrompt: "Peana jina la alama (hiari):",
+    transcriptPh: "Nakala (kukamilika)...", textEntryPh: "Andika uchunguzi wako...",
+    save: "Hifadhi", cancel: "Ghairi",
+    consolidate: "Unganisha / Ripoti", exportVisit: "Hamisha ziara hii", deleteVisit: "Futa ziara",
+    confirmDeleteVisit: "Futa kabisa ziara hii na faili zake zote?",
+    deletedVisit: "Ziara imefutwa", exportLaunched: "Uhamishaji umeanza",
+    micDenied: "Ufikiaji wa maikrofoni umekataliwa.", micUnavailable: "Maikrofoni haipatikani kwenye kifaa hiki.",
+    photoUnreadable: "Picha haisomeki, imerukwa.", photosAdded: "Picha zimeongezwa", audioSaved: "Sauti imehifadhiwa",
+    noEntries: "Hakuna maingizo bado.",
+    reportTitle: "Ripoti", groupChrono: "Kwa mpangilio wa wakati", groupLandmark: "Kwa alama",
+    noLandmark: "Bila alama", exportReport: "Hamisha maandishi ya ripoti", reportExported: "Ripoti imehamishwa",
+    settingsLang: "Lugha", settingsQuality: "Ubora wa picha", settingsStorage: "Hifadhi",
+    qualityEco: "Kiuchumi", qualityStd: "Kawaida", qualityHi: "Kina",
+    qualityEcoSub: "~KB 80/picha \u2014 inasomeka, nyepesi sana", qualityStdSub: "~KB 250/picha \u2014 uwiano mzuri (inapendekezwa)",
+    qualityHiSub: "~KB 600/picha \u2014 ukaribiaji (mabamba, maandishi)",
+    storageUsed: "imetumika kwenye kifaa hiki", storageUnknown: "Makadirio hayapatikani kwenye kivinjari hiki.",
+    weightLabel: "maingizo"
+  }
+};
+function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
+function setLang(l){ localStorage.setItem("calepin_lang", l); }
+function t(key){
+  const lang = currentLang();
+  return (STRINGS[lang] && STRINGS[lang][key]) || STRINGS.fr[key] || key;
+}
+
+/* ============================================================
+   Cat\u00e9gories — 4 par d\u00e9faut (traduites) + personnalis\u00e9es (libres)
+   ============================================================ */
+const DEFAULT_CATEGORY_IDS = ["immobilier", "vehicule", "technique", "autre"];
+const DEFAULT_GLYPHS = { immobilier: "\u{1F3E0}", vehicule: "\u{1F697}", technique: "\u{1F527}", autre: "\u{1F4CC}" };
+function loadCategories(){
+  const custom = JSON.parse(localStorage.getItem("calepin_categories_custom") || "[]");
+  const defaults = DEFAULT_CATEGORY_IDS.map(id => ({ id, label: t("cat_" + id), glyph: DEFAULT_GLYPHS[id], custom: false }));
+  return defaults.concat(custom.map(c => ({ ...c, custom: true })));
+}
+function addCustomCategory(label){
+  const id = "c_" + Date.now();
+  const custom = JSON.parse(localStorage.getItem("calepin_categories_custom") || "[]");
+  custom.push({ id, label, glyph: "\u{1F4CB}" });
+  localStorage.setItem("calepin_categories_custom", JSON.stringify(custom));
+  return id;
+}
+function catById(id){
+  const found = loadCategories().find(c => c.id === id);
+  return found || { id: "autre", label: t("cat_autre"), glyph: DEFAULT_GLYPHS.autre };
+}
+
+/* ============================================================
+   R\u00e9glages qualit\u00e9 photo
+   ============================================================ */
+const QUALITY_LEVELS = {
+  eco:  { maxDim: 800,  quality: 0.60 },
+  std:  { maxDim: 1600, quality: 0.75 },
+  hi:   { maxDim: 2400, quality: 0.85 }
+};
+function currentQuality(){ return localStorage.getItem("calepin_quality") || "std"; }
+function setQuality(q){ localStorage.setItem("calepin_quality", q); }
+
+/* ============================================================
+   IndexedDB — visits (m\u00e9tadonn\u00e9es) + entries (audio/photo/texte)
+   ============================================================ */
+const DB_NAME = "calepin";
+const DB_VERSION = 1;
+let dbPromise = null;
+
+function openDB(){
+  if(dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains("visits")) db.createObjectStore("visits", { keyPath: "uid" });
+      if(!db.objectStoreNames.contains("entries")){
+        const store = db.createObjectStore("entries", { keyPath: "id" });
+        store.createIndex("visitUid", "visitUid", { unique: false });
+      }
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e.target.error);
+  });
+  return dbPromise;
+}
+function tx(storeName, mode){ return openDB().then(db => db.transaction(storeName, mode).objectStore(storeName)); }
+function idbPut(storeName, value){
+  return tx(storeName, "readwrite").then(store => new Promise((resolve, reject) => {
+    const r = store.put(value); r.onsuccess = () => resolve(value); r.onerror = () => reject(r.error);
+  }));
+}
+function idbDelete(storeName, key){
+  return tx(storeName, "readwrite").then(store => new Promise((resolve, reject) => {
+    const r = store.delete(key); r.onsuccess = () => resolve(); r.onerror = () => reject(r.error);
+  }));
+}
+function idbGetAll(storeName){
+  return tx(storeName, "readonly").then(store => new Promise((resolve, reject) => {
+    const r = store.getAll(); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error);
+  }));
+}
+function idbGet(storeName, key){
+  return tx(storeName, "readonly").then(store => new Promise((resolve, reject) => {
+    const r = store.get(key); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error);
+  }));
+}
+function idbGetByIndex(storeName, indexName, value){
+  return tx(storeName, "readonly").then(store => new Promise((resolve, reject) => {
+    const r = store.index(indexName).getAll(value); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error);
+  }));
+}
+function uid(){
+  if(crypto.randomUUID) return crypto.randomUUID();
+  return "u_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+}
+
+/* ============================================================
+   Utilitaires
+   ============================================================ */
+function fmtDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString(currentLang() === "en" ? "en-GB" : "fr-FR", { day:"2-digit", month:"2-digit", year:"numeric" });
+}
+function fmtTime(ts){
+  const d = new Date(ts);
+  return d.toLocaleTimeString(currentLang() === "en" ? "en-GB" : "fr-FR", { hour:"2-digit", minute:"2-digit" });
+}
+function fmtDateTime(iso){
+  const d = new Date(iso);
+  return fmtDate(iso) + " \u00b7 " + fmtTime(d.getTime());
+}
+function escapeHtml(s){
+  return (s || "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+function fmtBytes(n){
+  if(n < 1024) return n + " o";
+  if(n < 1024*1024) return (n/1024).toFixed(0) + " Ko";
+  return (n/(1024*1024)).toFixed(1) + " Mo";
+}
+let toastTimer = null;
+function showToast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+function compressImage(file, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      let { width, height } = img;
+      if(width > height && width > maxDim){ height = Math.round(height * maxDim / width); width = maxDim; }
+      else if(height > maxDim){ width = Math.round(width * maxDim / height); height = maxDim; }
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => { URL.revokeObjectURL(url); if(blob) resolve(blob); else reject(new Error("compress")); }, "image/jpeg", quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("unreadable")); };
+    img.src = url;
+  });
+}
+function bestAudioMime(){
+  const candidates = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg"];
+  for(const c of candidates){
+    if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)) return c;
+  }
+  return "";
+}
+/* Tentative de position GPS silencieuse, best-effort — n'interrompt jamais la capture */
+function tryGetPosition(){
+  return new Promise(resolve => {
+    if(!navigator.geolocation){ resolve(null); return; }
+    let done = false;
+    const finish = (v) => { if(!done){ done = true; resolve(v); } };
+    navigator.geolocation.getCurrentPosition(
+      pos => finish({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => finish(null),
+      { enableHighAccuracy: true, timeout: 6000 }
+    );
+    setTimeout(() => finish(null), 6500);
+  });
+}
+
+/* ============================================================
+   Routeur : #home | #new | #visit/<uid> | #report/<uid> | #settings
+   ============================================================ */
+const main = document.getElementById("main");
+const pageTitle = document.getElementById("pageTitle");
+const btnBack = document.getElementById("btnBack");
+const btnSettings = document.getElementById("btnSettings");
+const fabNew = document.getElementById("fabNew");
+
+window.addEventListener("hashchange", route);
+btnBack.addEventListener("click", () => { window.location.hash = "#home"; });
+btnSettings.addEventListener("click", () => { window.location.hash = "#settings"; });
+fabNew.addEventListener("click", () => { window.location.hash = "#new"; });
+
+function route(){
+  const hash = window.location.hash || "#home";
+  pageTitle.textContent = t("appName");
+  if(hash === "#home"){
+    btnBack.hidden = true; fabNew.hidden = false;
+    renderHome();
+  } else if(hash === "#new"){
+    btnBack.hidden = false; fabNew.hidden = true; pageTitle.textContent = t("newVisit");
+    renderNewVisit();
+  } else if(hash === "#settings"){
+    btnBack.hidden = false; fabNew.hidden = true; pageTitle.textContent = t("settings");
+    renderSettings();
+  } else if(hash.startsWith("#report/")){
+    btnBack.hidden = false; fabNew.hidden = true; pageTitle.textContent = t("reportTitle");
+    renderReport(hash.slice(8));
+  } else if(hash.startsWith("#visit/")){
+    btnBack.hidden = false; fabNew.hidden = true;
+    renderVisitDetail(hash.slice(7));
+  } else {
+    window.location.hash = "#home";
+  }
+}
+
+/* ============================================================
+   Vue : accueil
+   ============================================================ */
+let filterState = { category: "", search: "", period: "" };
+
+async function renderHome(){
+  main.innerHTML = "";
+  const filters = document.createElement("div");
+  filters.className = "filters";
+  const cats = loadCategories();
+  filters.innerHTML = `
+    <select id="fCat">
+      <option value="">${t("filterAllCat")}</option>
+      ${cats.map(c => `<option value="${c.id}">${c.glyph} ${escapeHtml(c.label)}</option>`).join("")}
+    </select>
+    <select id="fPeriod">
+      <option value="">${t("filterAllPeriod")}</option>
+      <option value="7">${t("period7")}</option>
+      <option value="30">${t("period30")}</option>
+    </select>
+    <input type="search" id="fSearch" placeholder="${t("search")}">
+  `;
+  main.appendChild(filters);
+  const listEl = document.createElement("div");
+  listEl.className = "visit-list";
+  main.appendChild(listEl);
+
+  filters.querySelector("#fCat").value = filterState.category;
+  filters.querySelector("#fPeriod").value = filterState.period;
+  filters.querySelector("#fSearch").value = filterState.search;
+  filters.querySelector("#fCat").addEventListener("change", e => { filterState.category = e.target.value; refreshList(); });
+  filters.querySelector("#fPeriod").addEventListener("change", e => { filterState.period = e.target.value; refreshList(); });
+  filters.querySelector("#fSearch").addEventListener("input", e => { filterState.search = e.target.value; refreshList(); });
+
+  async function refreshList(){
+    let visits = await idbGetAll("visits");
+    visits.sort((a,b) => new Date(b.date) - new Date(a.date));
+    if(filterState.category) visits = visits.filter(v => v.category === filterState.category);
+    if(filterState.period){
+      const cutoff = Date.now() - Number(filterState.period) * 86400000;
+      visits = visits.filter(v => new Date(v.date).getTime() >= cutoff);
+    }
+    let entriesByVisit = {};
+    if(filterState.search){
+      const q = filterState.search.toLowerCase();
+      const kept = [];
+      for(const v of visits){
+        const entries = await idbGetByIndex("entries", "visitUid", v.uid);
+        entriesByVisit[v.uid] = entries;
+        const hay = [v.tag, ...entries.map(e => e.text || ""), ...entries.map(e => e.label || "")].join(" ").toLowerCase();
+        if(hay.includes(q)) kept.push(v);
+      }
+      visits = kept;
+    }
+
+    if(visits.length === 0){
+      listEl.innerHTML = `<div class="empty-state"><div class="glyph">\u{1F4D3}</div><p><strong>${t("emptyTitle")}</strong></p><p>${t("emptyBody")}</p></div>`;
+      return;
+    }
+    listEl.innerHTML = "";
+    for(const v of visits){
+      const cat = catById(v.category);
+      const entries = entriesByVisit[v.uid] || await idbGetByIndex("entries", "visitUid", v.uid);
+      const nAudio = entries.filter(e => e.kind === "audio").length;
+      const nPhoto = entries.filter(e => e.kind === "photo").length;
+      const nText = entries.filter(e => e.kind === "texte").length;
+      const card = document.createElement("button");
+      card.className = "visit-card";
+      card.innerHTML = `
+        <div class="glyph">${cat.glyph}</div>
+        <div class="info">
+          <div class="tag">${escapeHtml(v.tag) || cat.label}</div>
+          <div class="meta">${fmtDate(v.date)}</div>
+        </div>
+        <div class="counts">
+          ${nAudio ? `<span>\u{1F3A4} ${nAudio}</span>` : ""}
+          ${nPhoto ? `<span>\u{1F4F7} ${nPhoto}</span>` : ""}
+          ${nText ? `<span>\u{1F4DD} ${nText}</span>` : ""}
+        </div>
+      `;
+      card.addEventListener("click", () => { window.location.hash = "#visit/" + v.uid; });
+      listEl.appendChild(card);
+    }
+  }
+  refreshList();
+}
+
+/* ============================================================
+   Vue : nouvelle visite (plus de GPS unique ici)
+   ============================================================ */
+function renderNewVisit(){
+  main.innerHTML = "";
+  let selectedCat = loadCategories()[0].id;
+  const now = new Date();
+  const dateVal = now.toISOString().slice(0,10);
+
+  const form = document.createElement("div");
+  form.innerHTML = `
+    <div class="field"><label>${t("category")}</label><div class="cat-grid" id="catGrid"></div></div>
+    <div class="field"><label for="fTag">${t("landmark")}</label><input type="text" id="fTag" placeholder="${t("landmarkPh")}"></div>
+    <div class="field"><label for="fDate">${t("date")}</label><input type="date" id="fDate" value="${dateVal}"></div>
+    <div class="form-actions"><button class="btn primary" id="btnCreate" style="width:100%">${t("createVisit")}</button></div>
+  `;
+  main.appendChild(form);
+
+  function renderCatGrid(){
+    const grid = form.querySelector("#catGrid");
+    const cats = loadCategories();
+    grid.innerHTML = cats.map(c => `
+      <button type="button" class="cat-btn ${c.id === selectedCat ? "selected" : ""}" data-id="${c.id}">
+        <span class="glyph">${c.glyph}</span>${escapeHtml(c.label)}
+      </button>
+    `).join("") + `<button type="button" class="cat-btn add-new" id="btnAddCat"><span class="glyph">+</span>${t("newCategory")}</button>`;
+    grid.querySelectorAll(".cat-btn[data-id]").forEach(btn => {
+      btn.addEventListener("click", () => { selectedCat = btn.dataset.id; renderCatGrid(); });
+    });
+    grid.querySelector("#btnAddCat").addEventListener("click", () => {
+      const label = prompt(t("newCategoryPrompt"));
+      if(label && label.trim()){ selectedCat = addCustomCategory(label.trim()); renderCatGrid(); }
+    });
+  }
+  renderCatGrid();
+
+  form.querySelector("#btnCreate").addEventListener("click", async () => {
+    const tag = form.querySelector("#fTag").value.trim();
+    const dateStr = form.querySelector("#fDate").value || dateVal;
+    const visit = {
+      uid: uid(), category: selectedCat, tag,
+      date: new Date(dateStr + "T" + now.toTimeString().slice(0,8)).toISOString(),
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+    };
+    await idbPut("visits", visit);
+    showToast(t("visitCreated"));
+    window.location.hash = "#visit/" + visit.uid;
+  });
+}
+
+/* ============================================================
+   Vue : d\u00e9tail d'une visite — entr\u00e9es unifi\u00e9es (audio/photo/texte)
+   ============================================================ */
+let mediaRecorder = null, recordedChunks = [], recordStart = null, recordTimerInterval = null, activeStream = null;
+const WEIGHT_WARN = 30 * 1024 * 1024, WEIGHT_DANGER = 80 * 1024 * 1024;
+
+async function renderVisitDetail(uidVal){
+  const visit = await idbGet("visits", uidVal);
+  if(!visit){ window.location.hash = "#home"; return; }
+  const cat = catById(visit.category);
+
+  main.innerHTML = "";
+  const head = document.createElement("div");
+  head.className = "detail-head";
+  head.innerHTML = `
+    <div class="cat-line">${cat.glyph} ${escapeHtml(cat.label)}</div>
+    <h2>${escapeHtml(visit.tag) || "\u2014"}</h2>
+    <div class="meta">${fmtDateTime(visit.date)}</div>
+  `;
+  main.appendChild(head);
+
+  const weightBanner = document.createElement("div");
+  weightBanner.className = "weight-banner";
+  weightBanner.id = "weightBanner";
+  main.appendChild(weightBanner);
+
+  const addRow = document.createElement("div");
+  addRow.className = "add-row";
+  addRow.innerHTML = `
+    <button class="btn" id="btnRec">\u{1F3A4} ${t("addAudio")}</button>
+    <button class="btn" id="btnAddPhoto">\u{1F4F7} ${t("addPhoto")}</button>
+    <button class="btn" id="btnAddText">\u{1F4DD} ${t("addText")}</button>
+    <input type="file" id="photoInput" accept="image/*" capture="environment" multiple class="sr-only">
+  `;
+  main.appendChild(addRow);
+
+  const recStatus = document.createElement("div");
+  recStatus.className = "rec-status";
+  recStatus.id = "recStatus";
+  main.appendChild(recStatus);
+
+  const hint = document.createElement("p");
+  hint.className = "capture-hint";
+  hint.textContent = t("captureHint");
+  main.appendChild(hint);
+
+  const entryList = document.createElement("div");
+  entryList.className = "entry-list";
+  main.appendChild(entryList);
+
+  const bottomActions = document.createElement("div");
+  bottomActions.className = "section";
+  bottomActions.style.marginTop = "22px";
+  bottomActions.innerHTML = `
+    <button class="btn primary" id="btnConsolidate" style="width:100%; margin-bottom:10px;">\u{1F4D1} ${t("consolidate")}</button>
+    <button class="btn" id="btnExport" style="width:100%; margin-bottom:10px;">\u{1F4E4} ${t("exportVisit")}</button>
+    <button class="btn danger" id="btnDelete" style="width:100%;">${t("deleteVisit")}</button>
+  `;
+  main.appendChild(bottomActions);
+  bottomActions.querySelector("#btnConsolidate").addEventListener("click", () => { window.location.hash = "#report/" + visit.uid; });
+  bottomActions.querySelector("#btnExport").addEventListener("click", () => exportVisit(visit));
+  bottomActions.querySelector("#btnDelete").addEventListener("click", () => deleteVisit(visit));
+
+  async function refreshWeight(){
+    const entries = await idbGetByIndex("entries", "visitUid", visit.uid);
+    let bytes = 0;
+    for(const e of entries) if(e.blob) bytes += e.blob.size;
+    const banner = document.getElementById("weightBanner");
+    banner.classList.remove("warn", "danger");
+    if(bytes >= WEIGHT_DANGER) banner.classList.add("danger");
+    else if(bytes >= WEIGHT_WARN) banner.classList.add("warn");
+    banner.innerHTML = `<span>${entries.length} ${t("weightLabel")}</span><span>${fmtBytes(bytes)}</span>`;
+  }
+
+  async function refreshEntries(){
+    const entries = await idbGetByIndex("entries", "visitUid", visit.uid);
+    entries.sort((a,b) => a.timestamp - b.timestamp);
+    entryList.innerHTML = "";
+    if(entries.length === 0){
+      entryList.innerHTML = `<p class="capture-hint">${t("noEntries")}</p>`;
+    }
+    for(const entry of entries){
+      const card = document.createElement("div");
+      card.className = "entry-card";
+      const glyph = entry.kind === "audio" ? "\u{1F3A4}" : entry.kind === "photo" ? "\u{1F4F7}" : "\u{1F4DD}";
+      const gpsStr = entry.location ? entry.location.lat.toFixed(5) + ", " + entry.location.lng.toFixed(5) : "";
+      card.innerHTML = `
+        <div class="entry-head">
+          <span class="entry-meta">${glyph} ${fmtTime(entry.timestamp)}
+            ${entry.label ? " \u00b7 " + escapeHtml(entry.label) : ""}
+            ${gpsStr ? " \u00b7 \u{1F4CD} " + gpsStr : ""}
+          </span>
+          <button class="del" aria-label="Delete">\u2715</button>
+        </div>
+        <div class="entry-body"></div>
+        <button class="label-btn" data-act="label">${entry.label ? "\u270f\ufe0f" : "+ " + t("entryLabelPrompt").replace(" :","").replace(":","")}</button>
+      `;
+      const body = card.querySelector(".entry-body");
+      if(entry.kind === "audio"){
+        const url = URL.createObjectURL(entry.blob);
+        body.innerHTML = `<audio controls src="${url}"></audio><textarea placeholder="${t("transcriptPh")}">${escapeHtml(entry.text || "")}</textarea>`;
+        let tTimer = null;
+        body.querySelector("textarea").addEventListener("input", (e) => {
+          clearTimeout(tTimer);
+          tTimer = setTimeout(async () => { entry.text = e.target.value; await idbPut("entries", entry); }, 500);
+        });
+      } else if(entry.kind === "photo"){
+        const url = URL.createObjectURL(entry.blob);
+        body.innerHTML = `<img src="${url}" alt="">`;
+      } else {
+        body.innerHTML = `<textarea>${escapeHtml(entry.text || "")}</textarea>`;
+        let tTimer = null;
+        body.querySelector("textarea").addEventListener("input", (e) => {
+          clearTimeout(tTimer);
+          tTimer = setTimeout(async () => { entry.text = e.target.value; await idbPut("entries", entry); }, 500);
+        });
+      }
+      card.querySelector(".del").addEventListener("click", async () => {
+        await idbDelete("entries", entry.id);
+        refreshEntries(); refreshWeight();
+      });
+      card.querySelector('[data-act="label"]').addEventListener("click", async () => {
+        const val = prompt(t("entryLabelPrompt"), entry.label || "");
+        if(val !== null){ entry.label = val.trim(); await idbPut("entries", entry); refreshEntries(); }
+      });
+      entryList.appendChild(card);
+    }
+  }
+
+  addRow.querySelector("#btnAddText").addEventListener("click", async () => {
+    const text = prompt(t("textEntryPh"));
+    if(text && text.trim()){
+      const location = await tryGetPosition();
+      await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "texte", text: text.trim(), label: "", location, timestamp: Date.now() });
+      refreshEntries(); refreshWeight();
+    }
+  });
+
+  addRow.querySelector("#btnAddPhoto").addEventListener("click", () => main.querySelector("#photoInput").click());
+  main.querySelector("#photoInput").addEventListener("change", async (e) => {
+    const files = Array.from(e.target.files || []);
+    const q = QUALITY_LEVELS[currentQuality()] || QUALITY_LEVELS.std;
+    let added = 0;
+    for(const file of files){
+      try{
+        const blob = await compressImage(file, q.maxDim, q.quality);
+        const location = await tryGetPosition();
+        await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "photo", blob, label: "", location, timestamp: Date.now() });
+        added++;
+      }catch(err){ showToast(t("photoUnreadable")); }
+    }
+    e.target.value = "";
+    refreshEntries(); refreshWeight();
+    if(added) showToast(t("photosAdded"));
+  });
+
+  addRow.querySelector("#btnRec").addEventListener("click", () => toggleRecording(visit.uid));
+
+  async function toggleRecording(visitUid){
+    const btn = addRow.querySelector("#btnRec");
+    if(mediaRecorder && mediaRecorder.state === "recording"){ mediaRecorder.stop(); return; }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ showToast(t("micUnavailable")); return; }
+    try{ activeStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch(err){ showToast(t("micDenied")); return; }
+    const mime = bestAudioMime();
+    mediaRecorder = mime ? new MediaRecorder(activeStream, { mimeType: mime }) : new MediaRecorder(activeStream);
+    recordedChunks = [];
+    mediaRecorder.ondataavailable = (e) => { if(e.data && e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      clearInterval(recordTimerInterval);
+      recStatus.innerHTML = "";
+      btn.textContent = "\u{1F3A4} " + t("addAudio");
+      activeStream.getTracks().forEach(tr => tr.stop());
+      const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "audio/webm" });
+      if(blob.size > 0){
+        const location = await tryGetPosition();
+        await idbPut("entries", { id: uid(), visitUid, kind: "audio", blob, text: "", label: "", location, timestamp: Date.now() });
+        refreshEntries(); refreshWeight();
+        showToast(t("audioSaved"));
+      }
+    };
+    mediaRecorder.start();
+    recordStart = Date.now();
+    btn.textContent = "\u23F9";
+    recStatus.innerHTML = `<span class="rec-timer" id="recTimer">00:00</span>`;
+    recordTimerInterval = setInterval(() => {
+      const s = Math.floor((Date.now() - recordStart) / 1000);
+      const el = document.getElementById("recTimer");
+      if(el) el.textContent = String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0");
+    }, 250);
+  }
+
+  async function exportVisit(v){
+    const entries = await idbGetByIndex("entries", "visitUid", v.uid);
+    entries.sort((a,b) => a.timestamp - b.timestamp);
+    const reportText = buildReportText(v, entries, "chrono");
+    downloadBlob(new Blob([reportText], { type: "text/plain;charset=utf-8" }), safeFileName(v.tag || v.uid) + "_rapport.txt");
+    const manifest = {
+      uid: v.uid, category: catById(v.category).label, tag: v.tag, date: v.date,
+      entries: entries.map((e,i) => ({
+        type: e.kind, horodatage: new Date(e.timestamp).toISOString(), repere: e.label || null,
+        position: e.location || null, texte: e.text || null,
+        fichier: e.blob ? (e.kind === "audio" ? "audio_" : "photo_") + (i+1) + extFor(e) : null
+      }))
+    };
+    downloadBlob(new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" }), safeFileName(v.tag || v.uid) + "_donnees.json");
+    entries.forEach((e, i) => {
+      if(!e.blob) return;
+      downloadBlob(e.blob, safeFileName(v.tag || v.uid) + "_" + (e.kind === "audio" ? "audio_" : "photo_") + (i+1) + extFor(e));
+    });
+    showToast(t("exportLaunched"));
+  }
+  function extFor(e){
+    if(e.kind === "photo") return ".jpg";
+    const type = (e.blob && e.blob.type) || "";
+    if(type.includes("mp4")) return ".m4a";
+    if(type.includes("ogg")) return ".ogg";
+    return ".webm";
+  }
+  function safeFileName(s){
+    return (s || "visite").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9-_]+/g, "_").slice(0, 40);
+  }
+  function downloadBlob(blob, filename){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+  async function deleteVisit(v){
+    if(!confirm(t("confirmDeleteVisit"))) return;
+    const entries = await idbGetByIndex("entries", "visitUid", v.uid);
+    for(const e of entries) await idbDelete("entries", e.id);
+    await idbDelete("visits", v.uid);
+    showToast(t("deletedVisit"));
+    window.location.hash = "#home";
+  }
+
+  refreshWeight();
+  refreshEntries();
+}
+
+/* ============================================================
+   Assemblage d\u00e9terministe du rapport (texte, pas de mise en page)
+   ============================================================ */
+function buildReportText(visit, entries, groupBy){
+  const cat = catById(visit.category);
+  let out = (visit.tag || cat.label) + "\n" + fmtDate(visit.date) + " \u00b7 " + cat.label + "\n" + "=".repeat(40) + "\n\n";
+  const lineFor = (e) => {
+    const time = fmtTime(e.timestamp);
+    const gps = e.location ? " [" + e.location.lat.toFixed(5) + ", " + e.location.lng.toFixed(5) + "]" : "";
+    if(e.kind === "photo") return "- " + time + gps + " \u2014 [photo]" + (e.text ? " " + e.text : "");
+    const content = e.text && e.text.trim() ? e.text.trim() : "(" + t("transcriptPh") + ")";
+    return "- " + time + gps + " \u2014 " + content;
+  };
+  if(groupBy === "landmark"){
+    const groups = {};
+    for(const e of entries){
+      const key = e.label && e.label.trim() ? e.label.trim() : t("noLandmark");
+      (groups[key] = groups[key] || []).push(e);
+    }
+    for(const key of Object.keys(groups)){
+      out += key + "\n" + "-".repeat(key.length) + "\n";
+      for(const e of groups[key]) out += lineFor(e) + "\n";
+      out += "\n";
+    }
+  } else {
+    for(const e of entries) out += lineFor(e) + "\n";
+  }
+  return out;
+}
+
+/* ============================================================
+   Vue : rapport / consolidation (consultation en app)
+   ============================================================ */
+async function renderReport(uidVal){
+  const visit = await idbGet("visits", uidVal);
+  if(!visit){ window.location.hash = "#home"; return; }
+  const cat = catById(visit.category);
+  let groupBy = "chrono";
+
+  main.innerHTML = "";
+  const head = document.createElement("div");
+  head.className = "detail-head";
+  head.innerHTML = `<div class="cat-line">${cat.glyph} ${escapeHtml(cat.label)}</div><h2>${escapeHtml(visit.tag) || "\u2014"}</h2><div class="meta">${fmtDate(visit.date)}</div>`;
+  main.appendChild(head);
+
+  const toggle = document.createElement("div");
+  toggle.className = "group-toggle";
+  toggle.innerHTML = `<button data-g="chrono" class="active">${t("groupChrono")}</button><button data-g="landmark">${t("groupLandmark")}</button>`;
+  main.appendChild(toggle);
+
+  const body = document.createElement("div");
+  main.appendChild(body);
+
+  const exportBtn = document.createElement("button");
+  exportBtn.className = "btn"; exportBtn.style.width = "100%"; exportBtn.style.marginTop = "18px";
+  exportBtn.textContent = "\u{1F4E4} " + t("exportReport");
+  main.appendChild(exportBtn);
+
+  async function render(){
+    const entries = (await idbGetByIndex("entries", "visitUid", visit.uid)).sort((a,b) => a.timestamp - b.timestamp);
+    body.innerHTML = "";
+    if(entries.length === 0){
+      body.innerHTML = `<p class="capture-hint">${t("noEntries")}</p>`;
+      return;
+    }
+    const renderEntry = (e) => {
+      const div = document.createElement("div");
+      div.className = "report-entry";
+      const gps = e.location ? " \u00b7 \u{1F4CD} " + e.location.lat.toFixed(5) + ", " + e.location.lng.toFixed(5) : "";
+      let inner = `<span class="rmeta">${fmtTime(e.timestamp)}${gps}</span>`;
+      if(e.kind === "photo"){
+        const url = URL.createObjectURL(e.blob);
+        inner += `<img src="${url}" alt="">`;
+      } else {
+        inner += escapeHtml(e.text && e.text.trim() ? e.text.trim() : "(" + t("transcriptPh") + ")");
+      }
+      div.innerHTML = inner;
+      return div;
+    };
+    if(groupBy === "landmark"){
+      const groups = {};
+      for(const e of entries){
+        const key = e.label && e.label.trim() ? e.label.trim() : t("noLandmark");
+        (groups[key] = groups[key] || []).push(e);
+      }
+      for(const key of Object.keys(groups)){
+        const g = document.createElement("div");
+        g.className = "report-group";
+        const h = document.createElement("h3"); h.textContent = key; g.appendChild(h);
+        for(const e of groups[key]) g.appendChild(renderEntry(e));
+        body.appendChild(g);
+      }
+    } else {
+      const g = document.createElement("div");
+      g.className = "report-group";
+      for(const e of entries) g.appendChild(renderEntry(e));
+      body.appendChild(g);
+    }
+  }
+
+  toggle.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      groupBy = btn.dataset.g;
+      toggle.querySelectorAll("button").forEach(b => b.classList.toggle("active", b === btn));
+      render();
+    });
+  });
+
+  exportBtn.addEventListener("click", async () => {
+    const entries = (await idbGetByIndex("entries", "visitUid", visit.uid)).sort((a,b) => a.timestamp - b.timestamp);
+    const txt = buildReportText(visit, entries, groupBy);
+    const url = URL.createObjectURL(new Blob([txt], { type: "text/plain;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = (visit.tag || "rapport").replace(/[^a-zA-Z0-9-_]+/g, "_").slice(0,40) + "_rapport.txt";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    showToast(t("reportExported"));
+  });
+
+  render();
+}
+
+/* ============================================================
+   Vue : r\u00e9glages (langue, qualit\u00e9 photo, stockage)
+   ============================================================ */
+async function renderSettings(){
+  main.innerHTML = "";
+
+  const langGroup = document.createElement("div");
+  langGroup.className = "settings-group";
+  langGroup.innerHTML = `<h3>${t("settingsLang")}</h3><div class="lang-grid" id="langGrid"></div>`;
+  main.appendChild(langGroup);
+  const langs = [["fr","Fran\u00e7ais"],["en","English"],["sw","Kiswahili"]];
+  function renderLangGrid(){
+    const grid = langGroup.querySelector("#langGrid");
+    grid.innerHTML = langs.map(([id,label]) => `<button class="opt-btn ${currentLang()===id?"selected":""}" data-lang="${id}">${label}</button>`).join("");
+    grid.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => { setLang(btn.dataset.lang); route(); });
+    });
+  }
+  renderLangGrid();
+
+  const qualGroup = document.createElement("div");
+  qualGroup.className = "settings-group";
+  qualGroup.innerHTML = `<h3>${t("settingsQuality")}</h3><div class="quality-grid" id="qualGrid"></div>`;
+  main.appendChild(qualGroup);
+  const qualities = [["eco", t("qualityEco"), t("qualityEcoSub")], ["std", t("qualityStd"), t("qualityStdSub")], ["hi", t("qualityHi"), t("qualityHiSub")]];
+  function renderQualGrid(){
+    const grid = qualGroup.querySelector("#qualGrid");
+    grid.innerHTML = qualities.map(([id,label,sub]) => `
+      <button class="opt-btn ${currentQuality()===id?"selected":""}" data-q="${id}">
+        <span>${label}</span><span class="sub">${sub}</span>
+      </button>`).join("");
+    grid.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => { setQuality(btn.dataset.q); renderQualGrid(); });
+    });
+  }
+  renderQualGrid();
+
+  const storageGroup = document.createElement("div");
+  storageGroup.className = "settings-group";
+  storageGroup.innerHTML = `<h3>${t("settingsStorage")}</h3><div class="storage-line" id="storageLine">\u2026</div>`;
+  main.appendChild(storageGroup);
+  if(navigator.storage && navigator.storage.estimate){
+    try{
+      const est = await navigator.storage.estimate();
+      storageGroup.querySelector("#storageLine").textContent = fmtBytes(est.usage || 0) + " " + t("storageUsed");
+    }catch(e){
+      storageGroup.querySelector("#storageLine").textContent = t("storageUnknown");
+    }
+  } else {
+    storageGroup.querySelector("#storageLine").textContent = t("storageUnknown");
+  }
+}
+
+/* ============================================================
+   Service worker + d\u00e9marrage
+   ============================================================ */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+}
+
+route();
+})();
+</script>
+</body>
+</html>
