@@ -247,7 +247,7 @@ const STRINGS = {
     dictationErrorNetwork: "pas de r\u00e9seau", dictationErrorNoSpeech: "aucune voix d\u00e9tect\u00e9e",
     dictationErrorOther: "erreur",
     transcribeLight: "\u{1F50A} Transcrire (l\u00e9ger)", transcribeAI: "\u{1F916} Transcrire (IA)",
-    transcribeLightRunning: "\u00c9coute en cours\u2026 gardez le t\u00e9l\u00e9phone au calme, pas d'\u00e9couteurs.",
+    transcribeLightRunning: "\u00c9coute en cours\u2026 volume au max, pas d'\u00e9couteurs, endroit calme.",
     transcribeLightDone: "Transcription (l\u00e9g\u00e8re) termin\u00e9e", transcribeLightEmpty: "Rien capt\u00e9 \u2014 r\u00e9essayez dans un endroit plus calme, volume plus fort.",
     transcribeUnsupported: "Reconnaissance vocale non support\u00e9e sur ce navigateur.",
     transcribeAINoKey: "Ajoutez votre cl\u00e9 API OpenAI dans R\u00e9glages pour utiliser la transcription IA.",
@@ -292,7 +292,7 @@ const STRINGS = {
     dictationErrorNetwork: "no network", dictationErrorNoSpeech: "no speech detected",
     dictationErrorOther: "error",
     transcribeLight: "\u{1F50A} Transcribe (light)", transcribeAI: "\u{1F916} Transcribe (AI)",
-    transcribeLightRunning: "Listening\u2026 keep the phone quiet, no headphones.",
+    transcribeLightRunning: "Listening\u2026 volume maxed, no headphones, quiet room.",
     transcribeLightDone: "Light transcription done", transcribeLightEmpty: "Nothing captured \u2014 try a quieter spot, louder volume.",
     transcribeUnsupported: "Speech recognition not supported on this browser.",
     transcribeAINoKey: "Add your OpenAI API key in Settings to use AI transcription.",
@@ -337,7 +337,7 @@ const STRINGS = {
     dictationErrorNetwork: "hakuna mtandao", dictationErrorNoSpeech: "hakuna sauti iliyogunduliwa",
     dictationErrorOther: "hitilafu",
     transcribeLight: "\u{1F50A} Andika (nyepesi)", transcribeAI: "\u{1F916} Andika (AI)",
-    transcribeLightRunning: "Inasikiliza\u2026 weka simu kimya, bila vipokea sauti.",
+    transcribeLightRunning: "Inasikiliza\u2026 sauti kubwa zaidi, bila vipokea sauti, mahali kimya.",
     transcribeLightDone: "Uandishi (nyepesi) umekamilika", transcribeLightEmpty: "Hakuna kilichopatikana \u2014 jaribu mahali kimya zaidi, sauti kubwa zaidi.",
     transcribeUnsupported: "Utambuzi wa sauti haupatikani kwenye kivinjari hiki.",
     transcribeAINoKey: "Ongeza ufunguo wako wa API wa OpenAI kwenye Mipangilio kutumia uandishi wa AI.",
@@ -934,6 +934,26 @@ async function renderVisitDetail(uidVal){
     return t("dictationErrorOther") + " (" + code + ")";
   }
 
+  /* Astuce connue pour le bug MediaRecorder/Chrome : la dur\u00e9e d'un blob .webm est souvent
+     fausse (Infinity ou une valeur aberrante) tant qu'on n'a pas "forc\u00e9" une lecture/seek.
+     Avancer artificiellement la t\u00eate de lecture puis revenir \u00e0 z\u00e9ro corrige la m\u00e9tadonn\u00e9e
+     ET fiabilise ensuite l'\u00e9v\u00e9nement 'ended'. */
+  function primeAudioDuration(audioEl){
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = () => { if(!done){ done = true; resolve(); } };
+      const fix = () => {
+        try{
+          audioEl.currentTime = 1e9;
+          audioEl.ontimeupdate = () => { audioEl.ontimeupdate = null; audioEl.currentTime = 0; finish(); };
+        }catch(e){ finish(); }
+      };
+      if(audioEl.readyState > 0) fix();
+      else audioEl.addEventListener("loadedmetadata", fix, { once: true });
+      setTimeout(finish, 1500);
+    });
+  }
+
   async function transcribeLight(entry, bodyEl){
     const SpeechRecCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
     if(!SpeechRecCtor){ showToast(t("transcribeUnsupported")); return; }
@@ -971,10 +991,15 @@ async function renderVisitDetail(uidVal){
 
     try{ rec.start(); }catch(err){ statusEl.hidden = true; buttons.forEach(b => b.disabled = false); showToast(t("dictationErrorPrefix") + " : " + t("dictationErrorOther")); return; }
     audioEl.currentTime = 0;
+    audioEl.volume = 1.0;
+    await primeAudioDuration(audioEl);
+    // Filet de s\u00e9curit\u00e9 fixe (pas bas\u00e9 sur la m\u00e9tadonn\u00e9e, prouv\u00e9e non fiable) : le plus long
+    // que peut durer une entr\u00e9e audio de terrain avant qu'on consid\u00e8re la lecture bloqu\u00e9e.
+    const HARD_CAP_MS = 5 * 60 * 1000;
     try{ await audioEl.play(); }catch(err){ /* lecture bloqu\u00e9e par le navigateur, on continue quand m\u00eame */ }
     await new Promise((resolve) => {
       audioEl.onended = resolve;
-      setTimeout(resolve, (audioEl.duration && isFinite(audioEl.duration) ? audioEl.duration * 1000 : 15000) + 1000);
+      setTimeout(resolve, HARD_CAP_MS);
     });
     try{ rec.stop(); }catch(e){}
     await waitEnd();
