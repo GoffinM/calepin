@@ -152,6 +152,9 @@
     width:100%; background: var(--surface-raised); color: var(--text); border:1px solid var(--line);
     border-radius:6px; padding:8px 10px; font-size:14px; min-height:52px; line-height:1.4;
   }
+  .transcribe-row{ display:flex; gap:8px; margin-bottom:8px; }
+  .transcribe-row .btn{ flex:1; padding:8px 6px; font-size:12px; }
+  .transcribe-status{ font-size:12px; color: var(--accent); margin: 0 0 8px 0; }
   .label-btn{ background:none; border:none; color: var(--accent); font-size:12px; cursor:pointer; padding:0; }
 
   .group-toggle{ display:flex; gap:8px; margin-bottom: 16px; }
@@ -240,12 +243,20 @@ const STRINGS = {
     storageUsed: "utilis\u00e9 sur cet appareil", storageUnknown: "Estimation indisponible sur ce navigateur.",
     weightLabel: "entr\u00e9es",
     addAudioImport: "Importer audio", audioImported: "Audio import\u00e9",
-    settingsDictation: "Dict\u00e9e en direct", dictationOn: "Activ\u00e9e", dictationOff: "D\u00e9sactiv\u00e9e",
-    dictationSub: "Remplit la transcription pendant l'enregistrement. N\u00e9cessite du r\u00e9seau ; support variable selon le t\u00e9l\u00e9phone \u2014 la transcription reste modifiable dans tous les cas.",
-    dictationHint: "Dict\u00e9e en direct active \u2014 si le r\u00e9seau manque, l'audio se garde quand m\u00eame.",
-    dictationErrorPrefix: "Dict\u00e9e indisponible", dictationErrorNoAllow: "permission micro refus\u00e9e pour la dict\u00e9e",
+    dictationErrorPrefix: "Reconnaissance indisponible", dictationErrorNoAllow: "permission micro refus\u00e9e",
     dictationErrorNetwork: "pas de r\u00e9seau", dictationErrorNoSpeech: "aucune voix d\u00e9tect\u00e9e",
-    dictationErrorOther: "erreur", dictationEmpty: "Audio enregistr\u00e9 \u2014 dict\u00e9e n'a rien captur\u00e9."
+    dictationErrorOther: "erreur",
+    transcribeLight: "\u{1F50A} Transcrire (l\u00e9ger)", transcribeAI: "\u{1F916} Transcrire (IA)",
+    transcribeLightRunning: "\u00c9coute en cours\u2026 gardez le t\u00e9l\u00e9phone au calme, pas d'\u00e9couteurs.",
+    transcribeLightDone: "Transcription (l\u00e9g\u00e8re) termin\u00e9e", transcribeLightEmpty: "Rien capt\u00e9 \u2014 r\u00e9essayez dans un endroit plus calme, volume plus fort.",
+    transcribeUnsupported: "Reconnaissance vocale non support\u00e9e sur ce navigateur.",
+    transcribeAINoKey: "Ajoutez votre cl\u00e9 API OpenAI dans R\u00e9glages pour utiliser la transcription IA.",
+    transcribeAIConfirm: "Envoyer cet audio \u00e0 OpenAI pour transcription ?",
+    transcribeAIRunning: "Transcription IA en cours\u2026", transcribeAIDone: "Transcription IA termin\u00e9e",
+    transcribeAIError: "\u00c9chec de la transcription IA",
+    settingsAI: "Transcription IA (optionnelle)",
+    settingsAIKeyLabel: "Cl\u00e9 API OpenAI", settingsAIKeySub: "Stock\u00e9e uniquement sur cet appareil (localStorage). Jamais envoy\u00e9e ailleurs qu'\u00e0 OpenAI. Facturation directe sur votre compte.",
+    settingsAICallsLabel: "Appels IA cette session"
   },
   en: {
     appName: "Calepin", settings: "Settings", back: "Back",
@@ -277,12 +288,20 @@ const STRINGS = {
     storageUsed: "used on this device", storageUnknown: "Estimate unavailable in this browser.",
     weightLabel: "entries",
     addAudioImport: "Import audio", audioImported: "Audio imported",
-    settingsDictation: "Live dictation", dictationOn: "On", dictationOff: "Off",
-    dictationSub: "Fills in the transcript while recording. Needs network; support varies by phone \u2014 the transcript stays editable either way.",
-    dictationHint: "Live dictation active \u2014 if the network drops, the audio is still kept.",
-    dictationErrorPrefix: "Dictation unavailable", dictationErrorNoAllow: "mic permission denied for dictation",
+    dictationErrorPrefix: "Recognition unavailable", dictationErrorNoAllow: "mic permission denied",
     dictationErrorNetwork: "no network", dictationErrorNoSpeech: "no speech detected",
-    dictationErrorOther: "error", dictationEmpty: "Audio saved \u2014 dictation captured nothing."
+    dictationErrorOther: "error",
+    transcribeLight: "\u{1F50A} Transcribe (light)", transcribeAI: "\u{1F916} Transcribe (AI)",
+    transcribeLightRunning: "Listening\u2026 keep the phone quiet, no headphones.",
+    transcribeLightDone: "Light transcription done", transcribeLightEmpty: "Nothing captured \u2014 try a quieter spot, louder volume.",
+    transcribeUnsupported: "Speech recognition not supported on this browser.",
+    transcribeAINoKey: "Add your OpenAI API key in Settings to use AI transcription.",
+    transcribeAIConfirm: "Send this audio to OpenAI for transcription?",
+    transcribeAIRunning: "AI transcription running\u2026", transcribeAIDone: "AI transcription done",
+    transcribeAIError: "AI transcription failed",
+    settingsAI: "AI transcription (optional)",
+    settingsAIKeyLabel: "OpenAI API key", settingsAIKeySub: "Stored only on this device (localStorage). Never sent anywhere except OpenAI. Billed directly to your account.",
+    settingsAICallsLabel: "AI calls this session"
   },
   sw: {
     appName: "Calepin", settings: "Mipangilio", back: "Rudi",
@@ -314,12 +333,20 @@ const STRINGS = {
     storageUsed: "imetumika kwenye kifaa hiki", storageUnknown: "Makadirio hayapatikani kwenye kivinjari hiki.",
     weightLabel: "maingizo",
     addAudioImport: "Leta sauti", audioImported: "Sauti imeletwa",
-    settingsDictation: "Uandishi wa moja kwa moja", dictationOn: "Imewashwa", dictationOff: "Imezimwa",
-    dictationSub: "Hujaza nakala wakati wa kurekodi. Inahitaji mtandao; usaidizi hutofautiana \u2014 nakala inabaki kuhaririwa kila wakati.",
-    dictationHint: "Uandishi wa moja kwa moja umewashwa \u2014 ikiwa mtandao haupo, sauti bado inahifadhiwa.",
-    dictationErrorPrefix: "Uandishi hapatikani", dictationErrorNoAllow: "ruhusa ya maikrofoni imekataliwa",
+    dictationErrorPrefix: "Utambuzi hapatikani", dictationErrorNoAllow: "ruhusa ya maikrofoni imekataliwa",
     dictationErrorNetwork: "hakuna mtandao", dictationErrorNoSpeech: "hakuna sauti iliyogunduliwa",
-    dictationErrorOther: "hitilafu", dictationEmpty: "Sauti imehifadhiwa \u2014 uandishi haukupata chochote."
+    dictationErrorOther: "hitilafu",
+    transcribeLight: "\u{1F50A} Andika (nyepesi)", transcribeAI: "\u{1F916} Andika (AI)",
+    transcribeLightRunning: "Inasikiliza\u2026 weka simu kimya, bila vipokea sauti.",
+    transcribeLightDone: "Uandishi (nyepesi) umekamilika", transcribeLightEmpty: "Hakuna kilichopatikana \u2014 jaribu mahali kimya zaidi, sauti kubwa zaidi.",
+    transcribeUnsupported: "Utambuzi wa sauti haupatikani kwenye kivinjari hiki.",
+    transcribeAINoKey: "Ongeza ufunguo wako wa API wa OpenAI kwenye Mipangilio kutumia uandishi wa AI.",
+    transcribeAIConfirm: "Tuma sauti hii kwa OpenAI kwa uandishi?",
+    transcribeAIRunning: "Uandishi wa AI unaendelea\u2026", transcribeAIDone: "Uandishi wa AI umekamilika",
+    transcribeAIError: "Uandishi wa AI umeshindwa",
+    settingsAI: "Uandishi wa AI (hiari)",
+    settingsAIKeyLabel: "Ufunguo wa API wa OpenAI", settingsAIKeySub: "Umehifadhiwa kwenye kifaa hiki tu (localStorage). Haitumwi popote isipokuwa OpenAI. Malipo moja kwa moja kwenye akaunti yako.",
+    settingsAICallsLabel: "Miito ya AI kikao hiki"
   }
 };
 function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
@@ -361,11 +388,16 @@ const QUALITY_LEVELS = {
 };
 function currentQuality(){ return localStorage.getItem("calepin_quality") || "std"; }
 function setQuality(q){ localStorage.setItem("calepin_quality", q); }
-function liveDictationEnabled(){ return localStorage.getItem("calepin_dictation") !== "off"; }
-function setLiveDictation(on){ localStorage.setItem("calepin_dictation", on ? "on" : "off"); }
 function speechRecogLangTag(){
   const map = { fr: "fr-FR", en: "en-US", sw: "sw-KE" };
   return map[currentLang()] || "fr-FR";
+}
+function currentOpenAIKey(){ return localStorage.getItem("calepin_openai_key") || ""; }
+function setOpenAIKey(k){ localStorage.setItem("calepin_openai_key", k); }
+function bumpAICallCount(){
+  const n = Number(sessionStorage.getItem("calepin_ai_calls") || "0") + 1;
+  sessionStorage.setItem("calepin_ai_calls", String(n));
+  return n;
 }
 
 /* ============================================================
@@ -721,9 +753,7 @@ async function renderVisitDetail(uidVal){
 
   const hint = document.createElement("p");
   hint.className = "capture-hint";
-  const SpeechRecCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
-  const dictationActive = liveDictationEnabled() && !!SpeechRecCtor;
-  hint.textContent = dictationActive ? (t("captureHint") + " " + t("dictationHint")) : t("captureHint");
+  hint.textContent = t("captureHint");
   main.appendChild(hint);
 
   const entryList = document.createElement("div");
@@ -780,12 +810,22 @@ async function renderVisitDetail(uidVal){
       const body = card.querySelector(".entry-body");
       if(entry.kind === "audio"){
         const url = URL.createObjectURL(entry.blob);
-        body.innerHTML = `<audio controls src="${url}"></audio><textarea placeholder="${t("transcriptPh")}">${escapeHtml(entry.text || "")}</textarea>`;
+        body.innerHTML = `
+          <audio controls src="${url}"></audio>
+          <div class="transcribe-row">
+            <button class="btn" data-act="transcribe-light">${t("transcribeLight")}</button>
+            <button class="btn" data-act="transcribe-ai">${t("transcribeAI")}</button>
+          </div>
+          <p class="transcribe-status" hidden></p>
+          <textarea placeholder="${t("transcriptPh")}">${escapeHtml(entry.text || "")}</textarea>
+        `;
         let tTimer = null;
         body.querySelector("textarea").addEventListener("input", (e) => {
           clearTimeout(tTimer);
           tTimer = setTimeout(async () => { entry.text = e.target.value; await idbPut("entries", entry); }, 500);
         });
+        body.querySelector('[data-act="transcribe-light"]').addEventListener("click", () => transcribeLight(entry, body));
+        body.querySelector('[data-act="transcribe-ai"]').addEventListener("click", () => transcribeAI(entry, body));
       } else if(entry.kind === "photo"){
         const url = URL.createObjectURL(entry.blob);
         body.innerHTML = `<img src="${url}" alt="">`;
@@ -849,67 +889,6 @@ async function renderVisitDetail(uidVal){
     showToast(t("audioImported"));
   });
 
-  let liveTranscript = "";
-  let interimTranscript = "";
-  let speechRecog = null;
-  let dictationErrorShown = false;
-
-  function dictationErrorLabel(code){
-    if(code === "not-allowed" || code === "service-not-allowed") return t("dictationErrorNoAllow");
-    if(code === "network") return t("dictationErrorNetwork");
-    if(code === "no-speech") return t("dictationErrorNoSpeech");
-    return t("dictationErrorOther") + " (" + code + ")";
-  }
-
-  function startLiveDictation(){
-    liveTranscript = "";
-    interimTranscript = "";
-    dictationErrorShown = false;
-    const SpeechRecCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if(!liveDictationEnabled() || !SpeechRecCtor) return;
-    try{
-      speechRecog = new SpeechRecCtor();
-      speechRecog.lang = speechRecogLangTag();
-      speechRecog.continuous = true;
-      speechRecog.interimResults = true;
-      speechRecog.onresult = (e) => {
-        let finalText = "", interimText = "";
-        for(let i = 0; i < e.results.length; i++){
-          if(e.results[i].isFinal) finalText += e.results[i][0].transcript + " ";
-          else interimText += e.results[i][0].transcript + " ";
-        }
-        if(finalText) liveTranscript = finalText.trim();
-        interimTranscript = interimText.trim();
-      };
-      speechRecog.onerror = (e) => {
-        if(!dictationErrorShown){
-          dictationErrorShown = true;
-          showToast(t("dictationErrorPrefix") + " : " + dictationErrorLabel(e.error));
-        }
-      };
-      speechRecog.start();
-    }catch(err){
-      speechRecog = null;
-      showToast(t("dictationErrorPrefix") + " : " + t("dictationErrorOther") + " (start)");
-    }
-  }
-  /* La finalisation d'un segment (isFinal) arrive de fa\u00e7on ASYNCHRONE apr\u00e8s .stop() —
-     il faut attendre 'onend' (ou un filet de s\u00e9curit\u00e9) avant de lire liveTranscript,
-     sinon le dernier segment dict\u00e9 sans pause naturelle est perdu. */
-  function stopLiveDictation(){
-    return new Promise((resolve) => {
-      if(!speechRecog){ resolve(); return; }
-      const rec = speechRecog;
-      speechRecog = null;
-      let done = false;
-      const finish = () => { if(!done){ done = true; resolve(); } };
-      rec.onend = finish;
-      rec.onerror = finish;
-      try{ rec.stop(); }catch(e){ finish(); }
-      setTimeout(finish, 1200);
-    });
-  }
-
   async function toggleRecording(visitUid){
     const btn = addRow.querySelector("#btnRec");
     if(mediaRecorder && mediaRecorder.state === "recording"){ mediaRecorder.stop(); return; }
@@ -922,22 +901,18 @@ async function renderVisitDetail(uidVal){
     mediaRecorder.ondataavailable = (e) => { if(e.data && e.data.size > 0) recordedChunks.push(e.data); };
     mediaRecorder.onstop = async () => {
       clearInterval(recordTimerInterval);
-      await stopLiveDictation();
       recStatus.innerHTML = "";
       btn.textContent = "\u{1F3A4} " + t("addAudio");
       activeStream.getTracks().forEach(tr => tr.stop());
       const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "audio/webm" });
       if(blob.size > 0){
         const location = await tryGetPosition();
-        const finalText = liveTranscript || interimTranscript;
-        await idbPut("entries", { id: uid(), visitUid, kind: "audio", blob, text: finalText, label: "", location, timestamp: Date.now() });
+        await idbPut("entries", { id: uid(), visitUid, kind: "audio", blob, text: "", label: "", location, timestamp: Date.now() });
         refreshEntries(); refreshWeight();
-        if(dictationActive && !finalText && !dictationErrorShown) showToast(t("dictationEmpty"));
-        else showToast(t("audioSaved"));
+        showToast(t("audioSaved"));
       }
     };
     mediaRecorder.start();
-    startLiveDictation();
     recordStart = Date.now();
     btn.textContent = "\u23F9";
     recStatus.innerHTML = `<span class="rec-timer" id="recTimer">00:00</span>`;
@@ -946,6 +921,136 @@ async function renderVisitDetail(uidVal){
       const el = document.getElementById("recTimer");
       if(el) el.textContent = String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0");
     }, 250);
+  }
+
+  /* ---------- Palier "l\u00e9ger" : rejoue l'audio via haut-parleur + \u00e9coute avec
+     SpeechRecognition, s\u00e9quentiellement (jamais en m\u00eame temps qu'un MediaRecorder actif —
+     c'est exactement le conflit qui rendait la dict\u00e9e simultan\u00e9e peu fiable). Gratuit,
+     mais sensible au bruit ambiant et incompatible avec des \u00e9couteurs branch\u00e9s. ---------- */
+  function dictationErrorLabel(code){
+    if(code === "not-allowed" || code === "service-not-allowed") return t("dictationErrorNoAllow");
+    if(code === "network") return t("dictationErrorNetwork");
+    if(code === "no-speech") return t("dictationErrorNoSpeech");
+    return t("dictationErrorOther") + " (" + code + ")";
+  }
+
+  async function transcribeLight(entry, bodyEl){
+    const SpeechRecCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SpeechRecCtor){ showToast(t("transcribeUnsupported")); return; }
+    const audioEl = bodyEl.querySelector("audio");
+    const statusEl = bodyEl.querySelector(".transcribe-status");
+    const buttons = bodyEl.querySelectorAll(".transcribe-row button");
+    buttons.forEach(b => b.disabled = true);
+    statusEl.hidden = false;
+    statusEl.textContent = t("transcribeLightRunning");
+
+    let finalText = "", interimText = "", errorShown = false;
+    const rec = new SpeechRecCtor();
+    rec.lang = speechRecogLangTag();
+    rec.continuous = true;
+    rec.interimResults = true;
+    rec.onresult = (e) => {
+      let f = "", i2 = "";
+      for(let i = 0; i < e.results.length; i++){
+        if(e.results[i].isFinal) f += e.results[i][0].transcript + " ";
+        else i2 += e.results[i][0].transcript + " ";
+      }
+      if(f) finalText = f.trim();
+      interimText = i2.trim();
+    };
+    rec.onerror = (e) => {
+      if(!errorShown){ errorShown = true; showToast(t("dictationErrorPrefix") + " : " + dictationErrorLabel(e.error)); }
+    };
+
+    const waitEnd = () => new Promise((resolve) => {
+      let done = false;
+      const finish = () => { if(!done){ done = true; resolve(); } };
+      rec.onend = finish;
+      setTimeout(finish, 1500);
+    });
+
+    try{ rec.start(); }catch(err){ statusEl.hidden = true; buttons.forEach(b => b.disabled = false); showToast(t("dictationErrorPrefix") + " : " + t("dictationErrorOther")); return; }
+    audioEl.currentTime = 0;
+    try{ await audioEl.play(); }catch(err){ /* lecture bloqu\u00e9e par le navigateur, on continue quand m\u00eame */ }
+    await new Promise((resolve) => {
+      audioEl.onended = resolve;
+      setTimeout(resolve, (audioEl.duration && isFinite(audioEl.duration) ? audioEl.duration * 1000 : 15000) + 1000);
+    });
+    try{ rec.stop(); }catch(e){}
+    await waitEnd();
+
+    const text = finalText || interimText;
+    statusEl.hidden = true;
+    buttons.forEach(b => b.disabled = false);
+    if(text){
+      entry.text = text;
+      await idbPut("entries", entry);
+      refreshEntries();
+      showToast(t("transcribeLightDone"));
+    } else if(!errorShown){
+      showToast(t("transcribeLightEmpty"));
+    }
+  }
+
+  /* ---------- Palier "IA" : transcription apr\u00e8s coup via cl\u00e9 API OpenAI (Whisper).
+     Ne capte jamais le micro directement — pas de conflit possible avec MediaRecorder.
+     BYOK : cl\u00e9 stock\u00e9e en localStorage, facturation directe sur le compte de l'utilisateur. ---------- */
+  function extForBlob(blob){
+    const type = (blob && blob.type) || "";
+    if(type.includes("mp4")) return "m4a";
+    if(type.includes("ogg")) return "ogg";
+    if(type.includes("wav")) return "wav";
+    return "webm";
+  }
+  /* D\u00e9fensif : selon l'environnement, un blob relu depuis IndexedDB n'est pas toujours
+     reconnu comme une vraie instance Blob par FormData — on le re-enveloppe au besoin. */
+  async function ensureRealBlob(blob){
+    if(blob instanceof Blob) return blob;
+    const buf = await blob.arrayBuffer();
+    return new Blob([buf], { type: blob.type || "application/octet-stream" });
+  }
+  async function callWhisper(blob, apiKey){
+    const safeBlob = await ensureRealBlob(blob);
+    const formData = new FormData();
+    formData.append("file", safeBlob, "audio." + extForBlob(safeBlob));
+    formData.append("model", "whisper-1");
+    const resp = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + apiKey },
+      body: formData
+    });
+    if(!resp.ok){
+      const errText = await resp.text().catch(() => "");
+      throw new Error("HTTP " + resp.status + (errText ? " " + errText.slice(0,120) : ""));
+    }
+    const data = await resp.json();
+    return data.text || "";
+  }
+
+  async function transcribeAI(entry, bodyEl){
+    const key = currentOpenAIKey();
+    if(!key){ showToast(t("transcribeAINoKey")); return; }
+    if(!confirm(t("transcribeAIConfirm") + " (~" + fmtBytes(entry.blob.size) + ")")) return;
+
+    const statusEl = bodyEl.querySelector(".transcribe-status");
+    const buttons = bodyEl.querySelectorAll(".transcribe-row button");
+    buttons.forEach(b => b.disabled = true);
+    statusEl.hidden = false;
+    statusEl.textContent = t("transcribeAIRunning");
+
+    try{
+      const text = await callWhisper(entry.blob, key);
+      bumpAICallCount();
+      entry.text = text;
+      await idbPut("entries", entry);
+      refreshEntries();
+      showToast(t("transcribeAIDone"));
+    }catch(err){
+      showToast(t("transcribeAIError") + " : " + err.message);
+    }finally{
+      statusEl.hidden = true;
+      buttons.forEach(b => b.disabled = false);
+    }
   }
 
   async function exportVisit(v){
@@ -1157,22 +1262,23 @@ async function renderSettings(){
   }
   renderQualGrid();
 
-  const dictGroup = document.createElement("div");
-  dictGroup.className = "settings-group";
-  dictGroup.innerHTML = `<h3>${t("settingsDictation")}</h3><div class="quality-grid" id="dictGrid"></div><p class="capture-hint">${t("dictationSub")}</p>`;
-  main.appendChild(dictGroup);
-  function renderDictGrid(){
-    const grid = dictGroup.querySelector("#dictGrid");
-    const on = liveDictationEnabled();
-    grid.innerHTML = `
-      <button class="opt-btn ${on ? "selected" : ""}" data-d="on"><span>${t("dictationOn")}</span></button>
-      <button class="opt-btn ${!on ? "selected" : ""}" data-d="off"><span>${t("dictationOff")}</span></button>
-    `;
-    grid.querySelectorAll("button").forEach(btn => {
-      btn.addEventListener("click", () => { setLiveDictation(btn.dataset.d === "on"); renderDictGrid(); });
-    });
-  }
-  renderDictGrid();
+  const aiGroup = document.createElement("div");
+  aiGroup.className = "settings-group";
+  aiGroup.innerHTML = `
+    <h3>${t("settingsAI")}</h3>
+    <div class="field" style="margin-bottom:8px;">
+      <label for="fApiKey">${t("settingsAIKeyLabel")}</label>
+      <input type="password" id="fApiKey" placeholder="sk-..." autocomplete="off" value="${escapeHtml(currentOpenAIKey())}">
+    </div>
+    <p class="capture-hint">${t("settingsAIKeySub")}</p>
+    <p class="storage-line" style="margin-top:10px;">${t("settingsAICallsLabel")} : ${Number(sessionStorage.getItem("calepin_ai_calls") || "0")}</p>
+  `;
+  main.appendChild(aiGroup);
+  let keyTimer = null;
+  aiGroup.querySelector("#fApiKey").addEventListener("input", (e) => {
+    clearTimeout(keyTimer);
+    keyTimer = setTimeout(() => setOpenAIKey(e.target.value.trim()), 400);
+  });
 
   const storageGroup = document.createElement("div");
   storageGroup.className = "settings-group";

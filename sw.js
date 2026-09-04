@@ -1,7 +1,7 @@
 // Calepin — service worker
 // Cache-first pour la coquille de l'app : après un premier chargement en ligne,
 // tout doit fonctionner sans réseau. Incrémenter CACHE_NAME force une mise à jour.
-const CACHE_NAME = 'calepin-v3';
+const CACHE_NAME = 'calepin-v4';
 const SHELL_FILES = [
   './',
   './index.html',
