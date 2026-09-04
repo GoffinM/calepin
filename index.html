@@ -850,6 +850,7 @@ async function renderVisitDetail(uidVal){
   });
 
   let liveTranscript = "";
+  let interimTranscript = "";
   let speechRecog = null;
   let dictationErrorShown = false;
 
@@ -862,6 +863,7 @@ async function renderVisitDetail(uidVal){
 
   function startLiveDictation(){
     liveTranscript = "";
+    interimTranscript = "";
     dictationErrorShown = false;
     const SpeechRecCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
     if(!liveDictationEnabled() || !SpeechRecCtor) return;
@@ -871,15 +873,15 @@ async function renderVisitDetail(uidVal){
       speechRecog.continuous = true;
       speechRecog.interimResults = true;
       speechRecog.onresult = (e) => {
-        let finalText = "";
+        let finalText = "", interimText = "";
         for(let i = 0; i < e.results.length; i++){
           if(e.results[i].isFinal) finalText += e.results[i][0].transcript + " ";
+          else interimText += e.results[i][0].transcript + " ";
         }
         if(finalText) liveTranscript = finalText.trim();
+        interimTranscript = interimText.trim();
       };
       speechRecog.onerror = (e) => {
-        // Rendu visible plut\u00f4t que silencieux : essentiel pour diagnostiquer sur le terrain.
-        // L'enregistrement audio continue quoi qu'il arrive ici.
         if(!dictationErrorShown){
           dictationErrorShown = true;
           showToast(t("dictationErrorPrefix") + " : " + dictationErrorLabel(e.error));
@@ -891,8 +893,21 @@ async function renderVisitDetail(uidVal){
       showToast(t("dictationErrorPrefix") + " : " + t("dictationErrorOther") + " (start)");
     }
   }
+  /* La finalisation d'un segment (isFinal) arrive de fa\u00e7on ASYNCHRONE apr\u00e8s .stop() —
+     il faut attendre 'onend' (ou un filet de s\u00e9curit\u00e9) avant de lire liveTranscript,
+     sinon le dernier segment dict\u00e9 sans pause naturelle est perdu. */
   function stopLiveDictation(){
-    if(speechRecog){ try{ speechRecog.stop(); }catch(e){} speechRecog = null; }
+    return new Promise((resolve) => {
+      if(!speechRecog){ resolve(); return; }
+      const rec = speechRecog;
+      speechRecog = null;
+      let done = false;
+      const finish = () => { if(!done){ done = true; resolve(); } };
+      rec.onend = finish;
+      rec.onerror = finish;
+      try{ rec.stop(); }catch(e){ finish(); }
+      setTimeout(finish, 1200);
+    });
   }
 
   async function toggleRecording(visitUid){
@@ -907,16 +922,17 @@ async function renderVisitDetail(uidVal){
     mediaRecorder.ondataavailable = (e) => { if(e.data && e.data.size > 0) recordedChunks.push(e.data); };
     mediaRecorder.onstop = async () => {
       clearInterval(recordTimerInterval);
-      stopLiveDictation();
+      await stopLiveDictation();
       recStatus.innerHTML = "";
       btn.textContent = "\u{1F3A4} " + t("addAudio");
       activeStream.getTracks().forEach(tr => tr.stop());
       const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "audio/webm" });
       if(blob.size > 0){
         const location = await tryGetPosition();
-        await idbPut("entries", { id: uid(), visitUid, kind: "audio", blob, text: liveTranscript, label: "", location, timestamp: Date.now() });
+        const finalText = liveTranscript || interimTranscript;
+        await idbPut("entries", { id: uid(), visitUid, kind: "audio", blob, text: finalText, label: "", location, timestamp: Date.now() });
         refreshEntries(); refreshWeight();
-        if(dictationActive && !liveTranscript && !dictationErrorShown) showToast(t("dictationEmpty"));
+        if(dictationActive && !finalText && !dictationErrorShown) showToast(t("dictationEmpty"));
         else showToast(t("audioSaved"));
       }
     };
