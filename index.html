@@ -242,7 +242,10 @@ const STRINGS = {
     addAudioImport: "Importer audio", audioImported: "Audio import\u00e9",
     settingsDictation: "Dict\u00e9e en direct", dictationOn: "Activ\u00e9e", dictationOff: "D\u00e9sactiv\u00e9e",
     dictationSub: "Remplit la transcription pendant l'enregistrement. N\u00e9cessite du r\u00e9seau ; support variable selon le t\u00e9l\u00e9phone \u2014 la transcription reste modifiable dans tous les cas.",
-    dictationHint: "Dict\u00e9e en direct active \u2014 si le r\u00e9seau manque, l'audio se garde quand m\u00eame."
+    dictationHint: "Dict\u00e9e en direct active \u2014 si le r\u00e9seau manque, l'audio se garde quand m\u00eame.",
+    dictationErrorPrefix: "Dict\u00e9e indisponible", dictationErrorNoAllow: "permission micro refus\u00e9e pour la dict\u00e9e",
+    dictationErrorNetwork: "pas de r\u00e9seau", dictationErrorNoSpeech: "aucune voix d\u00e9tect\u00e9e",
+    dictationErrorOther: "erreur", dictationEmpty: "Audio enregistr\u00e9 \u2014 dict\u00e9e n'a rien captur\u00e9."
   },
   en: {
     appName: "Calepin", settings: "Settings", back: "Back",
@@ -276,7 +279,10 @@ const STRINGS = {
     addAudioImport: "Import audio", audioImported: "Audio imported",
     settingsDictation: "Live dictation", dictationOn: "On", dictationOff: "Off",
     dictationSub: "Fills in the transcript while recording. Needs network; support varies by phone \u2014 the transcript stays editable either way.",
-    dictationHint: "Live dictation active \u2014 if the network drops, the audio is still kept."
+    dictationHint: "Live dictation active \u2014 if the network drops, the audio is still kept.",
+    dictationErrorPrefix: "Dictation unavailable", dictationErrorNoAllow: "mic permission denied for dictation",
+    dictationErrorNetwork: "no network", dictationErrorNoSpeech: "no speech detected",
+    dictationErrorOther: "error", dictationEmpty: "Audio saved \u2014 dictation captured nothing."
   },
   sw: {
     appName: "Calepin", settings: "Mipangilio", back: "Rudi",
@@ -310,7 +316,10 @@ const STRINGS = {
     addAudioImport: "Leta sauti", audioImported: "Sauti imeletwa",
     settingsDictation: "Uandishi wa moja kwa moja", dictationOn: "Imewashwa", dictationOff: "Imezimwa",
     dictationSub: "Hujaza nakala wakati wa kurekodi. Inahitaji mtandao; usaidizi hutofautiana \u2014 nakala inabaki kuhaririwa kila wakati.",
-    dictationHint: "Uandishi wa moja kwa moja umewashwa \u2014 ikiwa mtandao haupo, sauti bado inahifadhiwa."
+    dictationHint: "Uandishi wa moja kwa moja umewashwa \u2014 ikiwa mtandao haupo, sauti bado inahifadhiwa.",
+    dictationErrorPrefix: "Uandishi hapatikani", dictationErrorNoAllow: "ruhusa ya maikrofoni imekataliwa",
+    dictationErrorNetwork: "hakuna mtandao", dictationErrorNoSpeech: "hakuna sauti iliyogunduliwa",
+    dictationErrorOther: "hitilafu", dictationEmpty: "Sauti imehifadhiwa \u2014 uandishi haukupata chochote."
   }
 };
 function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
@@ -842,9 +851,18 @@ async function renderVisitDetail(uidVal){
 
   let liveTranscript = "";
   let speechRecog = null;
+  let dictationErrorShown = false;
+
+  function dictationErrorLabel(code){
+    if(code === "not-allowed" || code === "service-not-allowed") return t("dictationErrorNoAllow");
+    if(code === "network") return t("dictationErrorNetwork");
+    if(code === "no-speech") return t("dictationErrorNoSpeech");
+    return t("dictationErrorOther") + " (" + code + ")";
+  }
 
   function startLiveDictation(){
     liveTranscript = "";
+    dictationErrorShown = false;
     const SpeechRecCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
     if(!liveDictationEnabled() || !SpeechRecCtor) return;
     try{
@@ -859,9 +877,19 @@ async function renderVisitDetail(uidVal){
         }
         if(finalText) liveTranscript = finalText.trim();
       };
-      speechRecog.onerror = () => { /* d\u00e9gradation gracieuse : l'audio se garde, la transcription reste vide */ };
+      speechRecog.onerror = (e) => {
+        // Rendu visible plut\u00f4t que silencieux : essentiel pour diagnostiquer sur le terrain.
+        // L'enregistrement audio continue quoi qu'il arrive ici.
+        if(!dictationErrorShown){
+          dictationErrorShown = true;
+          showToast(t("dictationErrorPrefix") + " : " + dictationErrorLabel(e.error));
+        }
+      };
       speechRecog.start();
-    }catch(err){ speechRecog = null; }
+    }catch(err){
+      speechRecog = null;
+      showToast(t("dictationErrorPrefix") + " : " + t("dictationErrorOther") + " (start)");
+    }
   }
   function stopLiveDictation(){
     if(speechRecog){ try{ speechRecog.stop(); }catch(e){} speechRecog = null; }
@@ -888,7 +916,8 @@ async function renderVisitDetail(uidVal){
         const location = await tryGetPosition();
         await idbPut("entries", { id: uid(), visitUid, kind: "audio", blob, text: liveTranscript, label: "", location, timestamp: Date.now() });
         refreshEntries(); refreshWeight();
-        showToast(t("audioSaved"));
+        if(dictationActive && !liveTranscript && !dictationErrorShown) showToast(t("dictationEmpty"));
+        else showToast(t("audioSaved"));
       }
     };
     mediaRecorder.start();
