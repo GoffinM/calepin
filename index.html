@@ -238,7 +238,11 @@ const STRINGS = {
     qualityEcoSub: "~80 Ko/photo \u2014 lisible, tr\u00e8s l\u00e9ger", qualityStdSub: "~250 Ko/photo \u2014 bon \u00e9quilibre (recommand\u00e9)",
     qualityHiSub: "~600 Ko/photo \u2014 zoom fin (plaques, inscriptions)",
     storageUsed: "utilis\u00e9 sur cet appareil", storageUnknown: "Estimation indisponible sur ce navigateur.",
-    weightLabel: "entr\u00e9es"
+    weightLabel: "entr\u00e9es",
+    addAudioImport: "Importer audio", audioImported: "Audio import\u00e9",
+    settingsDictation: "Dict\u00e9e en direct", dictationOn: "Activ\u00e9e", dictationOff: "D\u00e9sactiv\u00e9e",
+    dictationSub: "Remplit la transcription pendant l'enregistrement. N\u00e9cessite du r\u00e9seau ; support variable selon le t\u00e9l\u00e9phone \u2014 la transcription reste modifiable dans tous les cas.",
+    dictationHint: "Dict\u00e9e en direct active \u2014 si le r\u00e9seau manque, l'audio se garde quand m\u00eame."
   },
   en: {
     appName: "Calepin", settings: "Settings", back: "Back",
@@ -268,7 +272,11 @@ const STRINGS = {
     qualityEcoSub: "~80 KB/photo \u2014 readable, very light", qualityStdSub: "~250 KB/photo \u2014 good balance (recommended)",
     qualityHiSub: "~600 KB/photo \u2014 fine zoom (plates, labels)",
     storageUsed: "used on this device", storageUnknown: "Estimate unavailable in this browser.",
-    weightLabel: "entries"
+    weightLabel: "entries",
+    addAudioImport: "Import audio", audioImported: "Audio imported",
+    settingsDictation: "Live dictation", dictationOn: "On", dictationOff: "Off",
+    dictationSub: "Fills in the transcript while recording. Needs network; support varies by phone \u2014 the transcript stays editable either way.",
+    dictationHint: "Live dictation active \u2014 if the network drops, the audio is still kept."
   },
   sw: {
     appName: "Calepin", settings: "Mipangilio", back: "Rudi",
@@ -298,7 +306,11 @@ const STRINGS = {
     qualityEcoSub: "~KB 80/picha \u2014 inasomeka, nyepesi sana", qualityStdSub: "~KB 250/picha \u2014 uwiano mzuri (inapendekezwa)",
     qualityHiSub: "~KB 600/picha \u2014 ukaribiaji (mabamba, maandishi)",
     storageUsed: "imetumika kwenye kifaa hiki", storageUnknown: "Makadirio hayapatikani kwenye kivinjari hiki.",
-    weightLabel: "maingizo"
+    weightLabel: "maingizo",
+    addAudioImport: "Leta sauti", audioImported: "Sauti imeletwa",
+    settingsDictation: "Uandishi wa moja kwa moja", dictationOn: "Imewashwa", dictationOff: "Imezimwa",
+    dictationSub: "Hujaza nakala wakati wa kurekodi. Inahitaji mtandao; usaidizi hutofautiana \u2014 nakala inabaki kuhaririwa kila wakati.",
+    dictationHint: "Uandishi wa moja kwa moja umewashwa \u2014 ikiwa mtandao haupo, sauti bado inahifadhiwa."
   }
 };
 function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
@@ -340,6 +352,12 @@ const QUALITY_LEVELS = {
 };
 function currentQuality(){ return localStorage.getItem("calepin_quality") || "std"; }
 function setQuality(q){ localStorage.setItem("calepin_quality", q); }
+function liveDictationEnabled(){ return localStorage.getItem("calepin_dictation") !== "off"; }
+function setLiveDictation(on){ localStorage.setItem("calepin_dictation", on ? "on" : "off"); }
+function speechRecogLangTag(){
+  const map = { fr: "fr-FR", en: "en-US", sw: "sw-KE" };
+  return map[currentLang()] || "fr-FR";
+}
 
 /* ============================================================
    IndexedDB — visits (m\u00e9tadonn\u00e9es) + entries (audio/photo/texte)
@@ -602,11 +620,20 @@ function renderNewVisit(){
   const form = document.createElement("div");
   form.innerHTML = `
     <div class="field"><label>${t("category")}</label><div class="cat-grid" id="catGrid"></div></div>
-    <div class="field"><label for="fTag">${t("landmark")}</label><input type="text" id="fTag" placeholder="${t("landmarkPh")}"></div>
+    <div class="field"><label for="fTag">${t("landmark")}</label>
+      <input type="text" id="fTag" list="tagOptions" placeholder="${t("landmarkPh")}" autocomplete="off">
+      <datalist id="tagOptions"></datalist>
+    </div>
     <div class="field"><label for="fDate">${t("date")}</label><input type="date" id="fDate" value="${dateVal}"></div>
     <div class="form-actions"><button class="btn primary" id="btnCreate" style="width:100%">${t("createVisit")}</button></div>
   `;
   main.appendChild(form);
+
+  idbGetAll("visits").then(visits => {
+    const tags = Array.from(new Set(visits.map(v => (v.tag || "").trim()).filter(Boolean)));
+    tags.sort((a,b) => a.localeCompare(b));
+    form.querySelector("#tagOptions").innerHTML = tags.map(tg => `<option value="${escapeHtml(tg)}"></option>`).join("");
+  });
 
   function renderCatGrid(){
     const grid = form.querySelector("#catGrid");
@@ -672,7 +699,9 @@ async function renderVisitDetail(uidVal){
     <button class="btn" id="btnRec">\u{1F3A4} ${t("addAudio")}</button>
     <button class="btn" id="btnAddPhoto">\u{1F4F7} ${t("addPhoto")}</button>
     <button class="btn" id="btnAddText">\u{1F4DD} ${t("addText")}</button>
+    <button class="btn" id="btnImportAudio">\u{1F4C2} ${t("addAudioImport")}</button>
     <input type="file" id="photoInput" accept="image/*" capture="environment" multiple class="sr-only">
+    <input type="file" id="audioInput" accept="audio/*" class="sr-only">
   `;
   main.appendChild(addRow);
 
@@ -683,7 +712,9 @@ async function renderVisitDetail(uidVal){
 
   const hint = document.createElement("p");
   hint.className = "capture-hint";
-  hint.textContent = t("captureHint");
+  const SpeechRecCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const dictationActive = liveDictationEnabled() && !!SpeechRecCtor;
+  hint.textContent = dictationActive ? (t("captureHint") + " " + t("dictationHint")) : t("captureHint");
   main.appendChild(hint);
 
   const entryList = document.createElement("div");
@@ -798,6 +829,44 @@ async function renderVisitDetail(uidVal){
 
   addRow.querySelector("#btnRec").addEventListener("click", () => toggleRecording(visit.uid));
 
+  addRow.querySelector("#btnImportAudio").addEventListener("click", () => main.querySelector("#audioInput").click());
+  main.querySelector("#audioInput").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if(!file) return;
+    const location = await tryGetPosition();
+    await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "audio", blob: file, text: "", label: "", location, timestamp: Date.now() });
+    refreshEntries(); refreshWeight();
+    showToast(t("audioImported"));
+  });
+
+  let liveTranscript = "";
+  let speechRecog = null;
+
+  function startLiveDictation(){
+    liveTranscript = "";
+    const SpeechRecCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!liveDictationEnabled() || !SpeechRecCtor) return;
+    try{
+      speechRecog = new SpeechRecCtor();
+      speechRecog.lang = speechRecogLangTag();
+      speechRecog.continuous = true;
+      speechRecog.interimResults = true;
+      speechRecog.onresult = (e) => {
+        let finalText = "";
+        for(let i = 0; i < e.results.length; i++){
+          if(e.results[i].isFinal) finalText += e.results[i][0].transcript + " ";
+        }
+        if(finalText) liveTranscript = finalText.trim();
+      };
+      speechRecog.onerror = () => { /* d\u00e9gradation gracieuse : l'audio se garde, la transcription reste vide */ };
+      speechRecog.start();
+    }catch(err){ speechRecog = null; }
+  }
+  function stopLiveDictation(){
+    if(speechRecog){ try{ speechRecog.stop(); }catch(e){} speechRecog = null; }
+  }
+
   async function toggleRecording(visitUid){
     const btn = addRow.querySelector("#btnRec");
     if(mediaRecorder && mediaRecorder.state === "recording"){ mediaRecorder.stop(); return; }
@@ -810,18 +879,20 @@ async function renderVisitDetail(uidVal){
     mediaRecorder.ondataavailable = (e) => { if(e.data && e.data.size > 0) recordedChunks.push(e.data); };
     mediaRecorder.onstop = async () => {
       clearInterval(recordTimerInterval);
+      stopLiveDictation();
       recStatus.innerHTML = "";
       btn.textContent = "\u{1F3A4} " + t("addAudio");
       activeStream.getTracks().forEach(tr => tr.stop());
       const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "audio/webm" });
       if(blob.size > 0){
         const location = await tryGetPosition();
-        await idbPut("entries", { id: uid(), visitUid, kind: "audio", blob, text: "", label: "", location, timestamp: Date.now() });
+        await idbPut("entries", { id: uid(), visitUid, kind: "audio", blob, text: liveTranscript, label: "", location, timestamp: Date.now() });
         refreshEntries(); refreshWeight();
         showToast(t("audioSaved"));
       }
     };
     mediaRecorder.start();
+    startLiveDictation();
     recordStart = Date.now();
     btn.textContent = "\u23F9";
     recStatus.innerHTML = `<span class="rec-timer" id="recTimer">00:00</span>`;
@@ -1040,6 +1111,23 @@ async function renderSettings(){
     });
   }
   renderQualGrid();
+
+  const dictGroup = document.createElement("div");
+  dictGroup.className = "settings-group";
+  dictGroup.innerHTML = `<h3>${t("settingsDictation")}</h3><div class="quality-grid" id="dictGrid"></div><p class="capture-hint">${t("dictationSub")}</p>`;
+  main.appendChild(dictGroup);
+  function renderDictGrid(){
+    const grid = dictGroup.querySelector("#dictGrid");
+    const on = liveDictationEnabled();
+    grid.innerHTML = `
+      <button class="opt-btn ${on ? "selected" : ""}" data-d="on"><span>${t("dictationOn")}</span></button>
+      <button class="opt-btn ${!on ? "selected" : ""}" data-d="off"><span>${t("dictationOff")}</span></button>
+    `;
+    grid.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => { setLiveDictation(btn.dataset.d === "on"); renderDictGrid(); });
+    });
+  }
+  renderDictGrid();
 
   const storageGroup = document.createElement("div");
   storageGroup.className = "settings-group";
