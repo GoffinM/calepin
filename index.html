@@ -99,7 +99,7 @@
     background: var(--surface); border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-bottom:6px; cursor:pointer;
   }
   .folder-top-row .name{ font-weight:600; font-size:14px; }
-  .folder-top-row .count{ font-size:12px; color: var(--text-dim); margin-left:6px; }
+  .folder-top-row .count, .folder-sub-row .count{ font-weight:400; color: var(--text-dim); font-size:12px; margin-left:6px; }
   .folder-actions{ display:flex; gap:6px; }
   .folder-actions button{ background:none; border:none; color: var(--text-dim); font-size:14px; cursor:pointer; padding:2px 4px; }
   .folder-sub-list{ padding-left: 18px; margin-bottom: 8px; }
@@ -1733,18 +1733,21 @@ async function renderFolders(){
   async function renderTree(){
     const tree = folderSection.querySelector("#folderTree");
     tree.innerHTML = "";
+    const allVisitsForCount = (await idbGetAll("visits")).filter(v => !v.trashedAt);
+    function countFor(folderId){ return allVisitsForCount.filter(v => v.folderId === folderId).length; }
     const tops = await getTopFolders();
     for(const top of tops){
       const row = document.createElement("div");
       row.className = "folder-top-row";
+      row.style.cursor = "pointer";
       row.innerHTML = `
-        <span class="name" data-open>${escapeHtml(top.name)}</span>
+        <span class="name">${escapeHtml(top.name)}<span class="count">(${countFor(top.id)})</span></span>
         <div class="folder-actions">
           <button data-act="rename">\u270f\ufe0f</button>
           <button data-act="delete">\u{1F5D1}</button>
         </div>
       `;
-      row.querySelector('[data-open]').addEventListener("click", () => { filterState.folder = top.id; window.location.hash = "#home"; });
+      row.addEventListener("click", () => { filterState.folder = top.id; window.location.hash = "#home"; });
       row.querySelector('[data-act="rename"]').addEventListener("click", async (e) => {
         e.stopPropagation();
         const name = prompt(t("renameFolderPrompt"), top.name);
@@ -1771,15 +1774,16 @@ async function renderFolders(){
       for(const sub of subs){
         const subRow = document.createElement("div");
         subRow.className = "folder-sub-row";
+        subRow.style.cursor = "pointer";
         subRow.innerHTML = `
-          <span data-open>${escapeHtml(sub.name)}</span>
+          <span>${escapeHtml(sub.name)}<span class="count">(${countFor(sub.id)})</span></span>
           <div class="folder-actions">
             <button data-act="move">\u21c6</button>
             <button data-act="rename">\u270f\ufe0f</button>
             <button data-act="delete">\u{1F5D1}</button>
           </div>
         `;
-        subRow.querySelector('[data-open]').addEventListener("click", () => { filterState.folder = sub.id; window.location.hash = "#home"; });
+        subRow.addEventListener("click", () => { filterState.folder = sub.id; window.location.hash = "#home"; });
         subRow.querySelector('[data-act="rename"]').addEventListener("click", async (e) => {
           e.stopPropagation();
           const name = prompt(t("renameFolderPrompt"), sub.name);
