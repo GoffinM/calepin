@@ -256,7 +256,12 @@ const STRINGS = {
     transcribeAIError: "\u00c9chec de la transcription IA",
     settingsAI: "Transcription IA (optionnelle)",
     settingsAIKeyLabel: "Cl\u00e9 API OpenAI", settingsAIKeySub: "Stock\u00e9e uniquement sur cet appareil (localStorage). Jamais envoy\u00e9e ailleurs qu'\u00e0 OpenAI. Facturation directe sur votre compte.",
-    settingsAICallsLabel: "Appels IA cette session"
+    settingsAICallsLabel: "Appels IA cette session",
+    settingsRelayLabel: "URL du relais (optionnel)", settingsRelaySub: "Contourne le blocage CORS d'OpenAI (les appels directs \u00e9chouent depuis un navigateur). Laissez vide pour un appel direct \u2014 probablement inop\u00e9rant sans relais.",
+    reportAISynth: "\u{1F916} G\u00e9n\u00e9rer une synth\u00e8se IA", reportAISynthTitle: "Synth\u00e8se IA", reportAISynthRunning: "G\u00e9n\u00e9ration en cours\u2026",
+    reportAISynthDone: "Synth\u00e8se g\u00e9n\u00e9r\u00e9e \u2014 relisez et corrigez au besoin.", reportAISynthError: "\u00c9chec de la g\u00e9n\u00e9ration",
+    reportAISynthConfirm: "Envoyer le contenu de ce rapport pour g\u00e9n\u00e9rer une synth\u00e8se ?",
+    reportAISynthNote: "G\u00e9n\u00e9r\u00e9e par IA \u2014 relisez avant de vous y fier."
   },
   en: {
     appName: "Calepin", settings: "Settings", back: "Back",
@@ -301,7 +306,12 @@ const STRINGS = {
     transcribeAIError: "AI transcription failed",
     settingsAI: "AI transcription (optional)",
     settingsAIKeyLabel: "OpenAI API key", settingsAIKeySub: "Stored only on this device (localStorage). Never sent anywhere except OpenAI. Billed directly to your account.",
-    settingsAICallsLabel: "AI calls this session"
+    settingsAICallsLabel: "AI calls this session",
+    settingsRelayLabel: "Relay URL (optional)", settingsRelaySub: "Bypasses OpenAI's CORS block (direct calls fail from a browser). Leave empty for a direct call \u2014 likely non-functional without a relay.",
+    reportAISynth: "\u{1F916} Generate AI synthesis", reportAISynthTitle: "AI synthesis", reportAISynthRunning: "Generating\u2026",
+    reportAISynthDone: "Synthesis generated \u2014 review and correct as needed.", reportAISynthError: "Generation failed",
+    reportAISynthConfirm: "Send this report's content to generate a synthesis?",
+    reportAISynthNote: "AI-generated \u2014 review before relying on it."
   },
   sw: {
     appName: "Calepin", settings: "Mipangilio", back: "Rudi",
@@ -346,7 +356,12 @@ const STRINGS = {
     transcribeAIError: "Uandishi wa AI umeshindwa",
     settingsAI: "Uandishi wa AI (hiari)",
     settingsAIKeyLabel: "Ufunguo wa API wa OpenAI", settingsAIKeySub: "Umehifadhiwa kwenye kifaa hiki tu (localStorage). Haitumwi popote isipokuwa OpenAI. Malipo moja kwa moja kwenye akaunti yako.",
-    settingsAICallsLabel: "Miito ya AI kikao hiki"
+    settingsAICallsLabel: "Miito ya AI kikao hiki",
+    settingsRelayLabel: "URL ya relay (hiari)", settingsRelaySub: "Hupita kizuizi cha CORS cha OpenAI (miito ya moja kwa moja hushindwa kutoka kivinjari). Acha wazi kwa mwito wa moja kwa moja \u2014 huenda usifanye kazi bila relay.",
+    reportAISynth: "\u{1F916} Tengeneza muhtasari wa AI", reportAISynthTitle: "Muhtasari wa AI", reportAISynthRunning: "Inatengeneza\u2026",
+    reportAISynthDone: "Muhtasari umetengenezwa \u2014 soma na urekebishe ikihitajika.", reportAISynthError: "Utengenezaji umeshindwa",
+    reportAISynthConfirm: "Tuma maudhui ya ripoti hii kutengeneza muhtasari?",
+    reportAISynthNote: "Imetengenezwa na AI \u2014 soma kabla ya kuitegemea."
   }
 };
 function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
@@ -394,10 +409,44 @@ function speechRecogLangTag(){
 }
 function currentOpenAIKey(){ return localStorage.getItem("calepin_openai_key") || ""; }
 function setOpenAIKey(k){ localStorage.setItem("calepin_openai_key", k); }
+function currentRelayUrl(){ return (localStorage.getItem("calepin_relay_url") || "").trim().replace(/\/$/, ""); }
+function setRelayUrl(u){ localStorage.setItem("calepin_relay_url", u.trim().replace(/\/$/, "")); }
 function bumpAICallCount(){
   const n = Number(sessionStorage.getItem("calepin_ai_calls") || "0") + 1;
   sessionStorage.setItem("calepin_ai_calls", String(n));
   return n;
+}
+/* Point d'entr\u00e9e unique pour un appel OpenAI : passe par le relais s'il est configur\u00e9
+   (contourne le blocage CORS), sinon tente l'appel direct (gard\u00e9 pour compatibilit\u00e9
+   future / navigateurs \u00e9ventuellement moins restrictifs, mais probablement inop\u00e9rant seul). */
+function openAIEndpoint(kind){
+  const relay = currentRelayUrl();
+  if(relay) return relay + (kind === "chat" ? "/chat" : "/transcribe");
+  return kind === "chat" ? "https://api.openai.com/v1/chat/completions" : "https://api.openai.com/v1/audio/transcriptions";
+}
+async function callChatSynthesis(rawText, apiKey){
+  const systemPrompt = "Tu reformules des notes de terrain en un texte clair et bien r\u00e9dig\u00e9, en fran\u00e7ais. " +
+    "R\u00e8gle absolue : n'ajoute, ne suppose et n'invente AUCUN fait absent du texte fourni. " +
+    "Ne fais aucune interpr\u00e9tation technique. Conserve l'ordre chronologique ou par rep\u00e8re fourni. " +
+    "Si une information est ambigu\u00eb ou manquante, dis-le explicitement plut\u00f4t que de combler.";
+  const resp = await fetch(openAIEndpoint("chat"), {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + apiKey, "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: rawText }
+      ],
+      temperature: 0.2
+    })
+  });
+  if(!resp.ok){
+    const errText = await resp.text().catch(() => "");
+    throw new Error("HTTP " + resp.status + (errText ? " " + errText.slice(0,120) : ""));
+  }
+  const data = await resp.json();
+  return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || "";
 }
 
 /* ============================================================
@@ -1039,7 +1088,7 @@ async function renderVisitDetail(uidVal){
     const formData = new FormData();
     formData.append("file", safeBlob, "audio." + extForBlob(safeBlob));
     formData.append("model", "whisper-1");
-    const resp = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    const resp = await fetch(openAIEndpoint("transcribe"), {
       method: "POST",
       headers: { "Authorization": "Bearer " + apiKey },
       body: formData
@@ -1178,6 +1227,48 @@ async function renderReport(uidVal){
   toggle.innerHTML = `<button data-g="chrono" class="active">${t("groupChrono")}</button><button data-g="landmark">${t("groupLandmark")}</button>`;
   main.appendChild(toggle);
 
+  const synthSection = document.createElement("div");
+  synthSection.className = "section";
+  synthSection.innerHTML = `
+    <button class="btn" id="btnAISynth" style="width:100%;">${t("reportAISynth")}</button>
+    <p class="transcribe-status" id="synthStatus" hidden></p>
+    <div id="synthBlock" ${visit.aiSynthesis ? "" : "hidden"}>
+      <h3 style="font-size:14px; color: var(--accent); margin: 14px 0 6px 0;">${t("reportAISynthTitle")}</h3>
+      <p class="capture-hint" style="margin-top:0;">${t("reportAISynthNote")}</p>
+      <textarea id="synthText" style="width:100%; min-height:120px; background: var(--surface); color: var(--text); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:14px; line-height:1.5;">${escapeHtml(visit.aiSynthesis || "")}</textarea>
+    </div>
+  `;
+  main.appendChild(synthSection);
+  let synthTimer = null;
+  synthSection.querySelector("#synthText").addEventListener("input", (e) => {
+    clearTimeout(synthTimer);
+    synthTimer = setTimeout(async () => { visit.aiSynthesis = e.target.value; await idbPut("visits", visit); }, 500);
+  });
+  synthSection.querySelector("#btnAISynth").addEventListener("click", async () => {
+    const key = currentOpenAIKey();
+    if(!key){ showToast(t("transcribeAINoKey")); return; }
+    const entries = (await idbGetByIndex("entries", "visitUid", visit.uid)).sort((a,b) => a.timestamp - b.timestamp);
+    if(entries.length === 0){ showToast(t("noEntries")); return; }
+    const rawText = buildReportText(visit, entries, groupBy);
+    if(!confirm(t("reportAISynthConfirm") + " (~" + rawText.length + " caract\u00e8res)")) return;
+    const btn = synthSection.querySelector("#btnAISynth");
+    const statusEl = synthSection.querySelector("#synthStatus");
+    btn.disabled = true; statusEl.hidden = false; statusEl.textContent = t("reportAISynthRunning");
+    try{
+      const result = await callChatSynthesis(rawText, key);
+      bumpAICallCount();
+      visit.aiSynthesis = result;
+      await idbPut("visits", visit);
+      synthSection.querySelector("#synthBlock").hidden = false;
+      synthSection.querySelector("#synthText").value = result;
+      showToast(t("reportAISynthDone"));
+    }catch(err){
+      showToast(t("reportAISynthError") + " : " + err.message);
+    }finally{
+      btn.disabled = false; statusEl.hidden = true;
+    }
+  });
+
   const body = document.createElement("div");
   main.appendChild(body);
 
@@ -1238,7 +1329,10 @@ async function renderReport(uidVal){
 
   exportBtn.addEventListener("click", async () => {
     const entries = (await idbGetByIndex("entries", "visitUid", visit.uid)).sort((a,b) => a.timestamp - b.timestamp);
-    const txt = buildReportText(visit, entries, groupBy);
+    let txt = buildReportText(visit, entries, groupBy);
+    if(visit.aiSynthesis){
+      txt = t("reportAISynthTitle").toUpperCase() + " (" + t("reportAISynthNote") + ")\n" + "=".repeat(40) + "\n\n" + visit.aiSynthesis + "\n\n" + "=".repeat(40) + "\n\n" + txt;
+    }
     const url = URL.createObjectURL(new Blob([txt], { type: "text/plain;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url; a.download = (visit.tag || "rapport").replace(/[^a-zA-Z0-9-_]+/g, "_").slice(0,40) + "_rapport.txt";
@@ -1296,13 +1390,22 @@ async function renderSettings(){
       <input type="password" id="fApiKey" placeholder="sk-..." autocomplete="off" value="${escapeHtml(currentOpenAIKey())}">
     </div>
     <p class="capture-hint">${t("settingsAIKeySub")}</p>
+    <div class="field" style="margin: 14px 0 8px 0;">
+      <label for="fRelayUrl">${t("settingsRelayLabel")}</label>
+      <input type="text" id="fRelayUrl" placeholder="https://calepin-relais.mon-compte.workers.dev" autocomplete="off" value="${escapeHtml(currentRelayUrl())}">
+    </div>
+    <p class="capture-hint">${t("settingsRelaySub")}</p>
     <p class="storage-line" style="margin-top:10px;">${t("settingsAICallsLabel")} : ${Number(sessionStorage.getItem("calepin_ai_calls") || "0")}</p>
   `;
   main.appendChild(aiGroup);
-  let keyTimer = null;
+  let keyTimer = null, relayTimer = null;
   aiGroup.querySelector("#fApiKey").addEventListener("input", (e) => {
     clearTimeout(keyTimer);
     keyTimer = setTimeout(() => setOpenAIKey(e.target.value.trim()), 400);
+  });
+  aiGroup.querySelector("#fRelayUrl").addEventListener("input", (e) => {
+    clearTimeout(relayTimer);
+    relayTimer = setTimeout(() => setRelayUrl(e.target.value), 400);
   });
 
   const storageGroup = document.createElement("div");
