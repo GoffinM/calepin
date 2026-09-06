@@ -50,7 +50,7 @@
     padding: 4px 6px; cursor:pointer; line-height:1;
   }
   .appbar .left{ display:flex; align-items:center; gap:4px; width:36px; }
-  .appbar .right{ width:36px; display:flex; justify-content:flex-end; }
+  .appbar .right{ width:auto; display:flex; justify-content:flex-end; gap:2px; }
 
   main{ max-width: 560px; margin: 0 auto; padding: 16px 16px 100px 16px; }
 
@@ -75,6 +75,66 @@
   .visit-card .tag{ font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .visit-card .meta{ font-size:12px; color: var(--text-dim); font-family: var(--mono); margin-top:2px; }
   .visit-card .counts{ font-size:12px; color: var(--text-dim); display:flex; gap:8px; flex-shrink:0; }
+  .visit-card .check{ width:20px; height:20px; border-radius:5px; border:2px solid var(--line); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .visit-card.selected{ border-color: var(--accent); }
+  .visit-card.selected .check{ background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .select-bar{
+    position: sticky; top: 0; z-index: 10; display:flex; align-items:center; justify-content:space-between;
+    background: var(--surface); border:1px solid var(--line); border-radius: var(--radius);
+    padding: 10px 14px; margin-bottom: 14px;
+  }
+  .select-bar .count{ font-size:14px; color: var(--text); }
+  .select-bar .actions{ display:flex; gap:8px; }
+  .home-toolbar{ display:flex; justify-content:flex-end; margin-bottom: 10px; }
+  .home-toolbar button{ background:none; border:none; color: var(--accent); font-size:13px; cursor:pointer; padding:4px 2px; }
+  .active-folder{
+    display:flex; justify-content:space-between; align-items:center; background: var(--surface-raised);
+    border:1px solid var(--accent); border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:13px;
+  }
+  .active-folder button{ background:none; border:none; color: var(--text-dim); font-size:12px; cursor:pointer; }
+
+  .folder-top{ margin-bottom: 18px; }
+  .folder-top-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background: var(--surface); border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-bottom:6px; cursor:pointer;
+  }
+  .folder-top-row .name{ font-weight:600; font-size:14px; }
+  .folder-top-row .count{ font-size:12px; color: var(--text-dim); margin-left:6px; }
+  .folder-actions{ display:flex; gap:6px; }
+  .folder-actions button{ background:none; border:none; color: var(--text-dim); font-size:14px; cursor:pointer; padding:2px 4px; }
+  .folder-sub-list{ padding-left: 18px; margin-bottom: 8px; }
+  .folder-sub-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background: var(--surface-raised); border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:6px; cursor:pointer; font-size:13px;
+  }
+  .folder-add-sub{ padding-left: 18px; margin-bottom: 10px; }
+  .folder-add-sub button{ background:none; border:1px dashed var(--line); color: var(--text-dim); border-radius:6px; padding:6px 10px; font-size:12px; cursor:pointer; }
+  .simple-list-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background: var(--surface); border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-bottom:8px; cursor:pointer;
+  }
+
+  .tag-chip-list{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  .tag-chip{
+    display:inline-flex; align-items:center; gap:6px; background: var(--surface-raised); border:1px solid var(--line);
+    border-radius: 999px; padding: 4px 10px; font-size:12px;
+  }
+  .tag-chip button{ background:none; border:none; color: var(--text-dim); font-size:12px; cursor:pointer; padding:0; }
+
+  .modal-overlay{
+    position: fixed; inset:0; background: rgba(0,0,0,0.55); z-index: 60;
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  .modal-sheet{
+    background: var(--bg); border-radius: 14px 14px 0 0; padding: 18px 18px calc(18px + env(safe-area-inset-bottom)) 18px;
+    width:100%; max-width:560px; max-height:80vh; overflow-y:auto;
+  }
+  .modal-sheet h3{ margin: 0 0 12px 0; font-size:16px; }
+  .modal-option{
+    display:block; width:100%; text-align:left; background: var(--surface); border:1px solid var(--line);
+    border-radius:8px; padding:10px 12px; margin-bottom:8px; color: var(--text); font-size:14px; cursor:pointer;
+  }
+  .modal-option.sub{ margin-left:16px; background: var(--surface-raised); }
 
   .empty-state{ text-align:center; padding: 60px 20px; color: var(--text-dim); }
   .empty-state .glyph{ font-size:32px; margin-bottom:10px; }
@@ -198,7 +258,10 @@
 <div id="appbar" class="appbar">
   <div class="left"><button class="icon-btn" id="btnBack" aria-label="Retour" hidden>&#8592;</button></div>
   <h1 id="pageTitle">Calepin</h1>
-  <div class="right"><button class="icon-btn" id="btnSettings" aria-label="R\u00e9glages">&#9881;</button></div>
+  <div class="right">
+    <button class="icon-btn" id="btnFolders" aria-label="Dossiers">&#128193;</button>
+    <button class="icon-btn" id="btnSettings" aria-label="R\u00e9glages">&#9881;</button>
+  </div>
 </div>
 
 <main id="main"></main>
@@ -261,7 +324,26 @@ const STRINGS = {
     reportAISynth: "\u{1F916} G\u00e9n\u00e9rer une synth\u00e8se IA", reportAISynthTitle: "Synth\u00e8se IA", reportAISynthRunning: "G\u00e9n\u00e9ration en cours\u2026",
     reportAISynthDone: "Synth\u00e8se g\u00e9n\u00e9r\u00e9e \u2014 relisez et corrigez au besoin.", reportAISynthError: "\u00c9chec de la g\u00e9n\u00e9ration",
     reportAISynthConfirm: "Envoyer le contenu de ce rapport pour g\u00e9n\u00e9rer une synth\u00e8se ?",
-    reportAISynthNote: "G\u00e9n\u00e9r\u00e9e par IA \u2014 relisez avant de vous y fier."
+    reportAISynthNote: "G\u00e9n\u00e9r\u00e9e par IA \u2014 relisez avant de vous y fier.",
+    selectMode: "S\u00e9lectionner", selectCancel: "Annuler", selectedCount: "s\u00e9lectionn\u00e9e(s)",
+    deleteSelected: "Supprimer", confirmDeleteSelected: "Supprimer d\u00e9finitivement ces visites et tous leurs fichiers ?",
+    deletedSelectedCount: "visite(s) supprim\u00e9e(s)",
+    folders: "Dossiers", trash: "Corbeille", allVisits: "Toutes les visites", unfiled: "Non class\u00e9",
+    newTopFolder: "+ Nouveau dossier", newTopFolderPrompt: "Nom du dossier (pays, client...) :",
+    newSubFolder: "+ Sous-dossier", newSubFolderPrompt: "Nom du sous-dossier (projet, chantier...) :",
+    renameFolder: "Renommer", renameFolderPrompt: "Nouveau nom :",
+    deleteFolder: "Supprimer", confirmDeleteFolder: "Supprimer ce dossier ? Les visites qu'il contient passeront en \"Non class\u00e9\".",
+    moveFolder: "D\u00e9placer", moveFolderPrompt: "D\u00e9placer ce sous-dossier vers quel dossier parent ?",
+    tagsSection: "Tags", noTags: "Aucun tag utilis\u00e9 pour l'instant.", renameTag: "Renommer", deleteTag: "Supprimer",
+    renameTagPrompt: "Nouveau nom pour ce tag :", confirmDeleteTag: "Retirer ce tag de toutes les visites concern\u00e9es ?",
+    classement: "Classement", folderLabel: "Dossier", changeFolder: "Changer", tagsLabel: "Tags",
+    addTag: "+ Ajouter un tag", addTagPrompt: "Nom du tag :", pickFolderTitle: "Choisir un dossier",
+    moveSelected: "D\u00e9placer vers...", movedSelectedCount: "visite(s) d\u00e9plac\u00e9e(s)",
+    trashedVisit: "D\u00e9plac\u00e9e vers la corbeille", trashedSelectedCount: "visite(s) d\u00e9plac\u00e9e(s) vers la corbeille",
+    emptyTrash: "Vider la corbeille", confirmEmptyTrash: "Supprimer d\u00e9finitivement toutes les visites de la corbeille ? Action irr\u00e9versible.",
+    restoreVisit: "Restaurer", deleteForever: "Supprimer d\u00e9finitivement", confirmDeleteForever: "Supprimer d\u00e9finitivement cette visite ? Action irr\u00e9versible.",
+    emptyTrashState: "La corbeille est vide.", restoredVisit: "Visite restaur\u00e9e",
+    activeFolderClear: "\u2715 effacer le filtre"
   },
   en: {
     appName: "Calepin", settings: "Settings", back: "Back",
@@ -311,7 +393,26 @@ const STRINGS = {
     reportAISynth: "\u{1F916} Generate AI synthesis", reportAISynthTitle: "AI synthesis", reportAISynthRunning: "Generating\u2026",
     reportAISynthDone: "Synthesis generated \u2014 review and correct as needed.", reportAISynthError: "Generation failed",
     reportAISynthConfirm: "Send this report's content to generate a synthesis?",
-    reportAISynthNote: "AI-generated \u2014 review before relying on it."
+    reportAISynthNote: "AI-generated \u2014 review before relying on it.",
+    selectMode: "Select", selectCancel: "Cancel", selectedCount: "selected",
+    deleteSelected: "Delete", confirmDeleteSelected: "Permanently delete these visits and all their files?",
+    deletedSelectedCount: "visit(s) deleted",
+    folders: "Folders", trash: "Trash", allVisits: "All visits", unfiled: "Unfiled",
+    newTopFolder: "+ New folder", newTopFolderPrompt: "Folder name (country, client...):",
+    newSubFolder: "+ Subfolder", newSubFolderPrompt: "Subfolder name (project, site...):",
+    renameFolder: "Rename", renameFolderPrompt: "New name:",
+    deleteFolder: "Delete", confirmDeleteFolder: "Delete this folder? Its visits will become \"Unfiled\".",
+    moveFolder: "Move", moveFolderPrompt: "Move this subfolder to which parent folder?",
+    tagsSection: "Tags", noTags: "No tags used yet.", renameTag: "Rename", deleteTag: "Delete",
+    renameTagPrompt: "New name for this tag:", confirmDeleteTag: "Remove this tag from all visits using it?",
+    classement: "Organization", folderLabel: "Folder", changeFolder: "Change", tagsLabel: "Tags",
+    addTag: "+ Add a tag", addTagPrompt: "Tag name:", pickFolderTitle: "Choose a folder",
+    moveSelected: "Move to...", movedSelectedCount: "visit(s) moved",
+    trashedVisit: "Moved to trash", trashedSelectedCount: "visit(s) moved to trash",
+    emptyTrash: "Empty trash", confirmEmptyTrash: "Permanently delete all visits in the trash? This cannot be undone.",
+    restoreVisit: "Restore", deleteForever: "Delete forever", confirmDeleteForever: "Permanently delete this visit? This cannot be undone.",
+    emptyTrashState: "Trash is empty.", restoredVisit: "Visit restored",
+    activeFolderClear: "\u2715 clear filter"
   },
   sw: {
     appName: "Calepin", settings: "Mipangilio", back: "Rudi",
@@ -361,7 +462,26 @@ const STRINGS = {
     reportAISynth: "\u{1F916} Tengeneza muhtasari wa AI", reportAISynthTitle: "Muhtasari wa AI", reportAISynthRunning: "Inatengeneza\u2026",
     reportAISynthDone: "Muhtasari umetengenezwa \u2014 soma na urekebishe ikihitajika.", reportAISynthError: "Utengenezaji umeshindwa",
     reportAISynthConfirm: "Tuma maudhui ya ripoti hii kutengeneza muhtasari?",
-    reportAISynthNote: "Imetengenezwa na AI \u2014 soma kabla ya kuitegemea."
+    reportAISynthNote: "Imetengenezwa na AI \u2014 soma kabla ya kuitegemea.",
+    selectMode: "Chagua", selectCancel: "Ghairi", selectedCount: "zimechaguliwa",
+    deleteSelected: "Futa", confirmDeleteSelected: "Futa kabisa ziara hizi na faili zake zote?",
+    deletedSelectedCount: "ziara zimefutwa",
+    folders: "Folda", trash: "Takataka", allVisits: "Ziara zote", unfiled: "Bila mpangilio",
+    newTopFolder: "+ Folda mpya", newTopFolderPrompt: "Jina la folda (nchi, mteja...):",
+    newSubFolder: "+ Folda ndogo", newSubFolderPrompt: "Jina la folda ndogo (mradi, tovuti...):",
+    renameFolder: "Badilisha jina", renameFolderPrompt: "Jina jipya:",
+    deleteFolder: "Futa", confirmDeleteFolder: "Futa folda hii? Ziara zake zitakuwa \"Bila mpangilio\".",
+    moveFolder: "Hamisha", moveFolderPrompt: "Hamisha folda ndogo hii kwenda folda gani mzazi?",
+    tagsSection: "Tags", noTags: "Hakuna tag iliyotumika bado.", renameTag: "Badilisha jina", deleteTag: "Futa",
+    renameTagPrompt: "Jina jipya la tag hii:", confirmDeleteTag: "Ondoa tag hii kwenye ziara zote zinazoitumia?",
+    classement: "Mpangilio", folderLabel: "Folda", changeFolder: "Badilisha", tagsLabel: "Tags",
+    addTag: "+ Ongeza tag", addTagPrompt: "Jina la tag:", pickFolderTitle: "Chagua folda",
+    moveSelected: "Hamisha kwenda...", movedSelectedCount: "ziara zimehamishwa",
+    trashedVisit: "Imehamishiwa kwenye takataka", trashedSelectedCount: "ziara zimehamishiwa kwenye takataka",
+    emptyTrash: "Futa takataka", confirmEmptyTrash: "Futa kabisa ziara zote kwenye takataka? Haiwezi kutenduliwa.",
+    restoreVisit: "Rejesha", deleteForever: "Futa kabisa", confirmDeleteForever: "Futa kabisa ziara hii? Haiwezi kutenduliwa.",
+    emptyTrashState: "Takataka ni tupu.", restoredVisit: "Ziara imerejeshwa",
+    activeFolderClear: "\u2715 futa kichujio"
   }
 };
 function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
@@ -391,6 +511,80 @@ function addCustomCategory(label){
 function catById(id){
   const found = loadCategories().find(c => c.id === id);
   return found || { id: "autre", label: t("cat_autre"), glyph: DEFAULT_GLYPHS.autre };
+}
+
+/* ============================================================
+   Dossiers (2 niveaux : pays/client -> projet) et tags libres
+   ============================================================ */
+async function getTopFolders(){
+  const all = await idbGetAll("folders");
+  return all.filter(f => !f.parentId).sort((a,b) => a.name.localeCompare(b.name));
+}
+async function getSubFolders(parentId){
+  const all = await idbGetByIndex("folders", "parentId", parentId);
+  return all.sort((a,b) => a.name.localeCompare(b.name));
+}
+async function folderPathLabel(folderId){
+  if(!folderId) return t("unfiled");
+  const folder = await idbGet("folders", folderId);
+  if(!folder) return t("unfiled");
+  if(!folder.parentId) return folder.name;
+  const parent = await idbGet("folders", folder.parentId);
+  return (parent ? parent.name + " \u203a " : "") + folder.name;
+}
+async function allTagsWithCounts(){
+  const visits = await idbGetAll("visits");
+  const counts = {};
+  for(const v of visits){
+    if(v.trashedAt) continue;
+    (v.tags || []).forEach(tag => { counts[tag] = (counts[tag] || 0) + 1; });
+  }
+  return Object.keys(counts).sort((a,b) => a.localeCompare(b)).map(tag => ({ tag, count: counts[tag] }));
+}
+function allKnownTagsFlat(visits){
+  const set = new Set();
+  visits.forEach(v => (v.tags || []).forEach(tag => set.add(tag)));
+  return Array.from(set).sort((a,b) => a.localeCompare(b));
+}
+
+/* S\u00e9lecteur de dossier r\u00e9utilisable (feuille modale) : renvoie le folderId choisi
+   (null = Non class\u00e9) via le callback onPick, ou rien si annul\u00e9. */
+async function showFolderPicker(onPick){
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  const sheet = document.createElement("div");
+  sheet.className = "modal-sheet";
+  sheet.innerHTML = `<h3>${t("pickFolderTitle")}</h3><div id="pickerList"></div><button class="btn" id="btnPickerCancel" style="width:100%;">${t("cancel")}</button>`;
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+
+  function close(){ overlay.remove(); }
+  overlay.addEventListener("click", (e) => { if(e.target === overlay) close(); });
+  sheet.querySelector("#btnPickerCancel").addEventListener("click", close);
+
+  const list = sheet.querySelector("#pickerList");
+  const unfiledBtn = document.createElement("button");
+  unfiledBtn.className = "modal-option";
+  unfiledBtn.textContent = t("unfiled");
+  unfiledBtn.addEventListener("click", () => { close(); onPick(null); });
+  list.appendChild(unfiledBtn);
+
+  const tops = await getTopFolders();
+  for(const top of tops){
+    const topBtn = document.createElement("button");
+    topBtn.className = "modal-option";
+    topBtn.textContent = top.name;
+    topBtn.addEventListener("click", () => { close(); onPick(top.id); });
+    list.appendChild(topBtn);
+    const subs = await getSubFolders(top.id);
+    for(const sub of subs){
+      const subBtn = document.createElement("button");
+      subBtn.className = "modal-option sub";
+      subBtn.textContent = sub.name;
+      subBtn.addEventListener("click", () => { close(); onPick(sub.id); });
+      list.appendChild(subBtn);
+    }
+  }
 }
 
 /* ============================================================
@@ -453,7 +647,7 @@ async function callChatSynthesis(rawText, apiKey){
    IndexedDB — visits (m\u00e9tadonn\u00e9es) + entries (audio/photo/texte)
    ============================================================ */
 const DB_NAME = "calepin";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 let dbPromise = null;
 
 function openDB(){
@@ -466,6 +660,10 @@ function openDB(){
       if(!db.objectStoreNames.contains("entries")){
         const store = db.createObjectStore("entries", { keyPath: "id" });
         store.createIndex("visitUid", "visitUid", { unique: false });
+      }
+      if(!db.objectStoreNames.contains("folders")){
+        const store = db.createObjectStore("folders", { keyPath: "id" });
+        store.createIndex("parentId", "parentId", { unique: false });
       }
     };
     req.onsuccess = (e) => resolve(e.target.result);
@@ -581,11 +779,13 @@ const main = document.getElementById("main");
 const pageTitle = document.getElementById("pageTitle");
 const btnBack = document.getElementById("btnBack");
 const btnSettings = document.getElementById("btnSettings");
+const btnFolders = document.getElementById("btnFolders");
 const fabNew = document.getElementById("fabNew");
 
 window.addEventListener("hashchange", route);
 btnBack.addEventListener("click", () => { window.location.hash = "#home"; });
 btnSettings.addEventListener("click", () => { window.location.hash = "#settings"; });
+btnFolders.addEventListener("click", () => { window.location.hash = "#folders"; });
 fabNew.addEventListener("click", () => { window.location.hash = "#new"; });
 
 function route(){
@@ -600,6 +800,12 @@ function route(){
   } else if(hash === "#settings"){
     btnBack.hidden = false; fabNew.hidden = true; pageTitle.textContent = t("settings");
     renderSettings();
+  } else if(hash === "#folders"){
+    btnBack.hidden = false; fabNew.hidden = true; pageTitle.textContent = t("folders");
+    renderFolders();
+  } else if(hash === "#trash"){
+    btnBack.hidden = false; fabNew.hidden = true; pageTitle.textContent = t("trash");
+    renderTrash();
   } else if(hash.startsWith("#report/")){
     btnBack.hidden = false; fabNew.hidden = true; pageTitle.textContent = t("reportTitle");
     renderReport(hash.slice(8));
@@ -614,10 +820,37 @@ function route(){
 /* ============================================================
    Vue : accueil
    ============================================================ */
-let filterState = { category: "", search: "", period: "" };
+let filterState = { category: "", search: "", period: "", folder: null };
+let selectMode = false;
+let selectedIds = new Set();
 
 async function renderHome(){
   main.innerHTML = "";
+  fabNew.hidden = selectMode;
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "home-toolbar";
+  if(!selectMode){
+    toolbar.innerHTML = `<button id="btnEnterSelect">${t("selectMode")}</button>`;
+  }
+  main.appendChild(toolbar);
+
+  let selectBar = null;
+  if(selectMode){
+    selectBar = document.createElement("div");
+    selectBar.className = "select-bar";
+    main.appendChild(selectBar);
+  }
+
+  if(filterState.folder){
+    const label = filterState.folder === "unfiled" ? t("unfiled") : await folderPathLabel(filterState.folder);
+    const activeFolder = document.createElement("div");
+    activeFolder.className = "active-folder";
+    activeFolder.innerHTML = `<span>\u{1F4C1} ${escapeHtml(label)}</span><button id="btnClearFolder">${t("activeFolderClear")}</button>`;
+    main.appendChild(activeFolder);
+    activeFolder.querySelector("#btnClearFolder").addEventListener("click", () => { filterState.folder = null; route(); });
+  }
+
   const filters = document.createElement("div");
   filters.className = "filters";
   const cats = loadCategories();
@@ -638,6 +871,53 @@ async function renderHome(){
   listEl.className = "visit-list";
   main.appendChild(listEl);
 
+  if(!selectMode){
+    toolbar.querySelector("#btnEnterSelect").addEventListener("click", () => {
+      selectMode = true; selectedIds = new Set(); route();
+    });
+  }
+
+  function renderSelectBar(){
+    if(!selectBar) return;
+    selectBar.innerHTML = `
+      <span class="count">${selectedIds.size} ${t("selectedCount")}</span>
+      <div class="actions">
+        <button class="btn" id="btnMoveSelected" ${selectedIds.size === 0 ? "disabled" : ""}>${t("moveSelected")}</button>
+        <button class="btn danger" id="btnDeleteSelected" ${selectedIds.size === 0 ? "disabled" : ""}>${t("deleteSelected")}</button>
+        <button class="btn" id="btnCancelSelect">${t("selectCancel")}</button>
+      </div>
+    `;
+    selectBar.querySelector("#btnCancelSelect").addEventListener("click", () => {
+      selectMode = false; selectedIds = new Set(); route();
+    });
+    selectBar.querySelector("#btnMoveSelected").addEventListener("click", async () => {
+      if(selectedIds.size === 0) return;
+      await showFolderPicker(async (folderId) => {
+        const ids = Array.from(selectedIds);
+        for(const uid2 of ids){
+          const v = await idbGet("visits", uid2);
+          if(v){ v.folderId = folderId; await idbPut("visits", v); }
+        }
+        showToast(ids.length + " " + t("movedSelectedCount"));
+        selectMode = false; selectedIds = new Set();
+        route();
+      });
+    });
+    selectBar.querySelector("#btnDeleteSelected").addEventListener("click", async () => {
+      if(selectedIds.size === 0) return;
+      if(!confirm(t("confirmDeleteSelected"))) return;
+      const ids = Array.from(selectedIds);
+      for(const uid2 of ids){
+        const v = await idbGet("visits", uid2);
+        if(v){ v.trashedAt = Date.now(); await idbPut("visits", v); }
+      }
+      showToast(ids.length + " " + t("trashedSelectedCount"));
+      selectMode = false; selectedIds = new Set();
+      route();
+    });
+  }
+  renderSelectBar();
+
   filters.querySelector("#fCat").value = filterState.category;
   filters.querySelector("#fPeriod").value = filterState.period;
   filters.querySelector("#fSearch").value = filterState.search;
@@ -647,8 +927,11 @@ async function renderHome(){
 
   async function refreshList(){
     let visits = await idbGetAll("visits");
+    visits = visits.filter(v => !v.trashedAt);
     visits.sort((a,b) => new Date(b.date) - new Date(a.date));
     if(filterState.category) visits = visits.filter(v => v.category === filterState.category);
+    if(filterState.folder === "unfiled") visits = visits.filter(v => !v.folderId);
+    else if(filterState.folder) visits = visits.filter(v => v.folderId === filterState.folder);
     if(filterState.period){
       const cutoff = Date.now() - Number(filterState.period) * 86400000;
       visits = visits.filter(v => new Date(v.date).getTime() >= cutoff);
@@ -660,7 +943,7 @@ async function renderHome(){
       for(const v of visits){
         const entries = await idbGetByIndex("entries", "visitUid", v.uid);
         entriesByVisit[v.uid] = entries;
-        const hay = [v.tag, ...entries.map(e => e.text || ""), ...entries.map(e => e.label || "")].join(" ").toLowerCase();
+        const hay = [v.tag, ...(v.tags || []), ...entries.map(e => e.text || ""), ...entries.map(e => e.label || "")].join(" ").toLowerCase();
         if(hay.includes(q)) kept.push(v);
       }
       visits = kept;
@@ -677,10 +960,11 @@ async function renderHome(){
       const nAudio = entries.filter(e => e.kind === "audio").length;
       const nPhoto = entries.filter(e => e.kind === "photo").length;
       const nText = entries.filter(e => e.kind === "texte").length;
+      const isSelected = selectedIds.has(v.uid);
       const card = document.createElement("button");
-      card.className = "visit-card";
+      card.className = "visit-card" + (isSelected ? " selected" : "");
       card.innerHTML = `
-        <div class="glyph">${cat.glyph}</div>
+        ${selectMode ? `<div class="check">${isSelected ? "\u2713" : ""}</div>` : `<div class="glyph">${cat.glyph}</div>`}
         <div class="info">
           <div class="tag">${escapeHtml(v.tag) || cat.label}</div>
           <div class="meta">${fmtDate(v.date)}</div>
@@ -691,7 +975,16 @@ async function renderHome(){
           ${nText ? `<span>\u{1F4DD} ${nText}</span>` : ""}
         </div>
       `;
-      card.addEventListener("click", () => { window.location.hash = "#visit/" + v.uid; });
+      if(selectMode){
+        card.addEventListener("click", () => {
+          if(selectedIds.has(v.uid)) selectedIds.delete(v.uid); else selectedIds.add(v.uid);
+          renderSelectBar();
+          card.classList.toggle("selected");
+          card.querySelector(".check").textContent = selectedIds.has(v.uid) ? "\u2713" : "";
+        });
+      } else {
+        card.addEventListener("click", () => { window.location.hash = "#visit/" + v.uid; });
+      }
       listEl.appendChild(card);
     }
   }
@@ -749,6 +1042,7 @@ function renderNewVisit(){
     const visit = {
       uid: uid(), category: selectedCat, tag,
       date: new Date(dateStr + "T" + now.toTimeString().slice(0,8)).toISOString(),
+      folderId: null, tags: [], trashedAt: null,
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
     };
     await idbPut("visits", visit);
@@ -777,6 +1071,54 @@ async function renderVisitDetail(uidVal){
     <div class="meta">${fmtDateTime(visit.date)}</div>
   `;
   main.appendChild(head);
+
+  const classementSection = document.createElement("div");
+  classementSection.className = "section";
+  classementSection.innerHTML = `
+    <h3>${t("classement")}</h3>
+    <div class="simple-list-row" id="rowFolder" style="cursor:pointer;">
+      <span>\u{1F4C1} <span id="folderLabelText">\u2026</span></span>
+      <span style="color: var(--accent); font-size:12px;">${t("changeFolder")}</span>
+    </div>
+    <div class="tag-chip-list" id="tagChips"></div>
+    <button class="btn" id="btnAddTag" style="font-size:12px; padding:6px 10px;">${t("addTag")}</button>
+  `;
+  main.appendChild(classementSection);
+
+  async function refreshFolderLabel(){
+    classementSection.querySelector("#folderLabelText").textContent = await folderPathLabel(visit.folderId);
+  }
+  refreshFolderLabel();
+  classementSection.querySelector("#rowFolder").addEventListener("click", () => {
+    showFolderPicker(async (folderId) => {
+      visit.folderId = folderId;
+      await idbPut("visits", visit);
+      refreshFolderLabel();
+    });
+  });
+
+  function refreshTagChips(){
+    const chips = classementSection.querySelector("#tagChips");
+    chips.innerHTML = (visit.tags || []).map(tag => `
+      <span class="tag-chip">${escapeHtml(tag)}<button data-tag="${escapeHtml(tag)}">\u2715</button></span>
+    `).join("");
+    chips.querySelectorAll("button[data-tag]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        visit.tags = (visit.tags || []).filter(tg => tg !== btn.dataset.tag);
+        await idbPut("visits", visit);
+        refreshTagChips();
+      });
+    });
+  }
+  refreshTagChips();
+  classementSection.querySelector("#btnAddTag").addEventListener("click", async () => {
+    const name = prompt(t("addTagPrompt"));
+    if(name && name.trim()){
+      visit.tags = Array.from(new Set([...(visit.tags || []), name.trim()]));
+      await idbPut("visits", visit);
+      refreshTagChips();
+    }
+  });
 
   const weightBanner = document.createElement("div");
   weightBanner.className = "weight-banner";
@@ -1166,10 +1508,9 @@ async function renderVisitDetail(uidVal){
   }
   async function deleteVisit(v){
     if(!confirm(t("confirmDeleteVisit"))) return;
-    const entries = await idbGetByIndex("entries", "visitUid", v.uid);
-    for(const e of entries) await idbDelete("entries", e.id);
-    await idbDelete("visits", v.uid);
-    showToast(t("deletedVisit"));
+    v.trashedAt = Date.now();
+    await idbPut("visits", v);
+    showToast(t("trashedVisit"));
     window.location.hash = "#home";
   }
 
@@ -1347,6 +1688,244 @@ async function renderReport(uidVal){
 /* ============================================================
    Vue : r\u00e9glages (langue, qualit\u00e9 photo, stockage)
    ============================================================ */
+/* ============================================================
+   Vue : Dossiers (arborescence 2 niveaux) + gestion des tags
+   ============================================================ */
+async function renderFolders(){
+  main.innerHTML = "";
+
+  const shortcuts = document.createElement("div");
+  shortcuts.className = "folder-top";
+  shortcuts.innerHTML = `
+    <div class="simple-list-row" id="rowAll"><span>${t("allVisits")}</span><span>\u203a</span></div>
+    <div class="simple-list-row" id="rowUnfiled"><span>${t("unfiled")}</span><span>\u203a</span></div>
+    <div class="simple-list-row" id="rowTrash"><span>\u{1F5D1} ${t("trash")}</span><span>\u203a</span></div>
+  `;
+  main.appendChild(shortcuts);
+  shortcuts.querySelector("#rowAll").addEventListener("click", () => { filterState.folder = null; window.location.hash = "#home"; });
+  shortcuts.querySelector("#rowUnfiled").addEventListener("click", () => { filterState.folder = "unfiled"; window.location.hash = "#home"; });
+  shortcuts.querySelector("#rowTrash").addEventListener("click", () => { window.location.hash = "#trash"; });
+
+  const folderSection = document.createElement("div");
+  folderSection.className = "section";
+  folderSection.innerHTML = `<h3>${t("folders")}</h3><div id="folderTree"></div><button class="btn" id="btnNewTop">${t("newTopFolder")}</button>`;
+  main.appendChild(folderSection);
+
+  async function renderTree(){
+    const tree = folderSection.querySelector("#folderTree");
+    tree.innerHTML = "";
+    const tops = await getTopFolders();
+    for(const top of tops){
+      const row = document.createElement("div");
+      row.className = "folder-top-row";
+      row.innerHTML = `
+        <span class="name" data-open>${escapeHtml(top.name)}</span>
+        <div class="folder-actions">
+          <button data-act="rename">\u270f\ufe0f</button>
+          <button data-act="delete">\u{1F5D1}</button>
+        </div>
+      `;
+      row.querySelector('[data-open]').addEventListener("click", () => { filterState.folder = top.id; window.location.hash = "#home"; });
+      row.querySelector('[data-act="rename"]').addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const name = prompt(t("renameFolderPrompt"), top.name);
+        if(name && name.trim()){ top.name = name.trim(); await idbPut("folders", top); renderTree(); }
+      });
+      row.querySelector('[data-act="delete"]').addEventListener("click", async (e) => {
+        e.stopPropagation();
+        if(!confirm(t("confirmDeleteFolder"))) return;
+        const subs = await getSubFolders(top.id);
+        const allVisits = await idbGetAll("visits");
+        for(const sub of subs){
+          for(const v of allVisits.filter(v2 => v2.folderId === sub.id)){ v.folderId = null; await idbPut("visits", v); }
+          await idbDelete("folders", sub.id);
+        }
+        for(const v of allVisits.filter(v2 => v2.folderId === top.id)){ v.folderId = null; await idbPut("visits", v); }
+        await idbDelete("folders", top.id);
+        renderTree();
+      });
+      tree.appendChild(row);
+
+      const subList = document.createElement("div");
+      subList.className = "folder-sub-list";
+      const subs = await getSubFolders(top.id);
+      for(const sub of subs){
+        const subRow = document.createElement("div");
+        subRow.className = "folder-sub-row";
+        subRow.innerHTML = `
+          <span data-open>${escapeHtml(sub.name)}</span>
+          <div class="folder-actions">
+            <button data-act="move">\u21c6</button>
+            <button data-act="rename">\u270f\ufe0f</button>
+            <button data-act="delete">\u{1F5D1}</button>
+          </div>
+        `;
+        subRow.querySelector('[data-open]').addEventListener("click", () => { filterState.folder = sub.id; window.location.hash = "#home"; });
+        subRow.querySelector('[data-act="rename"]').addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const name = prompt(t("renameFolderPrompt"), sub.name);
+          if(name && name.trim()){ sub.name = name.trim(); await idbPut("folders", sub); renderTree(); }
+        });
+        subRow.querySelector('[data-act="delete"]').addEventListener("click", async (e) => {
+          e.stopPropagation();
+          if(!confirm(t("confirmDeleteFolder"))) return;
+          const allVisits = await idbGetAll("visits");
+          for(const v of allVisits.filter(v2 => v2.folderId === sub.id)){ v.folderId = null; await idbPut("visits", v); }
+          await idbDelete("folders", sub.id);
+          renderTree();
+        });
+        subRow.querySelector('[data-act="move"]').addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const others = (await getTopFolders()).filter(f => f.id !== top.id);
+          if(others.length === 0){ showToast(t("moveFolderPrompt")); return; }
+          const label = others.map((f,i) => (i+1) + ". " + f.name).join("\n");
+          const choice = prompt(t("moveFolderPrompt") + "\n" + label);
+          const idx = Number(choice) - 1;
+          if(others[idx]){ sub.parentId = others[idx].id; await idbPut("folders", sub); renderTree(); }
+        });
+        subList.appendChild(subRow);
+      }
+      tree.appendChild(subList);
+
+      const addSub = document.createElement("div");
+      addSub.className = "folder-add-sub";
+      addSub.innerHTML = `<button>${t("newSubFolder")}</button>`;
+      addSub.querySelector("button").addEventListener("click", async () => {
+        const name = prompt(t("newSubFolderPrompt"));
+        if(name && name.trim()){
+          await idbPut("folders", { id: uid(), name: name.trim(), parentId: top.id });
+          renderTree();
+        }
+      });
+      tree.appendChild(addSub);
+    }
+  }
+  renderTree();
+
+  folderSection.querySelector("#btnNewTop").addEventListener("click", async () => {
+    const name = prompt(t("newTopFolderPrompt"));
+    if(name && name.trim()){
+      await idbPut("folders", { id: uid(), name: name.trim(), parentId: null });
+      renderTree();
+    }
+  });
+
+  const tagSection = document.createElement("div");
+  tagSection.className = "section";
+  tagSection.innerHTML = `<h3>${t("tagsSection")}</h3><div id="tagList"></div>`;
+  main.appendChild(tagSection);
+
+  async function renderTagList(){
+    const list = tagSection.querySelector("#tagList");
+    const tags = await allTagsWithCounts();
+    if(tags.length === 0){ list.innerHTML = `<p class="capture-hint">${t("noTags")}</p>`; return; }
+    list.innerHTML = "";
+    for(const { tag, count } of tags){
+      const row = document.createElement("div");
+      row.className = "simple-list-row";
+      row.innerHTML = `
+        <span>${escapeHtml(tag)} <span class="storage-line" style="display:inline;">(${count})</span></span>
+        <div class="folder-actions">
+          <button data-act="rename">\u270f\ufe0f</button>
+          <button data-act="delete">\u{1F5D1}</button>
+        </div>
+      `;
+      row.querySelector('[data-act="rename"]').addEventListener("click", async () => {
+        const newName = prompt(t("renameTagPrompt"), tag);
+        if(!newName || !newName.trim() || newName.trim() === tag) return;
+        const visits = await idbGetAll("visits");
+        for(const v of visits){
+          if((v.tags || []).includes(tag)){
+            v.tags = Array.from(new Set(v.tags.map(tg => tg === tag ? newName.trim() : tg)));
+            await idbPut("visits", v);
+          }
+        }
+        renderTagList();
+      });
+      row.querySelector('[data-act="delete"]').addEventListener("click", async () => {
+        if(!confirm(t("confirmDeleteTag"))) return;
+        const visits = await idbGetAll("visits");
+        for(const v of visits){
+          if((v.tags || []).includes(tag)){
+            v.tags = v.tags.filter(tg => tg !== tag);
+            await idbPut("visits", v);
+          }
+        }
+        renderTagList();
+      });
+      list.appendChild(row);
+    }
+  }
+  renderTagList();
+}
+
+/* ============================================================
+   Vue : Corbeille
+   ============================================================ */
+async function renderTrash(){
+  main.innerHTML = "";
+  const emptyBtn = document.createElement("button");
+  emptyBtn.className = "btn danger"; emptyBtn.style.width = "100%"; emptyBtn.style.marginBottom = "16px";
+  emptyBtn.textContent = "\u{1F5D1} " + t("emptyTrash");
+  main.appendChild(emptyBtn);
+
+  const listEl = document.createElement("div");
+  main.appendChild(listEl);
+
+  async function refresh(){
+    const visits = (await idbGetAll("visits")).filter(v => v.trashedAt).sort((a,b) => b.trashedAt - a.trashedAt);
+    if(visits.length === 0){
+      listEl.innerHTML = `<p class="capture-hint">${t("emptyTrashState")}</p>`;
+      emptyBtn.hidden = true;
+      return;
+    }
+    emptyBtn.hidden = false;
+    listEl.innerHTML = "";
+    for(const v of visits){
+      const cat = catById(v.category);
+      const row = document.createElement("div");
+      row.className = "visit-card";
+      row.style.cursor = "default";
+      row.innerHTML = `
+        <div class="glyph">${cat.glyph}</div>
+        <div class="info">
+          <div class="tag">${escapeHtml(v.tag) || cat.label}</div>
+          <div class="meta">${fmtDate(v.date)}</div>
+        </div>
+        <div class="folder-actions">
+          <button data-act="restore">${t("restoreVisit")}</button>
+          <button data-act="forever">\u{1F5D1}</button>
+        </div>
+      `;
+      row.querySelector('[data-act="restore"]').addEventListener("click", async () => {
+        v.trashedAt = null;
+        await idbPut("visits", v);
+        showToast(t("restoredVisit"));
+        refresh();
+      });
+      row.querySelector('[data-act="forever"]').addEventListener("click", async () => {
+        if(!confirm(t("confirmDeleteForever"))) return;
+        const entries = await idbGetByIndex("entries", "visitUid", v.uid);
+        for(const e of entries) await idbDelete("entries", e.id);
+        await idbDelete("visits", v.uid);
+        refresh();
+      });
+      listEl.appendChild(row);
+    }
+  }
+  emptyBtn.addEventListener("click", async () => {
+    if(!confirm(t("confirmEmptyTrash"))) return;
+    const visits = (await idbGetAll("visits")).filter(v => v.trashedAt);
+    for(const v of visits){
+      const entries = await idbGetByIndex("entries", "visitUid", v.uid);
+      for(const e of entries) await idbDelete("entries", e.id);
+      await idbDelete("visits", v.uid);
+    }
+    refresh();
+  });
+  refresh();
+}
+
 async function renderSettings(){
   main.innerHTML = "";
 
