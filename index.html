@@ -1425,11 +1425,30 @@ async function renderVisitDetail(uidVal){
     const buf = await blob.arrayBuffer();
     return new Blob([buf], { type: blob.type || "application/octet-stream" });
   }
+  /* Filtrage anti-hallucination Whisper : plut\u00f4t qu'une liste noire de formules
+     ("abonnez-vous", "merci d'avoir regard\u00e9"...), on s'appuie sur les indicateurs de
+     confiance renvoy\u00e9s par le mod\u00e8le lui-m\u00eame (verbose_json). Un segment est \u00e9cart\u00e9
+     seulement si les DEUX signaux convergent (silence probable ET confiance basse) —
+     \u00e9vite de sur-filtrer un vrai propos juste parce qu'un seul indicateur est mauvais. */
+  const HALLUCINATION_NO_SPEECH_THRESHOLD = 0.6;
+  const HALLUCINATION_LOGPROB_THRESHOLD = -0.5;
+  function filterHallucinatedSegments(data){
+    if(!data || !Array.isArray(data.segments) || data.segments.length === 0){
+      return (data && data.text) || "";
+    }
+    const kept = data.segments.filter(seg => {
+      const suspect = (seg.no_speech_prob > HALLUCINATION_NO_SPEECH_THRESHOLD) && (seg.avg_logprob < HALLUCINATION_LOGPROB_THRESHOLD);
+      return !suspect;
+    });
+    return kept.map(s => (s.text || "").trim()).filter(Boolean).join(" ").trim();
+  }
+
   async function callWhisper(blob, apiKey){
     const safeBlob = await ensureRealBlob(blob);
     const formData = new FormData();
     formData.append("file", safeBlob, "audio." + extForBlob(safeBlob));
     formData.append("model", "whisper-1");
+    formData.append("response_format", "verbose_json");
     const resp = await fetch(openAIEndpoint("transcribe"), {
       method: "POST",
       headers: { "Authorization": "Bearer " + apiKey },
@@ -1440,7 +1459,7 @@ async function renderVisitDetail(uidVal){
       throw new Error("HTTP " + resp.status + (errText ? " " + errText.slice(0,120) : ""));
     }
     const data = await resp.json();
-    return data.text || "";
+    return filterHallucinatedSegments(data);
   }
 
   async function transcribeAI(entry, bodyEl){
