@@ -352,7 +352,12 @@ const STRINGS = {
     transcribeAllSomeFailed: "audio(s) n'ont pas pu \u00eatre transcrits (voir texte marqu\u00e9 \u00e9chec)",
     synthLevel: "Niveau de synth\u00e8se", synthLevelComplet: "Complet", synthLevelSynthese: "Synth\u00e8se", synthLevelSuccinct: "Succinct",
     synthLevelCompletSub: "Tout, juste mis au propre", synthLevelSyntheseSub: "Condens\u00e9, faits importants", synthLevelSuccinctSub: "L'essentiel, tr\u00e8s court",
-    synthGeneratedAt: "G\u00e9n\u00e9r\u00e9e au niveau"
+    synthGeneratedAt: "G\u00e9n\u00e9r\u00e9e au niveau",
+    synthFormat: "Format", synthFormatNotes: "Notes de terrain", synthFormatPV: "PV de r\u00e9union",
+    synthFormatNotesSub: "Structure libre, par rep\u00e8re ou chronologique", synthFormatPVSub: "Pr\u00e9sents / Points abord\u00e9s / D\u00e9cisions / Actions / Prochaine r\u00e9union",
+    addDocument: "Importer un document (.txt)", documentImported: "Document import\u00e9",
+    documentUnsupported: "Seuls les fichiers texte (.txt) sont support\u00e9s pour l'instant.",
+    synthGeneratedFormat: "format"
   },
   en: {
     appName: "Calepin", settings: "Settings", back: "Back",
@@ -430,7 +435,12 @@ const STRINGS = {
     transcribeAllSomeFailed: "audio(s) could not be transcribed (marked as failed in the text)",
     synthLevel: "Synthesis level", synthLevelComplet: "Full", synthLevelSynthese: "Summary", synthLevelSuccinct: "Brief",
     synthLevelCompletSub: "Everything, just cleaned up", synthLevelSyntheseSub: "Condensed, key facts", synthLevelSuccinctSub: "Essentials only, very short",
-    synthGeneratedAt: "Generated at level"
+    synthGeneratedAt: "Generated at level",
+    synthFormat: "Format", synthFormatNotes: "Field notes", synthFormatPV: "Meeting minutes",
+    synthFormatNotesSub: "Free structure, by landmark or chronological", synthFormatPVSub: "Attendees / Topics / Decisions / Actions / Next meeting",
+    addDocument: "Import a document (.txt)", documentImported: "Document imported",
+    documentUnsupported: "Only plain text files (.txt) are supported for now.",
+    synthGeneratedFormat: "format"
   },
   sw: {
     appName: "Calepin", settings: "Mipangilio", back: "Rudi",
@@ -508,7 +518,12 @@ const STRINGS = {
     transcribeAllSomeFailed: "sauti hazikuweza kuandikwa (zimeonyeshwa kama zimeshindwa)",
     synthLevel: "Kiwango cha muhtasari", synthLevelComplet: "Kamili", synthLevelSynthese: "Muhtasari", synthLevelSuccinct: "Fupi",
     synthLevelCompletSub: "Kila kitu, kimesafishwa tu", synthLevelSyntheseSub: "Kifupi, ukweli muhimu", synthLevelSuccinctSub: "Muhimu tu, fupi sana",
-    synthGeneratedAt: "Imetengenezwa kwa kiwango"
+    synthGeneratedAt: "Imetengenezwa kwa kiwango",
+    synthFormat: "Muundo", synthFormatNotes: "Maelezo ya uwandani", synthFormatPV: "Muhtasari wa mkutano",
+    synthFormatNotesSub: "Muundo huru, kwa alama au mpangilio wa wakati", synthFormatPVSub: "Waliohudhuria / Mada / Maamuzi / Hatua / Mkutano ujao",
+    addDocument: "Leta hati (.txt)", documentImported: "Hati imeletwa",
+    documentUnsupported: "Faili za maandishi (.txt) tu ndizo zinazotumika kwa sasa.",
+    synthGeneratedFormat: "muundo"
   }
 };
 function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
@@ -655,12 +670,36 @@ const SYNTH_LEVEL_INSTRUCTIONS = {
     "d'un paragraphe maximum, peu importe la longueur de la source). Ne garde que l'essentiel : problèmes constatés, " +
     "urgences, décisions ou actions à prendre. Sacrifie le détail au profit de la brièveté, mais ne déforme jamais un fait."
 };
-async function callChatSynthesis(rawText, apiKey, level){
+/* Rep\u00e8res reconnus par convention (texte libre, jamais valid\u00e9 techniquement — cf. note
+   de connexion Calepin/pompage : m\u00eame principe de discipline de nommage plut\u00f4t que de
+   contrainte impos\u00e9e) pour signaler un ordre du jour ou un compte-rendu oral de r\u00e9union. */
+function isAgendaLabel(label){ return /ordre du jour|agenda/i.test(label || ""); }
+function isDebriefLabel(label){ return /compte.?rendu|d\u00e9briefing|debrief|r\u00e9sum\u00e9 r\u00e9union/i.test(label || ""); }
+
+const SYNTH_FORMAT_INSTRUCTIONS = {
+  notes: "Pr\u00e9sente le r\u00e9sultat sous forme de notes structur\u00e9es (par rep\u00e8re ou dans l'ordre fourni), sans forcer un format de compte-rendu formel.",
+  pv: "Pr\u00e9sente le r\u00e9sultat sous la forme d'un PROC\u00c8S-VERBAL DE R\u00c9UNION, avec exactement ces sections, dans cet ordre : " +
+    "\"Pr\u00e9sents\", \"Points abord\u00e9s\", \"D\u00e9cisions\", \"Actions\" (qui / quoi / \u00e9ch\u00e9ance, si mentionn\u00e9), \"Prochaine r\u00e9union\". " +
+    "IMPORTANT : si une section n'a AUCUNE information dans les notes fournies, \u00e9cris explicitement \"Non mentionn\u00e9 dans les notes\" " +
+    "pour cette section — ne devine jamais qui \u00e9tait pr\u00e9sent, quelle d\u00e9cision a \u00e9t\u00e9 prise, ou qui fait quoi, si ce n'est pas dit clairement."
+};
+
+async function callChatSynthesis(rawText, apiKey, level, format, agendaText){
   const lengthInstruction = SYNTH_LEVEL_INSTRUCTIONS[level] || SYNTH_LEVEL_INSTRUCTIONS.complet;
-  const systemPrompt = "Tu reformules des notes de terrain en un texte clair et bien r\u00e9dig\u00e9, en fran\u00e7ais. " +
+  const formatInstruction = SYNTH_FORMAT_INSTRUCTIONS[format] || SYNTH_FORMAT_INSTRUCTIONS.notes;
+  let systemPrompt = "Tu reformules des notes de terrain en un texte clair et bien r\u00e9dig\u00e9, en fran\u00e7ais. " +
     "R\u00e8gle absolue : n'ajoute, ne suppose et n'invente AUCUN fait absent du texte fourni. " +
-    "Ne fais aucune interpr\u00e9tation technique. Conserve l'ordre chronologique ou par rep\u00e8re fourni. " +
-    "Si une information est ambigu\u00eb ou manquante, dis-le explicitement plut\u00f4t que de combler.\n\n" + lengthInstruction;
+    "Ne fais aucune interpr\u00e9tation technique. " +
+    "Si une information est ambigu\u00eb ou manquante, dis-le explicitement plut\u00f4t que de combler.\n\n" +
+    formatInstruction + "\n\n" + lengthInstruction;
+  if(agendaText){
+    systemPrompt += "\n\nUn ordre du jour a \u00e9t\u00e9 fourni s\u00e9par\u00e9ment (ci-dessous). Utilise-le UNIQUEMENT pour structurer " +
+      "l'ordre des points dans \"Points abord\u00e9s\" si les notes le permettent — ne l'impose pas artificiellement si les " +
+      "notes couvrent des sujets diff\u00e9rents, et ne le recopie pas tel quel s'il n'a pas \u00e9t\u00e9 effectivement abord\u00e9.\n\n" +
+      "ORDRE DU JOUR PR\u00c9VU :\n" + agendaText;
+  } else {
+    systemPrompt += "\n\nConserve l'ordre chronologique ou par rep\u00e8re fourni dans les notes.";
+  }
   const resp = await fetch(openAIEndpoint("chat"), {
     method: "POST",
     headers: { "Authorization": "Bearer " + apiKey, "Content-Type": "application/json" },
@@ -1170,8 +1209,10 @@ async function renderVisitDetail(uidVal){
     <button class="btn" id="btnAddPhoto">\u{1F4F7} ${t("addPhoto")}</button>
     <button class="btn" id="btnAddText">\u{1F4DD} ${t("addText")}</button>
     <button class="btn" id="btnImportAudio">\u{1F4C2} ${t("addAudioImport")}</button>
+    <button class="btn" id="btnImportDoc">\u{1F4C4} ${t("addDocument")}</button>
     <input type="file" id="photoInput" accept="image/*" capture="environment" multiple class="sr-only">
     <input type="file" id="audioInput" accept="audio/*" class="sr-only">
+    <input type="file" id="docInput" accept=".txt,text/plain" class="sr-only">
   `;
   main.appendChild(addRow);
 
@@ -1358,6 +1399,21 @@ async function renderVisitDetail(uidVal){
     await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "audio", blob: file, text: "", label: "", location, timestamp: Date.now() });
     refreshEntries(); refreshWeight();
     showToast(t("audioImported"));
+  });
+
+  addRow.querySelector("#btnImportDoc").addEventListener("click", () => main.querySelector("#docInput").click());
+  main.querySelector("#docInput").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if(!file) return;
+    const isTextLike = file.type.startsWith("text/") || /\.txt$/i.test(file.name);
+    if(!isTextLike){ showToast(t("documentUnsupported")); return; }
+    const content = await file.text();
+    const location = await tryGetPosition();
+    const suggestedLabel = /ordre.?du.?jour|agenda/i.test(file.name) ? "Ordre du jour" : "";
+    await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "texte", text: content, label: suggestedLabel, location, timestamp: Date.now() });
+    refreshEntries(); refreshWeight();
+    showToast(t("documentImported"));
   });
 
   async function toggleRecording(visitUid){
@@ -1670,7 +1726,12 @@ async function renderReport(uidVal){
   const synthSection = document.createElement("div");
   synthSection.className = "section";
   synthSection.innerHTML = `
-    <p class="capture-hint" style="margin-top:0;">${t("synthLevel")}</p>
+    <p class="capture-hint" style="margin-top:0;">${t("synthFormat")}</p>
+    <div class="group-toggle" id="synthFormatToggle">
+      <button data-fmt="notes" title="${t("synthFormatNotesSub")}">${t("synthFormatNotes")}</button>
+      <button data-fmt="pv" title="${t("synthFormatPVSub")}">${t("synthFormatPV")}</button>
+    </div>
+    <p class="capture-hint">${t("synthLevel")}</p>
     <div class="group-toggle" id="synthLevelToggle">
       <button data-lvl="complet" title="${t("synthLevelCompletSub")}">${t("synthLevelComplet")}</button>
       <button data-lvl="synthese" title="${t("synthLevelSyntheseSub")}">${t("synthLevelSynthese")}</button>
@@ -1681,7 +1742,7 @@ async function renderReport(uidVal){
     <div id="synthBlock" ${visit.aiSynthesis ? "" : "hidden"}>
       <h3 style="font-size:14px; color: var(--accent); margin: 14px 0 6px 0;">
         ${t("reportAISynthTitle")}
-        ${visit.aiSynthesisLevel ? `<span class="storage-line" style="display:inline; font-weight:400;">(${t("synthGeneratedAt")} : ${t("synthLevel" + visit.aiSynthesisLevel.charAt(0).toUpperCase() + visit.aiSynthesisLevel.slice(1))})</span>` : ""}
+        ${visit.aiSynthesisLevel ? `<span class="storage-line" style="display:inline; font-weight:400;">(${synthMetaLabel(visit.aiSynthesisFormat, visit.aiSynthesisLevel)})</span>` : ""}
       </h3>
       <p class="capture-hint" style="margin-top:0;">${t("reportAISynthNote")}</p>
       <textarea id="synthText" style="width:100%; min-height:120px; background: var(--surface); color: var(--text); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:14px; line-height:1.5;">${escapeHtml(visit.aiSynthesis || "")}</textarea>
@@ -1689,19 +1750,24 @@ async function renderReport(uidVal){
   `;
   main.appendChild(synthSection);
 
-  let synthLevel = visit.aiSynthesisLevel || localStorage.getItem("calepin_synth_level") || "complet";
-  function renderSynthLevelToggle(){
-    synthSection.querySelectorAll("#synthLevelToggle button").forEach(b => {
-      b.classList.toggle("active", b.dataset.lvl === synthLevel);
-    });
+  function synthMetaLabel(format, level){
+    const fmtLabel = format === "pv" ? t("synthFormatPV") : t("synthFormatNotes");
+    const lvlLabel = t("synthLevel" + level.charAt(0).toUpperCase() + level.slice(1));
+    return fmtLabel + " \u00b7 " + lvlLabel;
   }
-  renderSynthLevelToggle();
+
+  let synthLevel = visit.aiSynthesisLevel || localStorage.getItem("calepin_synth_level") || "complet";
+  let synthFormat = visit.aiSynthesisFormat || localStorage.getItem("calepin_synth_format") || "notes";
+  function renderSynthToggles(){
+    synthSection.querySelectorAll("#synthLevelToggle button").forEach(b => b.classList.toggle("active", b.dataset.lvl === synthLevel));
+    synthSection.querySelectorAll("#synthFormatToggle button").forEach(b => b.classList.toggle("active", b.dataset.fmt === synthFormat));
+  }
+  renderSynthToggles();
   synthSection.querySelectorAll("#synthLevelToggle button").forEach(b => {
-    b.addEventListener("click", () => {
-      synthLevel = b.dataset.lvl;
-      localStorage.setItem("calepin_synth_level", synthLevel);
-      renderSynthLevelToggle();
-    });
+    b.addEventListener("click", () => { synthLevel = b.dataset.lvl; localStorage.setItem("calepin_synth_level", synthLevel); renderSynthToggles(); });
+  });
+  synthSection.querySelectorAll("#synthFormatToggle button").forEach(b => {
+    b.addEventListener("click", () => { synthFormat = b.dataset.fmt; localStorage.setItem("calepin_synth_format", synthFormat); renderSynthToggles(); });
   });
 
   let synthTimer = null;
@@ -1714,21 +1780,29 @@ async function renderReport(uidVal){
     if(!key){ showToast(t("transcribeAINoKey")); return; }
     const entries = (await idbGetByIndex("entries", "visitUid", visit.uid)).sort((a,b) => a.timestamp - b.timestamp);
     if(entries.length === 0){ showToast(t("noEntries")); return; }
-    const rawText = buildReportText(visit, entries, groupBy);
-    if(!confirm(t("reportAISynthConfirm") + " (~" + rawText.length + " caract\u00e8res, " + t("synthLevel" + synthLevel.charAt(0).toUpperCase() + synthLevel.slice(1)) + ")")) return;
+
+    // D\u00e9tection des rep\u00e8res "ordre du jour" : extraits et pass\u00e9s s\u00e9par\u00e9ment au mod\u00e8le,
+    // le reste (y compris un \u00e9ventuel compte-rendu oral) suit le flux normal des notes.
+    const agendaEntries = entries.filter(e => isAgendaLabel(e.label));
+    const agendaText = agendaEntries.map(e => e.text || "").filter(Boolean).join("\n") || null;
+    const contentEntries = agendaText ? entries.filter(e => !isAgendaLabel(e.label)) : entries;
+    const rawText = buildReportText(visit, contentEntries, groupBy);
+
+    if(!confirm(t("reportAISynthConfirm") + " (~" + rawText.length + " caract\u00e8res, " + synthMetaLabel(synthFormat, synthLevel) + ")")) return;
     const btn = synthSection.querySelector("#btnAISynth");
     const statusEl = synthSection.querySelector("#synthStatus");
     btn.disabled = true; statusEl.hidden = false; statusEl.textContent = t("reportAISynthRunning");
     try{
-      const result = await callChatSynthesis(rawText, key, synthLevel);
+      const result = await callChatSynthesis(rawText, key, synthLevel, synthFormat, agendaText);
       bumpAICallCount();
       visit.aiSynthesis = result;
       visit.aiSynthesisLevel = synthLevel;
+      visit.aiSynthesisFormat = synthFormat;
       await idbPut("visits", visit);
       synthSection.querySelector("#synthBlock").hidden = false;
       synthSection.querySelector("#synthText").value = result;
       const titleEl = synthSection.querySelector("#synthBlock h3");
-      titleEl.innerHTML = `${t("reportAISynthTitle")} <span class="storage-line" style="display:inline; font-weight:400;">(${t("synthGeneratedAt")} : ${t("synthLevel" + synthLevel.charAt(0).toUpperCase() + synthLevel.slice(1))})</span>`;
+      titleEl.innerHTML = `${t("reportAISynthTitle")} <span class="storage-line" style="display:inline; font-weight:400;">(${synthMetaLabel(synthFormat, synthLevel)})</span>`;
       showToast(t("reportAISynthDone"));
     }catch(err){
       showToast(t("reportAISynthError") + " : " + err.message);
