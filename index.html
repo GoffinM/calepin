@@ -343,7 +343,16 @@ const STRINGS = {
     emptyTrash: "Vider la corbeille", confirmEmptyTrash: "Supprimer d\u00e9finitivement toutes les visites de la corbeille ? Action irr\u00e9versible.",
     restoreVisit: "Restaurer", deleteForever: "Supprimer d\u00e9finitivement", confirmDeleteForever: "Supprimer d\u00e9finitivement cette visite ? Action irr\u00e9versible.",
     emptyTrashState: "La corbeille est vide.", restoredVisit: "Visite restaur\u00e9e",
-    activeFolderClear: "\u2715 effacer le filtre"
+    activeFolderClear: "\u2715 effacer le filtre",
+    transcribeAllExport: "\u{1F4C4} Transcrire tout & exporter le texte",
+    transcribeAllConfirmAI: "Transcrire les audios manquants avec l'IA avant d'exporter ?",
+    transcribeAllConfirmMissing: "audio(s) sans transcription seront envoy\u00e9s \u00e0 l'IA",
+    transcribeAllProgress: "Transcription en cours\u2026",
+    transcribeAllDone: "Export complet g\u00e9n\u00e9r\u00e9", transcribeAllPartial: "Export g\u00e9n\u00e9r\u00e9 \u2014 certains audios restent sans transcription (pas de cl\u00e9 IA configur\u00e9e)",
+    transcribeAllSomeFailed: "audio(s) n'ont pas pu \u00eatre transcrits (voir texte marqu\u00e9 \u00e9chec)",
+    synthLevel: "Niveau de synth\u00e8se", synthLevelComplet: "Complet", synthLevelSynthese: "Synth\u00e8se", synthLevelSuccinct: "Succinct",
+    synthLevelCompletSub: "Tout, juste mis au propre", synthLevelSyntheseSub: "Condens\u00e9, faits importants", synthLevelSuccinctSub: "L'essentiel, tr\u00e8s court",
+    synthGeneratedAt: "G\u00e9n\u00e9r\u00e9e au niveau"
   },
   en: {
     appName: "Calepin", settings: "Settings", back: "Back",
@@ -412,7 +421,16 @@ const STRINGS = {
     emptyTrash: "Empty trash", confirmEmptyTrash: "Permanently delete all visits in the trash? This cannot be undone.",
     restoreVisit: "Restore", deleteForever: "Delete forever", confirmDeleteForever: "Permanently delete this visit? This cannot be undone.",
     emptyTrashState: "Trash is empty.", restoredVisit: "Visit restored",
-    activeFolderClear: "\u2715 clear filter"
+    activeFolderClear: "\u2715 clear filter",
+    transcribeAllExport: "\u{1F4C4} Transcribe all & export text",
+    transcribeAllConfirmAI: "Transcribe missing audios with AI before exporting?",
+    transcribeAllConfirmMissing: "audio(s) without a transcript will be sent to the AI",
+    transcribeAllProgress: "Transcribing\u2026",
+    transcribeAllDone: "Full export generated", transcribeAllPartial: "Export generated \u2014 some audios remain untranscribed (no AI key configured)",
+    transcribeAllSomeFailed: "audio(s) could not be transcribed (marked as failed in the text)",
+    synthLevel: "Synthesis level", synthLevelComplet: "Full", synthLevelSynthese: "Summary", synthLevelSuccinct: "Brief",
+    synthLevelCompletSub: "Everything, just cleaned up", synthLevelSyntheseSub: "Condensed, key facts", synthLevelSuccinctSub: "Essentials only, very short",
+    synthGeneratedAt: "Generated at level"
   },
   sw: {
     appName: "Calepin", settings: "Mipangilio", back: "Rudi",
@@ -481,7 +499,16 @@ const STRINGS = {
     emptyTrash: "Futa takataka", confirmEmptyTrash: "Futa kabisa ziara zote kwenye takataka? Haiwezi kutenduliwa.",
     restoreVisit: "Rejesha", deleteForever: "Futa kabisa", confirmDeleteForever: "Futa kabisa ziara hii? Haiwezi kutenduliwa.",
     emptyTrashState: "Takataka ni tupu.", restoredVisit: "Ziara imerejeshwa",
-    activeFolderClear: "\u2715 futa kichujio"
+    activeFolderClear: "\u2715 futa kichujio",
+    transcribeAllExport: "\u{1F4C4} Andika zote & hamisha maandishi",
+    transcribeAllConfirmAI: "Andika sauti zisizo na maandishi kwa AI kabla ya kuhamisha?",
+    transcribeAllConfirmMissing: "sauti bila maandishi zitatumwa kwa AI",
+    transcribeAllProgress: "Inaandika\u2026",
+    transcribeAllDone: "Uhamishaji kamili umetengenezwa", transcribeAllPartial: "Uhamishaji umetengenezwa \u2014 sauti kadhaa bado hazina maandishi (hakuna ufunguo wa AI)",
+    transcribeAllSomeFailed: "sauti hazikuweza kuandikwa (zimeonyeshwa kama zimeshindwa)",
+    synthLevel: "Kiwango cha muhtasari", synthLevelComplet: "Kamili", synthLevelSynthese: "Muhtasari", synthLevelSuccinct: "Fupi",
+    synthLevelCompletSub: "Kila kitu, kimesafishwa tu", synthLevelSyntheseSub: "Kifupi, ukweli muhimu", synthLevelSuccinctSub: "Muhimu tu, fupi sana",
+    synthGeneratedAt: "Imetengenezwa kwa kiwango"
   }
 };
 function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
@@ -618,11 +645,22 @@ function openAIEndpoint(kind){
   if(relay) return relay + (kind === "chat" ? "/chat" : "/transcribe");
   return kind === "chat" ? "https://api.openai.com/v1/chat/completions" : "https://api.openai.com/v1/audio/transcriptions";
 }
-async function callChatSynthesis(rawText, apiKey){
+const SYNTH_LEVEL_INSTRUCTIONS = {
+  complet: "Reformule INTÉGRALEMENT le texte fourni, sans rien couper ni résumer — uniquement une mise au propre " +
+    "(orthographe, grammaire, phrases claires). La longueur finale doit rester proche de l'original, quelle que soit sa longueur.",
+  synthese: "Condense le texte fourni en gardant TOUS les faits importants (observations, anomalies, mesures, actions à mener), " +
+    "en supprimant seulement les répétitions et détails secondaires. Vise une réduction significative de la longueur " +
+    "(par exemple environ moitié moins de mots que l'original), sans perdre d'information opérationnellement utile.",
+  succinct: "Résume le texte fourni de façon TRÈS COURTE (quelques phrases ou une courte liste à puces, l'équivalent " +
+    "d'un paragraphe maximum, peu importe la longueur de la source). Ne garde que l'essentiel : problèmes constatés, " +
+    "urgences, décisions ou actions à prendre. Sacrifie le détail au profit de la brièveté, mais ne déforme jamais un fait."
+};
+async function callChatSynthesis(rawText, apiKey, level){
+  const lengthInstruction = SYNTH_LEVEL_INSTRUCTIONS[level] || SYNTH_LEVEL_INSTRUCTIONS.complet;
   const systemPrompt = "Tu reformules des notes de terrain en un texte clair et bien r\u00e9dig\u00e9, en fran\u00e7ais. " +
     "R\u00e8gle absolue : n'ajoute, ne suppose et n'invente AUCUN fait absent du texte fourni. " +
     "Ne fais aucune interpr\u00e9tation technique. Conserve l'ordre chronologique ou par rep\u00e8re fourni. " +
-    "Si une information est ambigu\u00eb ou manquante, dis-le explicitement plut\u00f4t que de combler.";
+    "Si une information est ambigu\u00eb ou manquante, dis-le explicitement plut\u00f4t que de combler.\n\n" + lengthInstruction;
   const resp = await fetch(openAIEndpoint("chat"), {
     method: "POST",
     headers: { "Authorization": "Bearer " + apiKey, "Content-Type": "application/json" },
@@ -1157,12 +1195,54 @@ async function renderVisitDetail(uidVal){
   bottomActions.innerHTML = `
     <button class="btn primary" id="btnConsolidate" style="width:100%; margin-bottom:10px;">\u{1F4D1} ${t("consolidate")}</button>
     <button class="btn" id="btnExport" style="width:100%; margin-bottom:10px;">\u{1F4E4} ${t("exportVisit")}</button>
+    <button class="btn" id="btnTranscribeAllExport" style="width:100%; margin-bottom:10px;">${t("transcribeAllExport")}</button>
     <button class="btn danger" id="btnDelete" style="width:100%;">${t("deleteVisit")}</button>
   `;
   main.appendChild(bottomActions);
   bottomActions.querySelector("#btnConsolidate").addEventListener("click", () => { window.location.hash = "#report/" + visit.uid; });
   bottomActions.querySelector("#btnExport").addEventListener("click", () => exportVisit(visit));
+  bottomActions.querySelector("#btnTranscribeAllExport").addEventListener("click", () => transcribeAllThenExport(visit));
   bottomActions.querySelector("#btnDelete").addEventListener("click", () => deleteVisit(visit));
+
+  async function transcribeAllThenExport(v){
+    const btn = bottomActions.querySelector("#btnTranscribeAllExport");
+    let entries = (await idbGetByIndex("entries", "visitUid", v.uid)).sort((a,b) => a.timestamp - b.timestamp);
+    const missing = entries.filter(e => e.kind === "audio" && !(e.text && e.text.trim()));
+    const key = currentOpenAIKey();
+    let partial = false, someFailed = 0;
+
+    if(missing.length > 0){
+      if(key){
+        if(!confirm(t("transcribeAllConfirmAI") + " (" + missing.length + " " + t("transcribeAllConfirmMissing") + ")")) return;
+        btn.disabled = true;
+        showToast(t("transcribeAllProgress"));
+        for(const e of missing){
+          try{
+            const text = await callWhisper(e.blob, key);
+            bumpAICallCount();
+            e.text = text;
+            await idbPut("entries", e);
+          }catch(err){
+            someFailed++;
+          }
+        }
+        btn.disabled = false;
+      } else {
+        partial = true;
+      }
+    }
+
+    entries = (await idbGetByIndex("entries", "visitUid", v.uid)).sort((a,b) => a.timestamp - b.timestamp);
+    // Structure minimale group\u00e9e par rep\u00e8re : r\u00e9utilisable ult\u00e9rieurement pour comprendre
+    // plusieurs prises de notes \u00e0 des endroits diff\u00e9rents d'un m\u00eame site.
+    const txt = buildReportText(v, entries, "landmark");
+    downloadBlob(new Blob([txt], { type: "text/plain;charset=utf-8" }), safeFileName(v.tag || v.uid) + "_transcription_complete.txt");
+
+    refreshEntries();
+    if(someFailed > 0) showToast(someFailed + " " + t("transcribeAllSomeFailed"));
+    else if(partial) showToast(t("transcribeAllPartial"));
+    else showToast(t("transcribeAllDone"));
+  }
 
   async function refreshWeight(){
     const entries = await idbGetByIndex("entries", "visitUid", visit.uid);
@@ -1590,15 +1670,40 @@ async function renderReport(uidVal){
   const synthSection = document.createElement("div");
   synthSection.className = "section";
   synthSection.innerHTML = `
+    <p class="capture-hint" style="margin-top:0;">${t("synthLevel")}</p>
+    <div class="group-toggle" id="synthLevelToggle">
+      <button data-lvl="complet" title="${t("synthLevelCompletSub")}">${t("synthLevelComplet")}</button>
+      <button data-lvl="synthese" title="${t("synthLevelSyntheseSub")}">${t("synthLevelSynthese")}</button>
+      <button data-lvl="succinct" title="${t("synthLevelSuccinctSub")}">${t("synthLevelSuccinct")}</button>
+    </div>
     <button class="btn" id="btnAISynth" style="width:100%;">${t("reportAISynth")}</button>
     <p class="transcribe-status" id="synthStatus" hidden></p>
     <div id="synthBlock" ${visit.aiSynthesis ? "" : "hidden"}>
-      <h3 style="font-size:14px; color: var(--accent); margin: 14px 0 6px 0;">${t("reportAISynthTitle")}</h3>
+      <h3 style="font-size:14px; color: var(--accent); margin: 14px 0 6px 0;">
+        ${t("reportAISynthTitle")}
+        ${visit.aiSynthesisLevel ? `<span class="storage-line" style="display:inline; font-weight:400;">(${t("synthGeneratedAt")} : ${t("synthLevel" + visit.aiSynthesisLevel.charAt(0).toUpperCase() + visit.aiSynthesisLevel.slice(1))})</span>` : ""}
+      </h3>
       <p class="capture-hint" style="margin-top:0;">${t("reportAISynthNote")}</p>
       <textarea id="synthText" style="width:100%; min-height:120px; background: var(--surface); color: var(--text); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:14px; line-height:1.5;">${escapeHtml(visit.aiSynthesis || "")}</textarea>
     </div>
   `;
   main.appendChild(synthSection);
+
+  let synthLevel = visit.aiSynthesisLevel || localStorage.getItem("calepin_synth_level") || "complet";
+  function renderSynthLevelToggle(){
+    synthSection.querySelectorAll("#synthLevelToggle button").forEach(b => {
+      b.classList.toggle("active", b.dataset.lvl === synthLevel);
+    });
+  }
+  renderSynthLevelToggle();
+  synthSection.querySelectorAll("#synthLevelToggle button").forEach(b => {
+    b.addEventListener("click", () => {
+      synthLevel = b.dataset.lvl;
+      localStorage.setItem("calepin_synth_level", synthLevel);
+      renderSynthLevelToggle();
+    });
+  });
+
   let synthTimer = null;
   synthSection.querySelector("#synthText").addEventListener("input", (e) => {
     clearTimeout(synthTimer);
@@ -1610,17 +1715,20 @@ async function renderReport(uidVal){
     const entries = (await idbGetByIndex("entries", "visitUid", visit.uid)).sort((a,b) => a.timestamp - b.timestamp);
     if(entries.length === 0){ showToast(t("noEntries")); return; }
     const rawText = buildReportText(visit, entries, groupBy);
-    if(!confirm(t("reportAISynthConfirm") + " (~" + rawText.length + " caract\u00e8res)")) return;
+    if(!confirm(t("reportAISynthConfirm") + " (~" + rawText.length + " caract\u00e8res, " + t("synthLevel" + synthLevel.charAt(0).toUpperCase() + synthLevel.slice(1)) + ")")) return;
     const btn = synthSection.querySelector("#btnAISynth");
     const statusEl = synthSection.querySelector("#synthStatus");
     btn.disabled = true; statusEl.hidden = false; statusEl.textContent = t("reportAISynthRunning");
     try{
-      const result = await callChatSynthesis(rawText, key);
+      const result = await callChatSynthesis(rawText, key, synthLevel);
       bumpAICallCount();
       visit.aiSynthesis = result;
+      visit.aiSynthesisLevel = synthLevel;
       await idbPut("visits", visit);
       synthSection.querySelector("#synthBlock").hidden = false;
       synthSection.querySelector("#synthText").value = result;
+      const titleEl = synthSection.querySelector("#synthBlock h3");
+      titleEl.innerHTML = `${t("reportAISynthTitle")} <span class="storage-line" style="display:inline; font-weight:400;">(${t("synthGeneratedAt")} : ${t("synthLevel" + synthLevel.charAt(0).toUpperCase() + synthLevel.slice(1))})</span>`;
       showToast(t("reportAISynthDone"));
     }catch(err){
       showToast(t("reportAISynthError") + " : " + err.message);
