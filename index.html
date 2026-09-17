@@ -357,7 +357,9 @@ const STRINGS = {
     synthFormatNotesSub: "Structure libre, par rep\u00e8re ou chronologique", synthFormatPVSub: "Pr\u00e9sents / Points abord\u00e9s / D\u00e9cisions / Actions / Prochaine r\u00e9union",
     addDocument: "Importer un document (.txt)", documentImported: "Document import\u00e9",
     documentUnsupported: "Seuls les fichiers texte (.txt) sont support\u00e9s pour l'instant.",
-    synthGeneratedFormat: "format"
+    synthGeneratedFormat: "format",
+    exportDigest: "\u{1F9E9} Exporter (digest JSON)", digestExported: "Digest export\u00e9",
+    digestConfirm: "Exporter un digest JSON unique (photos incluses, audio exclu \u2014 transcription seule) ?"
   },
   en: {
     appName: "Calepin", settings: "Settings", back: "Back",
@@ -440,7 +442,9 @@ const STRINGS = {
     synthFormatNotesSub: "Free structure, by landmark or chronological", synthFormatPVSub: "Attendees / Topics / Decisions / Actions / Next meeting",
     addDocument: "Import a document (.txt)", documentImported: "Document imported",
     documentUnsupported: "Only plain text files (.txt) are supported for now.",
-    synthGeneratedFormat: "format"
+    synthGeneratedFormat: "format",
+    exportDigest: "\u{1F9E9} Export (JSON digest)", digestExported: "Digest exported",
+    digestConfirm: "Export a single JSON digest (photos included, audio excluded \u2014 transcript only)?"
   },
   sw: {
     appName: "Calepin", settings: "Mipangilio", back: "Rudi",
@@ -523,7 +527,9 @@ const STRINGS = {
     synthFormatNotesSub: "Muundo huru, kwa alama au mpangilio wa wakati", synthFormatPVSub: "Waliohudhuria / Mada / Maamuzi / Hatua / Mkutano ujao",
     addDocument: "Leta hati (.txt)", documentImported: "Hati imeletwa",
     documentUnsupported: "Faili za maandishi (.txt) tu ndizo zinazotumika kwa sasa.",
-    synthGeneratedFormat: "muundo"
+    synthGeneratedFormat: "muundo",
+    exportDigest: "\u{1F9E9} Hamisha (JSON digest)", digestExported: "Digest imehamishwa",
+    digestConfirm: "Hamisha JSON moja (picha zimejumuishwa, sauti imeondolewa \u2014 maandishi tu)?"
   }
 };
 function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
@@ -801,6 +807,19 @@ function fmtBytes(n){
   if(n < 1024) return n + " o";
   if(n < 1024*1024) return (n/1024).toFixed(0) + " Ko";
   return (n/(1024*1024)).toFixed(1) + " Mo";
+}
+/* Encodage base64 d'un Blob, par blocs pour \u00e9viter tout d\u00e9passement de pile sur de
+   grosses images (String.fromCharCode.apply sur un tableau complet peut \u00e9chouer au-del\u00e0
+   de quelques dizaines de milliers d'octets sur certains moteurs). */
+async function blobToBase64(blob){
+  const buf = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for(let i = 0; i < bytes.length; i += chunkSize){
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
 }
 let toastTimer = null;
 function showToast(msg){
@@ -1236,12 +1255,14 @@ async function renderVisitDetail(uidVal){
   bottomActions.innerHTML = `
     <button class="btn primary" id="btnConsolidate" style="width:100%; margin-bottom:10px;">\u{1F4D1} ${t("consolidate")}</button>
     <button class="btn" id="btnExport" style="width:100%; margin-bottom:10px;">\u{1F4E4} ${t("exportVisit")}</button>
+    <button class="btn" id="btnExportDigest" style="width:100%; margin-bottom:10px;">${t("exportDigest")}</button>
     <button class="btn" id="btnTranscribeAllExport" style="width:100%; margin-bottom:10px;">${t("transcribeAllExport")}</button>
     <button class="btn danger" id="btnDelete" style="width:100%;">${t("deleteVisit")}</button>
   `;
   main.appendChild(bottomActions);
   bottomActions.querySelector("#btnConsolidate").addEventListener("click", () => { window.location.hash = "#report/" + visit.uid; });
   bottomActions.querySelector("#btnExport").addEventListener("click", () => exportVisit(visit));
+  bottomActions.querySelector("#btnExportDigest").addEventListener("click", () => exportDigest(visit));
   bottomActions.querySelector("#btnTranscribeAllExport").addEventListener("click", () => transcribeAllThenExport(visit));
   bottomActions.querySelector("#btnDelete").addEventListener("click", () => deleteVisit(visit));
 
@@ -1643,6 +1664,53 @@ async function renderVisitDetail(uidVal){
       downloadBlob(e.blob, safeFileName(v.tag || v.uid) + "_" + (e.kind === "audio" ? "audio_" : "photo_") + (i+1) + extFor(e));
     });
     showToast(t("exportLaunched"));
+  }
+
+  /* Export "digest" : un seul fichier JSON autonome, pens\u00e9 pour \u00eatre lu par un programme
+     plut\u00f4t qu'un humain (cf. note de connexion Calepin -> module pompage). Photos encod\u00e9es
+     en base64 et int\u00e9gr\u00e9es ; audio volontairement EXCLU (seule la transcription d\u00e9j\u00e0
+     produite par Calepin est incluse) ; aucune synth\u00e8se IA n'est g\u00e9n\u00e9r\u00e9e \u00e0 la demande de
+     l'export — seule celle d\u00e9j\u00e0 produite pr\u00e9alablement (le cas \u00e9ch\u00e9ant) est reprise. */
+  async function exportDigest(v){
+    if(!confirm(t("digestConfirm"))) return;
+    const entries = (await idbGetByIndex("entries", "visitUid", v.uid)).sort((a,b) => a.timestamp - b.timestamp);
+
+    const digestEntries = [];
+    for(const e of entries){
+      const base = {
+        type: e.kind,
+        horodatage: new Date(e.timestamp).toISOString(),
+        repere: e.label || null,
+        position: e.location || null
+      };
+      if(e.kind === "photo"){
+        try{
+          const safeBlob = await ensureRealBlob(e.blob);
+          const base64 = await blobToBase64(safeBlob);
+          digestEntries.push({ ...base, image: { mime: safeBlob.type || "image/jpeg", base64 } });
+        }catch(err){
+          // Une photo illisible ne doit jamais faire \u00e9chouer tout le digest — on la
+          // signale explicitement plut\u00f4t que de la faire dispara\u00eetre silencieusement.
+          digestEntries.push({ ...base, image: null, erreur: "photo illisible : " + err.message });
+        }
+      } else {
+        // audio : le fichier original est exclu, seule sa transcription (si produite) est incluse
+        digestEntries.push({ ...base, texte: e.text || null });
+      }
+    }
+
+    const digest = {
+      schemaVersion: 1,
+      uid: v.uid,
+      category: catById(v.category).label,
+      tag: v.tag,
+      date: v.date,
+      syntheseBrute: buildReportText(v, entries, "landmark"),
+      syntheseIA: v.aiSynthesis || null,
+      entries: digestEntries
+    };
+    downloadBlob(new Blob([JSON.stringify(digest)], { type: "application/json" }), safeFileName(v.tag || v.uid) + "_digest.json");
+    showToast(t("digestExported"));
   }
   function extFor(e){
     if(e.kind === "photo") return ".jpg";
