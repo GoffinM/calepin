@@ -79,12 +79,13 @@
   .visit-card.selected{ border-color: var(--accent); }
   .visit-card.selected .check{ background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
   .select-bar{
-    position: sticky; top: 0; z-index: 10; display:flex; align-items:center; justify-content:space-between;
+    position: sticky; top: 0; z-index: 10; display:flex; flex-direction:column; gap:8px;
     background: var(--surface); border:1px solid var(--line); border-radius: var(--radius);
     padding: 10px 14px; margin-bottom: 14px;
   }
   .select-bar .count{ font-size:14px; color: var(--text); }
-  .select-bar .actions{ display:flex; gap:8px; }
+  .select-bar .actions{ display:flex; gap:8px; width:100%; }
+  .select-bar .actions .btn{ flex:1; padding:9px 4px; font-size:13px; white-space:nowrap; }
   .home-toolbar{ display:flex; justify-content:flex-end; margin-bottom: 10px; }
   .home-toolbar button{ background:none; border:none; color: var(--accent); font-size:13px; cursor:pointer; padding:4px 2px; }
   .active-folder{
@@ -265,7 +266,7 @@
 </div>
 
 <main id="main"></main>
-<button class="fab" id="fabNew" aria-label="Nouvelle visite">+</button>
+<button class="fab" id="fabNew" aria-label="Nouvelle visite" title="Nouvelle visite">+</button>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -359,7 +360,20 @@ const STRINGS = {
     documentUnsupported: "Seuls les fichiers texte (.txt) sont support\u00e9s pour l'instant.",
     synthGeneratedFormat: "format",
     exportDigest: "\u{1F9E9} Exporter (digest JSON)", digestExported: "Digest export\u00e9",
-    digestConfirm: "Exporter un digest JSON unique (photos incluses, audio exclu \u2014 transcription seule) ?"
+    digestConfirm: "Exporter un digest JSON unique (photos incluses, audio exclu \u2014 transcription seule) ?",
+    addFile: "\u{1F4CE} Joindre un fichier", fileImported: "Fichier joint", fileTooBig: "Fichier trop volumineux (max 20 Mo)",
+    exportWeightEstimate: "poids estim\u00e9", exportWeightWarn: "certaines pi\u00e8ces jointes ne sont pas compressibles",
+    settingsSynthProvider: "Fournisseur de synth\u00e8se", settingsSynthProviderSub: "Distinct de la cl\u00e9 Whisper (transcription), qui reste toujours OpenAI.",
+    providerOpenAI: "OpenAI (m\u00eame cl\u00e9 que Whisper)", providerAnthropic: "Anthropic (Claude)", providerOpenRouter: "OpenRouter (autres mod\u00e8les)",
+    settingsAnthropicKey: "Cl\u00e9 API Anthropic", settingsOpenRouterKey: "Cl\u00e9 API OpenRouter",
+    feedbackSend: "\u{1F4EC} Envoyer un retour", feedbackPrompt: "Votre remarque, bug ou suggestion :",
+    feedbackSent: "Retour pr\u00eat \u00e0 envoyer", feedbackShareTitle: "Retour Calepin", feedbackNoShare: "Partage non support\u00e9 sur cet appareil \u2014 fichier t\u00e9l\u00e9charg\u00e9 \u00e0 la place.",
+    hintConsolidate: "Regrouper toutes les entr\u00e9es en un rapport lisible, avec synth\u00e8se IA optionnelle",
+    hintExport: "T\u00e9l\u00e9charger les fichiers d'origine s\u00e9par\u00e9ment (usage personnel)",
+    hintExportDigest: "Un seul fichier JSON, pens\u00e9 pour \u00eatre lu par une autre application",
+    hintTranscribeAllExport: "Transcrit les audios manquants puis exporte un texte complet unique",
+    hintDelete: "D\u00e9place vers la corbeille (r\u00e9cup\u00e9rable, pas d\u00e9finitif)",
+    hintFolders: "Range tes visites par pays/client puis projet, et g\u00e8re tes tags librement."
   },
   en: {
     appName: "Calepin", settings: "Settings", back: "Back",
@@ -444,7 +458,14 @@ const STRINGS = {
     documentUnsupported: "Only plain text files (.txt) are supported for now.",
     synthGeneratedFormat: "format",
     exportDigest: "\u{1F9E9} Export (JSON digest)", digestExported: "Digest exported",
-    digestConfirm: "Export a single JSON digest (photos included, audio excluded \u2014 transcript only)?"
+    digestConfirm: "Export a single JSON digest (photos included, audio excluded \u2014 transcript only)?",
+    addFile: "\u{1F4CE} Attach a file", fileImported: "File attached", fileTooBig: "File too large (max 20 MB)",
+    exportWeightEstimate: "estimated size", exportWeightWarn: "some attachments cannot be compressed",
+    settingsSynthProvider: "Synthesis provider", settingsSynthProviderSub: "Separate from the Whisper key (transcription), which always stays OpenAI.",
+    providerOpenAI: "OpenAI (same key as Whisper)", providerAnthropic: "Anthropic (Claude)", providerOpenRouter: "OpenRouter (other models)",
+    settingsAnthropicKey: "Anthropic API key", settingsOpenRouterKey: "OpenRouter API key",
+    feedbackSend: "\u{1F4EC} Send feedback", feedbackPrompt: "Your remark, bug or suggestion:",
+    feedbackSent: "Feedback ready to send", feedbackShareTitle: "Calepin feedback", feedbackNoShare: "Sharing not supported on this device \u2014 file downloaded instead."
   },
   sw: {
     appName: "Calepin", settings: "Mipangilio", back: "Rudi",
@@ -529,7 +550,14 @@ const STRINGS = {
     documentUnsupported: "Faili za maandishi (.txt) tu ndizo zinazotumika kwa sasa.",
     synthGeneratedFormat: "muundo",
     exportDigest: "\u{1F9E9} Hamisha (JSON digest)", digestExported: "Digest imehamishwa",
-    digestConfirm: "Hamisha JSON moja (picha zimejumuishwa, sauti imeondolewa \u2014 maandishi tu)?"
+    digestConfirm: "Hamisha JSON moja (picha zimejumuishwa, sauti imeondolewa \u2014 maandishi tu)?",
+    addFile: "\u{1F4CE} Ambatisha faili", fileImported: "Faili imeambatishwa", fileTooBig: "Faili kubwa mno (upeo 20 MB)",
+    exportWeightEstimate: "ukubwa uliokadiriwa", exportWeightWarn: "faili zingine hazibanwiki",
+    settingsSynthProvider: "Mtoa huduma wa muhtasari", settingsSynthProviderSub: "Tofauti na ufunguo wa Whisper (uandishi), unaobaki OpenAI kila wakati.",
+    providerOpenAI: "OpenAI (ufunguo sawa na Whisper)", providerAnthropic: "Anthropic (Claude)", providerOpenRouter: "OpenRouter (miundo mingine)",
+    settingsAnthropicKey: "Ufunguo wa API wa Anthropic", settingsOpenRouterKey: "Ufunguo wa API wa OpenRouter",
+    feedbackSend: "\u{1F4EC} Tuma maoni", feedbackPrompt: "Maoni, hitilafu au pendekezo lako:",
+    feedbackSent: "Maoni tayari kutumwa", feedbackShareTitle: "Maoni ya Calepin", feedbackNoShare: "Kushiriki hakupatikani kwenye kifaa hiki \u2014 faili imehamishwa badala yake."
   }
 };
 function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
@@ -651,6 +679,17 @@ function speechRecogLangTag(){
 }
 function currentOpenAIKey(){ return localStorage.getItem("calepin_openai_key") || ""; }
 function setOpenAIKey(k){ localStorage.setItem("calepin_openai_key", k); }
+function currentAnthropicKey(){ return localStorage.getItem("calepin_anthropic_key") || ""; }
+function setAnthropicKey(k){ localStorage.setItem("calepin_anthropic_key", k); }
+function currentOpenRouterKey(){ return localStorage.getItem("calepin_openrouter_key") || ""; }
+function setOpenRouterKey(k){ localStorage.setItem("calepin_openrouter_key", k); }
+function currentSynthProvider(){ return localStorage.getItem("calepin_synth_provider") || "openai"; }
+function setSynthProvider(p){ localStorage.setItem("calepin_synth_provider", p); }
+function synthKeyForProvider(provider){
+  if(provider === "anthropic") return currentAnthropicKey();
+  if(provider === "openrouter") return currentOpenRouterKey();
+  return currentOpenAIKey();
+}
 function currentRelayUrl(){ return (localStorage.getItem("calepin_relay_url") || "").trim().replace(/\/$/, ""); }
 function setRelayUrl(u){ localStorage.setItem("calepin_relay_url", u.trim().replace(/\/$/, "")); }
 function bumpAICallCount(){
@@ -658,13 +697,22 @@ function bumpAICallCount(){
   sessionStorage.setItem("calepin_ai_calls", String(n));
   return n;
 }
-/* Point d'entr\u00e9e unique pour un appel OpenAI : passe par le relais s'il est configur\u00e9
-   (contourne le blocage CORS), sinon tente l'appel direct (gard\u00e9 pour compatibilit\u00e9
-   future / navigateurs \u00e9ventuellement moins restrictifs, mais probablement inop\u00e9rant seul). */
+/* Point d'entr\u00e9e unique pour un appel OpenAI (Whisper reste TOUJOURS OpenAI, quel que
+   soit le fournisseur choisi pour la synth\u00e8se) : passe par le relais s'il est configur\u00e9
+   (contourne le blocage CORS), sinon tente l'appel direct. */
 function openAIEndpoint(kind){
   const relay = currentRelayUrl();
   if(relay) return relay + (kind === "chat" ? "/chat" : "/transcribe");
   return kind === "chat" ? "https://api.openai.com/v1/chat/completions" : "https://api.openai.com/v1/audio/transcriptions";
+}
+/* Point d'entr\u00e9e pour la synth\u00e8se, selon le fournisseur choisi — d\u00e9coupl\u00e9 de Whisper.
+   Chaque fournisseur a son propre format de requ\u00eate (cf. callChatSynthesis) et sa propre
+   route de relais d\u00e9di\u00e9e sur le Worker Cloudflare. */
+function synthEndpoint(provider){
+  const relay = currentRelayUrl();
+  if(provider === "anthropic") return relay ? relay + "/anthropic-chat" : "https://api.anthropic.com/v1/messages";
+  if(provider === "openrouter") return relay ? relay + "/openrouter-chat" : "https://openrouter.ai/api/v1/chat/completions";
+  return openAIEndpoint("chat");
 }
 const SYNTH_LEVEL_INSTRUCTIONS = {
   complet: "Reformule INTÉGRALEMENT le texte fourni, sans rien couper ni résumer — uniquement une mise au propre " +
@@ -690,7 +738,8 @@ const SYNTH_FORMAT_INSTRUCTIONS = {
     "pour cette section — ne devine jamais qui \u00e9tait pr\u00e9sent, quelle d\u00e9cision a \u00e9t\u00e9 prise, ou qui fait quoi, si ce n'est pas dit clairement."
 };
 
-async function callChatSynthesis(rawText, apiKey, level, format, agendaText){
+async function callChatSynthesis(rawText, apiKey, level, format, agendaText, provider){
+  provider = provider || "openai";
   const lengthInstruction = SYNTH_LEVEL_INSTRUCTIONS[level] || SYNTH_LEVEL_INSTRUCTIONS.complet;
   const formatInstruction = SYNTH_FORMAT_INSTRUCTIONS[format] || SYNTH_FORMAT_INSTRUCTIONS.notes;
   let systemPrompt = "Tu reformules des notes de terrain en un texte clair et bien r\u00e9dig\u00e9, en fran\u00e7ais. " +
@@ -706,7 +755,49 @@ async function callChatSynthesis(rawText, apiKey, level, format, agendaText){
   } else {
     systemPrompt += "\n\nConserve l'ordre chronologique ou par rep\u00e8re fourni dans les notes.";
   }
-  const resp = await fetch(openAIEndpoint("chat"), {
+
+  if(provider === "anthropic"){
+    const resp = await fetch(synthEndpoint(provider), {
+      method: "POST",
+      headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-3-5-haiku-20241022",
+        max_tokens: 3000,
+        system: systemPrompt,
+        messages: [ { role: "user", content: rawText } ]
+      })
+    });
+    if(!resp.ok){
+      const errText = await resp.text().catch(() => "");
+      throw new Error("HTTP " + resp.status + (errText ? " " + errText.slice(0,120) : ""));
+    }
+    const data = await resp.json();
+    return (data.content && data.content[0] && data.content[0].text) || "";
+  }
+
+  if(provider === "openrouter"){
+    const resp = await fetch(synthEndpoint(provider), {
+      method: "POST",
+      headers: { "Authorization": "Bearer " + apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "anthropic/claude-3.5-haiku",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: rawText }
+        ],
+        temperature: 0.2
+      })
+    });
+    if(!resp.ok){
+      const errText = await resp.text().catch(() => "");
+      throw new Error("HTTP " + resp.status + (errText ? " " + errText.slice(0,120) : ""));
+    }
+    const data = await resp.json();
+    return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || "";
+  }
+
+  // provider === "openai" (d\u00e9faut, m\u00eame cl\u00e9 que Whisper)
+  const resp = await fetch(synthEndpoint(provider), {
     method: "POST",
     headers: { "Authorization": "Bearer " + apiKey, "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -820,6 +911,13 @@ async function blobToBase64(blob){
     binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
   }
   return btoa(binary);
+}
+function fileGlyph(fileName){
+  const ext = ((fileName || "").split(".").pop() || "").toLowerCase();
+  if(ext === "pdf") return "\u{1F4D5}";
+  if(ext === "doc" || ext === "docx") return "\u{1F4D8}";
+  if(ext === "xls" || ext === "xlsx") return "\u{1F4D7}";
+  return "\u{1F4CE}";
 }
 let toastTimer = null;
 function showToast(msg){
@@ -1224,14 +1322,16 @@ async function renderVisitDetail(uidVal){
   const addRow = document.createElement("div");
   addRow.className = "add-row";
   addRow.innerHTML = `
-    <button class="btn" id="btnRec">\u{1F3A4} ${t("addAudio")}</button>
-    <button class="btn" id="btnAddPhoto">\u{1F4F7} ${t("addPhoto")}</button>
-    <button class="btn" id="btnAddText">\u{1F4DD} ${t("addText")}</button>
-    <button class="btn" id="btnImportAudio">\u{1F4C2} ${t("addAudioImport")}</button>
-    <button class="btn" id="btnImportDoc">\u{1F4C4} ${t("addDocument")}</button>
+    <button class="btn" id="btnRec" title="${t("addAudio")}">\u{1F3A4} ${t("addAudio")}</button>
+    <button class="btn" id="btnAddPhoto" title="${t("addPhoto")}">\u{1F4F7} ${t("addPhoto")}</button>
+    <button class="btn" id="btnAddText" title="${t("addText")}">\u{1F4DD} ${t("addText")}</button>
+    <button class="btn" id="btnImportAudio" title="${t("addAudioImport")}">\u{1F4C2} ${t("addAudioImport")}</button>
+    <button class="btn" id="btnImportDoc" title="${t("addDocument")}">\u{1F4C4} ${t("addDocument")}</button>
+    <button class="btn" id="btnImportFile" title="${t("addFile")}">${t("addFile")}</button>
     <input type="file" id="photoInput" accept="image/*" capture="environment" multiple class="sr-only">
     <input type="file" id="audioInput" accept="audio/*" class="sr-only">
     <input type="file" id="docInput" accept=".txt,text/plain" class="sr-only">
+    <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="sr-only">
   `;
   main.appendChild(addRow);
 
@@ -1253,11 +1353,11 @@ async function renderVisitDetail(uidVal){
   bottomActions.className = "section";
   bottomActions.style.marginTop = "22px";
   bottomActions.innerHTML = `
-    <button class="btn primary" id="btnConsolidate" style="width:100%; margin-bottom:10px;">\u{1F4D1} ${t("consolidate")}</button>
-    <button class="btn" id="btnExport" style="width:100%; margin-bottom:10px;">\u{1F4E4} ${t("exportVisit")}</button>
-    <button class="btn" id="btnExportDigest" style="width:100%; margin-bottom:10px;">${t("exportDigest")}</button>
-    <button class="btn" id="btnTranscribeAllExport" style="width:100%; margin-bottom:10px;">${t("transcribeAllExport")}</button>
-    <button class="btn danger" id="btnDelete" style="width:100%;">${t("deleteVisit")}</button>
+    <button class="btn primary" id="btnConsolidate" style="width:100%; margin-bottom:10px;" title="${t("hintConsolidate")}">\u{1F4D1} ${t("consolidate")}</button>
+    <button class="btn" id="btnExport" style="width:100%; margin-bottom:10px;" title="${t("hintExport")}">\u{1F4E4} ${t("exportVisit")}</button>
+    <button class="btn" id="btnExportDigest" style="width:100%; margin-bottom:10px;" title="${t("hintExportDigest")}">${t("exportDigest")}</button>
+    <button class="btn" id="btnTranscribeAllExport" style="width:100%; margin-bottom:10px;" title="${t("hintTranscribeAllExport")}">${t("transcribeAllExport")}</button>
+    <button class="btn danger" id="btnDelete" style="width:100%;" title="${t("hintDelete")}">${t("deleteVisit")}</button>
   `;
   main.appendChild(bottomActions);
   bottomActions.querySelector("#btnConsolidate").addEventListener("click", () => { window.location.hash = "#report/" + visit.uid; });
@@ -1327,7 +1427,7 @@ async function renderVisitDetail(uidVal){
     for(const entry of entries){
       const card = document.createElement("div");
       card.className = "entry-card";
-      const glyph = entry.kind === "audio" ? "\u{1F3A4}" : entry.kind === "photo" ? "\u{1F4F7}" : "\u{1F4DD}";
+      const glyph = entry.kind === "audio" ? "\u{1F3A4}" : entry.kind === "photo" ? "\u{1F4F7}" : entry.kind === "fichier" ? fileGlyph(entry.fileName) : "\u{1F4DD}";
       const gpsStr = entry.location ? entry.location.lat.toFixed(5) + ", " + entry.location.lng.toFixed(5) : "";
       card.innerHTML = `
         <div class="entry-head">
@@ -1362,6 +1462,13 @@ async function renderVisitDetail(uidVal){
       } else if(entry.kind === "photo"){
         const url = URL.createObjectURL(entry.blob);
         body.innerHTML = `<img src="${url}" alt="">`;
+      } else if(entry.kind === "fichier"){
+        const url = URL.createObjectURL(entry.blob);
+        body.innerHTML = `
+          <a href="${url}" download="${escapeHtml(entry.fileName || "fichier")}" class="btn" style="display:block; text-align:center; text-decoration:none;">
+            ${fileGlyph(entry.fileName)} ${escapeHtml(entry.fileName || "fichier")} (${fmtBytes(entry.blob.size)})
+          </a>
+        `;
       } else {
         body.innerHTML = `<textarea>${escapeHtml(entry.text || "")}</textarea>`;
         let tTimer = null;
@@ -1435,6 +1542,22 @@ async function renderVisitDetail(uidVal){
     await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "texte", text: content, label: suggestedLabel, location, timestamp: Date.now() });
     refreshEntries(); refreshWeight();
     showToast(t("documentImported"));
+  });
+
+  addRow.querySelector("#btnImportFile").addEventListener("click", () => main.querySelector("#fileInput").click());
+  main.querySelector("#fileInput").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if(!file) return;
+    if(file.size > 20 * 1024 * 1024){ showToast(t("fileTooBig")); return; }
+    const location = await tryGetPosition();
+    await idbPut("entries", {
+      id: uid(), visitUid: visit.uid, kind: "fichier", blob: file,
+      fileName: file.name, mime: file.type || "application/octet-stream",
+      label: "", location, timestamp: Date.now()
+    });
+    refreshEntries(); refreshWeight();
+    showToast(t("fileImported"));
   });
 
   async function toggleRecording(visitUid){
@@ -1648,6 +1771,8 @@ async function renderVisitDetail(uidVal){
   async function exportVisit(v){
     const entries = await idbGetByIndex("entries", "visitUid", v.uid);
     entries.sort((a,b) => a.timestamp - b.timestamp);
+    const totalBytes = entries.reduce((s,e) => s + (e.blob ? e.blob.size : 0), 0);
+    if(!confirm(t("exportVisit") + " (~" + fmtBytes(totalBytes) + " " + t("exportWeightEstimate") + ")")) return;
     const reportText = buildReportText(v, entries, "chrono");
     downloadBlob(new Blob([reportText], { type: "text/plain;charset=utf-8" }), safeFileName(v.tag || v.uid) + "_rapport.txt");
     const manifest = {
@@ -1655,25 +1780,32 @@ async function renderVisitDetail(uidVal){
       entries: entries.map((e,i) => ({
         type: e.kind, horodatage: new Date(e.timestamp).toISOString(), repere: e.label || null,
         position: e.location || null, texte: e.text || null,
-        fichier: e.blob ? (e.kind === "audio" ? "audio_" : "photo_") + (i+1) + extFor(e) : null
+        fichier: e.blob ? (e.kind === "fichier" ? (e.fileName || ("fichier_" + (i+1))) : (e.kind === "audio" ? "audio_" : "photo_") + (i+1) + extFor(e)) : null
       }))
     };
     downloadBlob(new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" }), safeFileName(v.tag || v.uid) + "_donnees.json");
     entries.forEach((e, i) => {
       if(!e.blob) return;
-      downloadBlob(e.blob, safeFileName(v.tag || v.uid) + "_" + (e.kind === "audio" ? "audio_" : "photo_") + (i+1) + extFor(e));
+      const name = e.kind === "fichier" ? (e.fileName || ("fichier_" + (i+1))) : safeFileName(v.tag || v.uid) + "_" + (e.kind === "audio" ? "audio_" : "photo_") + (i+1) + extFor(e);
+      downloadBlob(e.blob, name);
     });
     showToast(t("exportLaunched"));
   }
 
   /* Export "digest" : un seul fichier JSON autonome, pens\u00e9 pour \u00eatre lu par un programme
-     plut\u00f4t qu'un humain (cf. note de connexion Calepin -> module pompage). Photos encod\u00e9es
-     en base64 et int\u00e9gr\u00e9es ; audio volontairement EXCLU (seule la transcription d\u00e9j\u00e0
-     produite par Calepin est incluse) ; aucune synth\u00e8se IA n'est g\u00e9n\u00e9r\u00e9e \u00e0 la demande de
-     l'export — seule celle d\u00e9j\u00e0 produite pr\u00e9alablement (le cas \u00e9ch\u00e9ant) est reprise. */
+     plut\u00f4t qu'un humain (cf. note de connexion Calepin -> module pompage). Photos ET pi\u00e8ces
+     jointes (PDF/DOCX/XLSX) encod\u00e9es en base64 et int\u00e9gr\u00e9es (pour les pi\u00e8ces jointes, aucun
+     substitut texte n'existe, contrairement \u00e0 l'audio — le fichier brut est donc la seule
+     trace possible de cette information) ; audio volontairement EXCLU (transcription seule) ;
+     aucune synth\u00e8se IA n'est g\u00e9n\u00e9r\u00e9e \u00e0 la demande de l'export. */
   async function exportDigest(v){
-    if(!confirm(t("digestConfirm"))) return;
-    const entries = (await idbGetByIndex("entries", "visitUid", v.uid)).sort((a,b) => a.timestamp - b.timestamp);
+    const entriesForWeight = await idbGetByIndex("entries", "visitUid", v.uid);
+    const nonCompressible = entriesForWeight.filter(e => e.kind === "fichier").length;
+    const estBytes = entriesForWeight.reduce((s,e) => s + (e.blob && e.kind !== "audio" ? e.blob.size * 1.33 : 0), 0);
+    let confirmMsg = t("digestConfirm") + " (~" + fmtBytes(estBytes) + " " + t("exportWeightEstimate") + ")";
+    if(nonCompressible > 0) confirmMsg += " \u2014 " + t("exportWeightWarn");
+    if(!confirm(confirmMsg)) return;
+    const entries = entriesForWeight.sort((a,b) => a.timestamp - b.timestamp);
 
     const digestEntries = [];
     for(const e of entries){
@@ -1683,15 +1815,19 @@ async function renderVisitDetail(uidVal){
         repere: e.label || null,
         position: e.location || null
       };
-      if(e.kind === "photo"){
+      if(e.kind === "photo" || e.kind === "fichier"){
         try{
           const safeBlob = await ensureRealBlob(e.blob);
           const base64 = await blobToBase64(safeBlob);
-          digestEntries.push({ ...base, image: { mime: safeBlob.type || "image/jpeg", base64 } });
+          const fileField = e.kind === "fichier"
+            ? { fichier: { nom: e.fileName || null, mime: safeBlob.type || e.mime || "application/octet-stream", base64 } }
+            : { image: { mime: safeBlob.type || "image/jpeg", base64 } };
+          digestEntries.push({ ...base, ...fileField });
         }catch(err){
-          // Une photo illisible ne doit jamais faire \u00e9chouer tout le digest — on la
-          // signale explicitement plut\u00f4t que de la faire dispara\u00eetre silencieusement.
-          digestEntries.push({ ...base, image: null, erreur: "photo illisible : " + err.message });
+          // Un fichier illisible ne doit jamais faire \u00e9chouer tout le digest — on le
+          // signale explicitement plut\u00f4t que de le faire dispara\u00eetre silencieusement.
+          const emptyField = e.kind === "fichier" ? { fichier: null } : { image: null };
+          digestEntries.push({ ...base, ...emptyField, erreur: (e.kind === "fichier" ? "fichier" : "photo") + " illisible : " + err.message });
         }
       } else {
         // audio : le fichier original est exclu, seule sa transcription (si produite) est incluse
@@ -1844,7 +1980,8 @@ async function renderReport(uidVal){
     synthTimer = setTimeout(async () => { visit.aiSynthesis = e.target.value; await idbPut("visits", visit); }, 500);
   });
   synthSection.querySelector("#btnAISynth").addEventListener("click", async () => {
-    const key = currentOpenAIKey();
+    const provider = currentSynthProvider();
+    const key = synthKeyForProvider(provider);
     if(!key){ showToast(t("transcribeAINoKey")); return; }
     const entries = (await idbGetByIndex("entries", "visitUid", visit.uid)).sort((a,b) => a.timestamp - b.timestamp);
     if(entries.length === 0){ showToast(t("noEntries")); return; }
@@ -1861,7 +1998,7 @@ async function renderReport(uidVal){
     const statusEl = synthSection.querySelector("#synthStatus");
     btn.disabled = true; statusEl.hidden = false; statusEl.textContent = t("reportAISynthRunning");
     try{
-      const result = await callChatSynthesis(rawText, key, synthLevel, synthFormat, agendaText);
+      const result = await callChatSynthesis(rawText, key, synthLevel, synthFormat, agendaText, provider);
       bumpAICallCount();
       visit.aiSynthesis = result;
       visit.aiSynthesisLevel = synthLevel;
@@ -1962,6 +2099,12 @@ async function renderReport(uidVal){
    ============================================================ */
 async function renderFolders(){
   main.innerHTML = "";
+
+  const introHint = document.createElement("p");
+  introHint.className = "capture-hint";
+  introHint.style.marginTop = "0";
+  introHint.textContent = t("hintFolders");
+  main.appendChild(introHint);
 
   const shortcuts = document.createElement("div");
   shortcuts.className = "folder-top";
@@ -2242,6 +2385,23 @@ async function renderSettings(){
       <input type="password" id="fApiKey" placeholder="sk-..." autocomplete="off" value="${escapeHtml(currentOpenAIKey())}">
     </div>
     <p class="capture-hint">${t("settingsAIKeySub")}</p>
+
+    <p class="capture-hint" style="margin-top:16px;">${t("settingsSynthProvider")}</p>
+    <div class="group-toggle" id="synthProviderToggle">
+      <button data-p="openai">${t("providerOpenAI")}</button>
+      <button data-p="anthropic">${t("providerAnthropic")}</button>
+      <button data-p="openrouter">${t("providerOpenRouter")}</button>
+    </div>
+    <p class="capture-hint">${t("settingsSynthProviderSub")}</p>
+    <div class="field" id="fieldAnthropicKey" style="margin: 10px 0 8px 0; display:none;">
+      <label for="fAnthropicKey">${t("settingsAnthropicKey")}</label>
+      <input type="password" id="fAnthropicKey" placeholder="sk-ant-..." autocomplete="off" value="${escapeHtml(currentAnthropicKey())}">
+    </div>
+    <div class="field" id="fieldOpenRouterKey" style="margin: 10px 0 8px 0; display:none;">
+      <label for="fOpenRouterKey">${t("settingsOpenRouterKey")}</label>
+      <input type="password" id="fOpenRouterKey" placeholder="sk-or-..." autocomplete="off" value="${escapeHtml(currentOpenRouterKey())}">
+    </div>
+
     <div class="field" style="margin: 14px 0 8px 0;">
       <label for="fRelayUrl">${t("settingsRelayLabel")}</label>
       <input type="text" id="fRelayUrl" placeholder="https://calepin-relais.mon-compte.workers.dev" autocomplete="off" value="${escapeHtml(currentRelayUrl())}">
@@ -2250,7 +2410,7 @@ async function renderSettings(){
     <p class="storage-line" style="margin-top:10px;">${t("settingsAICallsLabel")} : ${Number(sessionStorage.getItem("calepin_ai_calls") || "0")}</p>
   `;
   main.appendChild(aiGroup);
-  let keyTimer = null, relayTimer = null;
+  let keyTimer = null, relayTimer = null, anthKeyTimer = null, orKeyTimer = null;
   aiGroup.querySelector("#fApiKey").addEventListener("input", (e) => {
     clearTimeout(keyTimer);
     keyTimer = setTimeout(() => setOpenAIKey(e.target.value.trim()), 400);
@@ -2258,6 +2418,25 @@ async function renderSettings(){
   aiGroup.querySelector("#fRelayUrl").addEventListener("input", (e) => {
     clearTimeout(relayTimer);
     relayTimer = setTimeout(() => setRelayUrl(e.target.value), 400);
+  });
+  aiGroup.querySelector("#fAnthropicKey").addEventListener("input", (e) => {
+    clearTimeout(anthKeyTimer);
+    anthKeyTimer = setTimeout(() => setAnthropicKey(e.target.value.trim()), 400);
+  });
+  aiGroup.querySelector("#fOpenRouterKey").addEventListener("input", (e) => {
+    clearTimeout(orKeyTimer);
+    orKeyTimer = setTimeout(() => setOpenRouterKey(e.target.value.trim()), 400);
+  });
+
+  function renderSynthProviderToggle(){
+    const provider = currentSynthProvider();
+    aiGroup.querySelectorAll("#synthProviderToggle button").forEach(b => b.classList.toggle("active", b.dataset.p === provider));
+    aiGroup.querySelector("#fieldAnthropicKey").style.display = provider === "anthropic" ? "block" : "none";
+    aiGroup.querySelector("#fieldOpenRouterKey").style.display = provider === "openrouter" ? "block" : "none";
+  }
+  renderSynthProviderToggle();
+  aiGroup.querySelectorAll("#synthProviderToggle button").forEach(b => {
+    b.addEventListener("click", () => { setSynthProvider(b.dataset.p); renderSynthProviderToggle(); });
   });
 
   const storageGroup = document.createElement("div");
@@ -2274,6 +2453,60 @@ async function renderSettings(){
   } else {
     storageGroup.querySelector("#storageLine").textContent = t("storageUnknown");
   }
+
+  const feedbackGroup = document.createElement("div");
+  feedbackGroup.className = "settings-group";
+  feedbackGroup.innerHTML = `<button class="btn" id="btnFeedback" style="width:100%;">${t("feedbackSend")}</button>`;
+  main.appendChild(feedbackGroup);
+  feedbackGroup.querySelector("#btnFeedback").addEventListener("click", sendFeedback);
+}
+
+/* ============================================================
+   Retour bêta-test : même logique que le digest (jamais d'envoi
+   automatique, geste volontaire) — utilise le partage natif du
+   téléphone plutôt qu'un service d'envoi centralisé.
+   ============================================================ */
+async function sendFeedback(){
+  const msg = prompt(t("feedbackPrompt"));
+  if(!msg || !msg.trim()) return;
+
+  const visits = await idbGetAll("visits");
+  let storageInfo = "n/a";
+  if(navigator.storage && navigator.storage.estimate){
+    try{ const est = await navigator.storage.estimate(); storageInfo = fmtBytes(est.usage || 0); }catch(e){}
+  }
+  const payload = {
+    message: msg.trim(),
+    horodatage: new Date().toISOString(),
+    langue: currentLang(),
+    nombreVisites: visits.length,
+    stockageUtilise: storageInfo,
+    navigateur: (navigator.userAgent || "").slice(0, 200)
+  };
+  const readableText = payload.message + "\n\n---\n" + payload.horodatage + " \u00b7 " +
+    payload.nombreVisites + " visites \u00b7 " + payload.stockageUtilise + "\n" + payload.navigateur;
+  const jsonBlob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const fileName = "calepin_retour_" + Date.now() + ".json";
+
+  if(navigator.share){
+    try{
+      const file = new File([jsonBlob], fileName, { type: "application/json" });
+      const shareData = (navigator.canShare && navigator.canShare({ files: [file] }))
+        ? { title: t("feedbackShareTitle"), text: readableText, files: [file] }
+        : { title: t("feedbackShareTitle"), text: readableText };
+      await navigator.share(shareData);
+      showToast(t("feedbackSent"));
+      return;
+    }catch(err){
+      // annul\u00e9 par l'utilisateur ou API indisponible pour ce contenu \u2014 on retombe sur le t\u00e9l\u00e9chargement
+    }
+  }
+  const url = URL.createObjectURL(jsonBlob);
+  const a = document.createElement("a");
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  showToast(t("feedbackNoShare"));
 }
 
 /* ============================================================
