@@ -902,8 +902,22 @@ function fmtBytes(n){
 /* Encodage base64 d'un Blob, par blocs pour \u00e9viter tout d\u00e9passement de pile sur de
    grosses images (String.fromCharCode.apply sur un tableau complet peut \u00e9chouer au-del\u00e0
    de quelques dizaines de milliers d'octets sur certains moteurs). */
-async function blobToBase64(blob){
-  const buf = await blob.arrayBuffer();
+/* ============================================================
+   Stockage des fichiers : ArrayBuffer plutôt que Blob (correctif
+   bug WebKit #235687, confirmé — non corrigé depuis 2022) :
+   "Blobs retrieved from IndexedDB and re-saved causes
+   WebKitBlobResource error 1" — un Blob relu depuis IndexedDB puis
+   réutilisé (affichage, export, transcription...) devient
+   silencieusement corrompu sur Safari iOS, quasi systématiquement.
+   Un ArrayBuffer stocké directement (pas adossé à un fichier
+   séparé sur disque comme un Blob) n'est PAS concerné par ce bug.
+   Un Blob n'est reconstruit qu'en mémoire, au moment de l'usage,
+   et n'est JAMAIS réécrit tel quel en base.
+   ============================================================ */
+function arrayBufferToBlob(buf, mime){
+  return new Blob([buf], { type: mime || "application/octet-stream" });
+}
+function arrayBufferToBase64(buf){
   const bytes = new Uint8Array(buf);
   let binary = "";
   const chunkSize = 0x8000;
@@ -911,6 +925,41 @@ async function blobToBase64(blob){
     binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
   }
   return btoa(binary);
+}
+/* R\u00e9trocompatibilit\u00e9 : les entr\u00e9es captur\u00e9es AVANT ce correctif ont un champ
+   `blob` (Blob) plut\u00f4t que `data` (ArrayBuffer) + `mime`. On continue \u00e0 les lire
+   (best-effort — si le Blob est d\u00e9j\u00e0 corrompu par le bug WebKit, rien ne peut le
+   r\u00e9cup\u00e9rer), mais toute NOUVELLE capture utilise d\u00e9sormais le sch\u00e9ma s\u00fbr. */
+function getEntryBlob(e){
+  if(e.data) return arrayBufferToBlob(e.data, e.mime || (e.kind === "photo" ? "image/jpeg" : "application/octet-stream"));
+  return e.blob || null;
+}
+function getEntrySize(e){
+  if(e.data) return e.data.byteLength;
+  if(e.blob) return e.blob.size;
+  return 0;
+}
+function getEntryMime(e){
+  if(e.mime) return e.mime;
+  if(e.blob) return e.blob.type;
+  return "";
+}
+/* Migration opportuniste : une entr\u00e9e captur\u00e9e AVANT ce correctif (champ `blob`) est
+   convertie vers le sch\u00e9ma s\u00fbr (`data`/`mime`) d\u00e8s qu'on la r\u00e9\u00e9crit pour une autre raison
+   (transcription, renommage de rep\u00e8re...) — sinon la r\u00e9\u00e9criture telle quelle d'un Blob
+   d\u00e9j\u00e0 pass\u00e9 par IndexedDB red\u00e9clencherait exactement le bug WebKit qu'on corrige ici. */
+async function migrateEntryIfLegacy(e){
+  if(e.blob && !e.data){
+    try{
+      e.data = await e.blob.arrayBuffer();
+      e.mime = e.blob.type || e.mime || "";
+      delete e.blob;
+    }catch(err){
+      // Blob d\u00e9j\u00e0 corrompu par le bug WebKit — rien \u00e0 migrer, on laisse tel quel plut\u00f4t
+      // que de faire \u00e9chouer l'op\u00e9ration en cours (transcription, renommage...).
+    }
+  }
+  return e;
 }
 function fileGlyph(fileName){
   const ext = ((fileName || "").split(".").pop() || "").toLowerCase();
@@ -1380,9 +1429,10 @@ async function renderVisitDetail(uidVal){
         showToast(t("transcribeAllProgress"));
         for(const e of missing){
           try{
-            const text = await callWhisper(e.blob, key);
+            const text = await callWhisper(getEntryBlob(e), key);
             bumpAICallCount();
             e.text = text;
+            await migrateEntryIfLegacy(e);
             await idbPut("entries", e);
           }catch(err){
             someFailed++;
@@ -1409,7 +1459,7 @@ async function renderVisitDetail(uidVal){
   async function refreshWeight(){
     const entries = await idbGetByIndex("entries", "visitUid", visit.uid);
     let bytes = 0;
-    for(const e of entries) if(e.blob) bytes += e.blob.size;
+    for(const e of entries) bytes += getEntrySize(e);
     const banner = document.getElementById("weightBanner");
     banner.classList.remove("warn", "danger");
     if(bytes >= WEIGHT_DANGER) banner.classList.add("danger");
@@ -1442,7 +1492,8 @@ async function renderVisitDetail(uidVal){
       `;
       const body = card.querySelector(".entry-body");
       if(entry.kind === "audio"){
-        const url = URL.createObjectURL(entry.blob);
+        const entryBlob = getEntryBlob(entry);
+        const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
         body.innerHTML = `
           <audio controls src="${url}"></audio>
           <div class="transcribe-row">
@@ -1455,18 +1506,20 @@ async function renderVisitDetail(uidVal){
         let tTimer = null;
         body.querySelector("textarea").addEventListener("input", (e) => {
           clearTimeout(tTimer);
-          tTimer = setTimeout(async () => { entry.text = e.target.value; await idbPut("entries", entry); }, 500);
+          tTimer = setTimeout(async () => { entry.text = e.target.value; await migrateEntryIfLegacy(entry); await idbPut("entries", entry); }, 500);
         });
         body.querySelector('[data-act="transcribe-light"]').addEventListener("click", () => transcribeLight(entry, body));
         body.querySelector('[data-act="transcribe-ai"]').addEventListener("click", () => transcribeAI(entry, body));
       } else if(entry.kind === "photo"){
-        const url = URL.createObjectURL(entry.blob);
+        const entryBlob = getEntryBlob(entry);
+        const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
         body.innerHTML = `<img src="${url}" alt="">`;
       } else if(entry.kind === "fichier"){
-        const url = URL.createObjectURL(entry.blob);
+        const entryBlob = getEntryBlob(entry);
+        const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
         body.innerHTML = `
           <a href="${url}" download="${escapeHtml(entry.fileName || "fichier")}" class="btn" style="display:block; text-align:center; text-decoration:none;">
-            ${fileGlyph(entry.fileName)} ${escapeHtml(entry.fileName || "fichier")} (${fmtBytes(entry.blob.size)})
+            ${fileGlyph(entry.fileName)} ${escapeHtml(entry.fileName || "fichier")} (${fmtBytes(getEntrySize(entry))})
           </a>
         `;
       } else {
@@ -1483,7 +1536,7 @@ async function renderVisitDetail(uidVal){
       });
       card.querySelector('[data-act="label"]').addEventListener("click", async () => {
         const val = prompt(t("entryLabelPrompt"), entry.label || "");
-        if(val !== null){ entry.label = val.trim(); await idbPut("entries", entry); refreshEntries(); }
+        if(val !== null){ entry.label = val.trim(); await migrateEntryIfLegacy(entry); await idbPut("entries", entry); refreshEntries(); }
       });
       entryList.appendChild(card);
     }
@@ -1506,8 +1559,9 @@ async function renderVisitDetail(uidVal){
     for(const file of files){
       try{
         const blob = await compressImage(file, q.maxDim, q.quality);
+        const data = await blob.arrayBuffer();
         const location = await tryGetPosition();
-        await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "photo", blob, label: "", location, timestamp: Date.now() });
+        await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "photo", data, mime: blob.type || "image/jpeg", label: "", location, timestamp: Date.now() });
         added++;
       }catch(err){ showToast(t("photoUnreadable")); }
     }
@@ -1524,7 +1578,8 @@ async function renderVisitDetail(uidVal){
     e.target.value = "";
     if(!file) return;
     const location = await tryGetPosition();
-    await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "audio", blob: file, text: "", label: "", location, timestamp: Date.now() });
+    const data = await file.arrayBuffer();
+    await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "audio", data, mime: file.type || "audio/webm", text: "", label: "", location, timestamp: Date.now() });
     refreshEntries(); refreshWeight();
     showToast(t("audioImported"));
   });
@@ -1551,8 +1606,9 @@ async function renderVisitDetail(uidVal){
     if(!file) return;
     if(file.size > 20 * 1024 * 1024){ showToast(t("fileTooBig")); return; }
     const location = await tryGetPosition();
+    const data = await file.arrayBuffer();
     await idbPut("entries", {
-      id: uid(), visitUid: visit.uid, kind: "fichier", blob: file,
+      id: uid(), visitUid: visit.uid, kind: "fichier", data,
       fileName: file.name, mime: file.type || "application/octet-stream",
       label: "", location, timestamp: Date.now()
     });
@@ -1577,8 +1633,9 @@ async function renderVisitDetail(uidVal){
       activeStream.getTracks().forEach(tr => tr.stop());
       const blob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || "audio/webm" });
       if(blob.size > 0){
+        const data = await blob.arrayBuffer();
         const location = await tryGetPosition();
-        await idbPut("entries", { id: uid(), visitUid, kind: "audio", blob, text: "", label: "", location, timestamp: Date.now() });
+        await idbPut("entries", { id: uid(), visitUid, kind: "audio", data, mime: blob.type || "audio/webm", text: "", label: "", location, timestamp: Date.now() });
         refreshEntries(); refreshWeight();
         showToast(t("audioSaved"));
       }
@@ -1745,7 +1802,7 @@ async function renderVisitDetail(uidVal){
   async function transcribeAI(entry, bodyEl){
     const key = currentOpenAIKey();
     if(!key){ showToast(t("transcribeAINoKey")); return; }
-    if(!confirm(t("transcribeAIConfirm") + " (~" + fmtBytes(entry.blob.size) + ")")) return;
+    if(!confirm(t("transcribeAIConfirm") + " (~" + fmtBytes(getEntrySize(entry)) + ")")) return;
 
     const statusEl = bodyEl.querySelector(".transcribe-status");
     const buttons = bodyEl.querySelectorAll(".transcribe-row button");
@@ -1754,9 +1811,10 @@ async function renderVisitDetail(uidVal){
     statusEl.textContent = t("transcribeAIRunning");
 
     try{
-      const text = await callWhisper(entry.blob, key);
+      const text = await callWhisper(getEntryBlob(entry), key);
       bumpAICallCount();
       entry.text = text;
+      await migrateEntryIfLegacy(entry);
       await idbPut("entries", entry);
       refreshEntries();
       showToast(t("transcribeAIDone"));
@@ -1771,7 +1829,7 @@ async function renderVisitDetail(uidVal){
   async function exportVisit(v){
     const entries = await idbGetByIndex("entries", "visitUid", v.uid);
     entries.sort((a,b) => a.timestamp - b.timestamp);
-    const totalBytes = entries.reduce((s,e) => s + (e.blob ? e.blob.size : 0), 0);
+    const totalBytes = entries.reduce((s,e) => s + getEntrySize(e), 0);
     if(!confirm(t("exportVisit") + " (~" + fmtBytes(totalBytes) + " " + t("exportWeightEstimate") + ")")) return;
     const reportText = buildReportText(v, entries, "chrono");
     downloadBlob(new Blob([reportText], { type: "text/plain;charset=utf-8" }), safeFileName(v.tag || v.uid) + "_rapport.txt");
@@ -1780,14 +1838,15 @@ async function renderVisitDetail(uidVal){
       entries: entries.map((e,i) => ({
         type: e.kind, horodatage: new Date(e.timestamp).toISOString(), repere: e.label || null,
         position: e.location || null, texte: e.text || null,
-        fichier: e.blob ? (e.kind === "fichier" ? (e.fileName || ("fichier_" + (i+1))) : (e.kind === "audio" ? "audio_" : "photo_") + (i+1) + extFor(e)) : null
+        fichier: getEntrySize(e) > 0 ? (e.kind === "fichier" ? (e.fileName || ("fichier_" + (i+1))) : (e.kind === "audio" ? "audio_" : "photo_") + (i+1) + extFor(e)) : null
       }))
     };
     downloadBlob(new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" }), safeFileName(v.tag || v.uid) + "_donnees.json");
     entries.forEach((e, i) => {
-      if(!e.blob) return;
+      const entryBlob = getEntryBlob(e);
+      if(!entryBlob) return;
       const name = e.kind === "fichier" ? (e.fileName || ("fichier_" + (i+1))) : safeFileName(v.tag || v.uid) + "_" + (e.kind === "audio" ? "audio_" : "photo_") + (i+1) + extFor(e);
-      downloadBlob(e.blob, name);
+      downloadBlob(entryBlob, name);
     });
     showToast(t("exportLaunched"));
   }
@@ -1801,7 +1860,7 @@ async function renderVisitDetail(uidVal){
   async function exportDigest(v){
     const entriesForWeight = await idbGetByIndex("entries", "visitUid", v.uid);
     const nonCompressible = entriesForWeight.filter(e => e.kind === "fichier").length;
-    const estBytes = entriesForWeight.reduce((s,e) => s + (e.blob && e.kind !== "audio" ? e.blob.size * 1.33 : 0), 0);
+    const estBytes = entriesForWeight.reduce((s,e) => s + (e.kind !== "audio" ? getEntrySize(e) * 1.33 : 0), 0);
     let confirmMsg = t("digestConfirm") + " (~" + fmtBytes(estBytes) + " " + t("exportWeightEstimate") + ")";
     if(nonCompressible > 0) confirmMsg += " \u2014 " + t("exportWeightWarn");
     if(!confirm(confirmMsg)) return;
@@ -1817,11 +1876,16 @@ async function renderVisitDetail(uidVal){
       };
       if(e.kind === "photo" || e.kind === "fichier"){
         try{
-          const safeBlob = await ensureRealBlob(e.blob);
-          const base64 = await blobToBase64(safeBlob);
+          // Encodage direct depuis l'ArrayBuffer stock\u00e9 — jamais via un Blob relu depuis
+          // IndexedDB (c'est exactement ce chemin qui d\u00e9clenchait le bug WebKit corrig\u00e9 ici).
+          let arrayBuf = e.data;
+          let mime = getEntryMime(e);
+          if(!arrayBuf && e.blob){ arrayBuf = await e.blob.arrayBuffer(); mime = e.blob.type || mime; } // legacy
+          if(!arrayBuf) throw new Error("aucune donn\u00e9e disponible");
+          const base64 = arrayBufferToBase64(arrayBuf);
           const fileField = e.kind === "fichier"
-            ? { fichier: { nom: e.fileName || null, mime: safeBlob.type || e.mime || "application/octet-stream", base64 } }
-            : { image: { mime: safeBlob.type || "image/jpeg", base64 } };
+            ? { fichier: { nom: e.fileName || null, mime: mime || "application/octet-stream", base64 } }
+            : { image: { mime: mime || "image/jpeg", base64 } };
           digestEntries.push({ ...base, ...fileField });
         }catch(err){
           // Un fichier illisible ne doit jamais faire \u00e9chouer tout le digest — on le
@@ -1850,7 +1914,7 @@ async function renderVisitDetail(uidVal){
   }
   function extFor(e){
     if(e.kind === "photo") return ".jpg";
-    const type = (e.blob && e.blob.type) || "";
+    const type = getEntryMime(e) || "";
     if(type.includes("mp4")) return ".m4a";
     if(type.includes("ogg")) return ".ogg";
     return ".webm";
@@ -2037,7 +2101,8 @@ async function renderReport(uidVal){
       const gps = e.location ? " \u00b7 \u{1F4CD} " + e.location.lat.toFixed(5) + ", " + e.location.lng.toFixed(5) : "";
       let inner = `<span class="rmeta">${fmtTime(e.timestamp)}${gps}</span>`;
       if(e.kind === "photo"){
-        const url = URL.createObjectURL(e.blob);
+        const entryBlob = getEntryBlob(e);
+        const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
         inner += `<img src="${url}" alt="">`;
       } else {
         inner += escapeHtml(e.text && e.text.trim() ? e.text.trim() : "(" + t("transcriptPh") + ")");
