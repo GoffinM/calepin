@@ -1,7 +1,14 @@
 // Calepin — service worker
-// Cache-first pour la coquille de l'app : après un premier chargement en ligne,
-// tout doit fonctionner sans réseau. Incrémenter CACHE_NAME force une mise à jour.
-const CACHE_NAME = 'calepin-v7';
+// Stratégie "réseau d'abord, cache en secours" (network-first) :
+//  - en ligne : on récupère toujours la version la plus récente et on met le cache à jour
+//    → une mise à jour de l'app arrive toute seule, sans réinstaller l'icône ;
+//  - hors ligne ou réseau trop lent (> 3 s) : on sert la copie en cache
+//    → l'app reste pleinement utilisable sur le terrain, sans réseau.
+// (Ancienne stratégie "cache d'abord" abandonnée : elle figeait les testeurs sur une
+//  vieille version tant que CACHE_NAME n'était pas changé à la main — et ce numéro
+//  n'avait pas été incrémenté correctement.)
+const CACHE_NAME = 'calepin-2026-09-28-1';
+const NETWORK_TIMEOUT_MS = 3000;
 const SHELL_FILES = [
   './',
   './index.html',
@@ -13,7 +20,10 @@ const SHELL_FILES = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(SHELL_FILES))
+      .then((cache) => Promise.all(
+        // cache:'reload' contourne le cache HTTP du navigateur : on met en cache la vraie version du serveur
+        SHELL_FILES.map((url) => cache.add(new Request(url, { cache: 'reload' })))
+      ))
       .then(() => self.skipWaiting())
   );
 });
@@ -30,25 +40,36 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+function fetchWithTimeout(request, ms){
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('timeout')), ms);
+    fetch(request).then(
+      (response) => { clearTimeout(timer); resolve(response); },
+      (error) => { clearTimeout(timer); reject(error); }
+    );
+  });
+}
+
+async function networkFirst(request){
+  const cache = await caches.open(CACHE_NAME);
+  try{
+    const response = await fetchWithTimeout(request, NETWORK_TIMEOUT_MS);
+    if(response && response.status === 200 && response.type === 'basic'){
+      cache.put(request, response.clone());
+    }
+    return response;
+  }catch(err){
+    const cached = await cache.match(request);
+    if(cached) return cached;
+    if(request.mode === 'navigate'){
+      const shell = await cache.match('./index.html');
+      if(shell) return shell;
+    }
+    throw err;
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-
-  event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request)
-        .then((response) => {
-          if (response && response.status === 200 && response.type === 'basic') {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => {
-          if (event.request.mode === 'navigate') {
-            return caches.match('./index.html');
-          }
-        });
-    })
-  );
+  event.respondWith(networkFirst(event.request));
 });

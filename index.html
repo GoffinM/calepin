@@ -560,6 +560,9 @@ const STRINGS = {
     feedbackSent: "Maoni tayari kutumwa", feedbackShareTitle: "Maoni ya Calepin", feedbackNoShare: "Kushiriki hakupatikani kwenye kifaa hiki \u2014 faili imehamishwa badala yake."
   }
 };
+/* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
+   jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
+const APP_VERSION = "2026-09-28.1";
 function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("calepin_lang", l); }
 function t(key){
@@ -2506,7 +2509,7 @@ async function renderSettings(){
 
   const storageGroup = document.createElement("div");
   storageGroup.className = "settings-group";
-  storageGroup.innerHTML = `<h3>${t("settingsStorage")}</h3><div class="storage-line" id="storageLine">\u2026</div>`;
+  storageGroup.innerHTML = `<h3>${t("settingsStorage")}</h3><div class="storage-line" id="storageLine">\u2026</div><div class="storage-line" id="versionLine" style="margin-top:6px;">Calepin v${APP_VERSION}</div>`;
   main.appendChild(storageGroup);
   if(navigator.storage && navigator.storage.estimate){
     try{
@@ -2546,10 +2549,11 @@ async function sendFeedback(){
     langue: currentLang(),
     nombreVisites: visits.length,
     stockageUtilise: storageInfo,
+    versionApp: APP_VERSION,
     navigateur: (navigator.userAgent || "").slice(0, 200)
   };
   const readableText = payload.message + "\n\n---\n" + payload.horodatage + " \u00b7 " +
-    payload.nombreVisites + " visites \u00b7 " + payload.stockageUtilise + "\n" + payload.navigateur;
+    payload.nombreVisites + " visites \u00b7 " + payload.stockageUtilise + "\nCalepin v" + payload.versionApp + "\n" + payload.navigateur;
   const jsonBlob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const fileName = "calepin_retour_" + Date.now() + ".json";
 
