@@ -562,7 +562,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "2026-09-29.1";
+const APP_VERSION = "2026-09-29.2";
 function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("calepin_lang", l); }
 function t(key){
@@ -1707,7 +1707,7 @@ async function renderVisitDetail(uidVal){
     statusEl.hidden = false;
     statusEl.textContent = t("transcribeLightRunning");
 
-    let finalText = "", interimText = "", errorShown = false, stage = "init";
+    let finalText = "", interimText = "", errorShown = false, stage = "init", weStoppedIt = false;
     const rec = new SpeechRecCtor();
     rec.lang = speechRecogLangTag();
     rec.continuous = true;
@@ -1722,6 +1722,12 @@ async function renderVisitDetail(uidVal){
       interimText = i2.trim();
     };
     rec.onerror = (e) => {
+      // "aborted" d\u00e9clench\u00e9 par NOTRE PROPRE appel \u00e0 stop() n'est pas une vraie erreur —
+      // confirm\u00e9 en test r\u00e9el (iOS) : quand rien n'a \u00e9t\u00e9 capt\u00e9 pendant l'\u00e9coute, arr\u00eater
+      // proprement la reconnaissance remonte ce code au lieu de la fin normale (onend).
+      // On laisse alors la logique de fin de fonction g\u00e9rer \u00e7a via le message "rien capt\u00e9",
+      // d\u00e9j\u00e0 pr\u00e9vu pour ce cas, plut\u00f4t que d'afficher un message d'erreur trompeur.
+      if(e.error === "aborted" && weStoppedIt) return;
       // Le rep\u00e8re d'\u00e9tape (stage) permet de savoir, sans deviner, \u00e0 quel moment pr\u00e9cis
       // la reconnaissance \u00e9choue — utile tant que la cause exacte sur iOS n'est pas confirm\u00e9e.
       if(!errorShown){ errorShown = true; showToast(t("dictationErrorPrefix") + " : " + dictationErrorLabel(e.error) + " [" + stage + "]"); }
@@ -1750,6 +1756,7 @@ async function renderVisitDetail(uidVal){
       setTimeout(resolve, HARD_CAP_MS);
     });
     stage = "playback-ended";
+    weStoppedIt = true;
     try{ rec.stop(); }catch(e){}
     stage = "rec-stopping";
     await waitEnd();

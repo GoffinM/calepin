@@ -7,7 +7,7 @@
 // (Ancienne stratégie "cache d'abord" abandonnée : elle figeait les testeurs sur une
 //  vieille version tant que CACHE_NAME n'était pas changé à la main — et ce numéro
 //  n'avait pas été incrémenté correctement.)
-const CACHE_NAME = 'calepin-2026-09-29-1';
+const CACHE_NAME = 'calepin-2026-09-29-2';
 const NETWORK_TIMEOUT_MS = 3000;
 const SHELL_FILES = [
   './',
