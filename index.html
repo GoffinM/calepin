@@ -562,7 +562,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "2026-09-28.3";
+const APP_VERSION = "2026-09-29.1";
 function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("calepin_lang", l); }
 function t(key){
@@ -1707,7 +1707,7 @@ async function renderVisitDetail(uidVal){
     statusEl.hidden = false;
     statusEl.textContent = t("transcribeLightRunning");
 
-    let finalText = "", interimText = "", errorShown = false;
+    let finalText = "", interimText = "", errorShown = false, stage = "init";
     const rec = new SpeechRecCtor();
     rec.lang = speechRecogLangTag();
     rec.continuous = true;
@@ -1722,7 +1722,9 @@ async function renderVisitDetail(uidVal){
       interimText = i2.trim();
     };
     rec.onerror = (e) => {
-      if(!errorShown){ errorShown = true; showToast(t("dictationErrorPrefix") + " : " + dictationErrorLabel(e.error)); }
+      // Le rep\u00e8re d'\u00e9tape (stage) permet de savoir, sans deviner, \u00e0 quel moment pr\u00e9cis
+      // la reconnaissance \u00e9choue — utile tant que la cause exacte sur iOS n'est pas confirm\u00e9e.
+      if(!errorShown){ errorShown = true; showToast(t("dictationErrorPrefix") + " : " + dictationErrorLabel(e.error) + " [" + stage + "]"); }
     };
 
     const waitEnd = () => new Promise((resolve) => {
@@ -1733,18 +1735,23 @@ async function renderVisitDetail(uidVal){
     });
 
     try{ rec.start(); }catch(err){ statusEl.hidden = true; buttons.forEach(b => b.disabled = false); showToast(t("dictationErrorPrefix") + " : " + t("dictationErrorOther")); return; }
+    stage = "rec-started";
     audioEl.currentTime = 0;
     audioEl.volume = 1.0;
+    stage = "before-prime";
     await primeAudioDuration(audioEl);
     // Filet de s\u00e9curit\u00e9 fixe (pas bas\u00e9 sur la m\u00e9tadonn\u00e9e, prouv\u00e9e non fiable) : le plus long
     // que peut durer une entr\u00e9e audio de terrain avant qu'on consid\u00e8re la lecture bloqu\u00e9e.
     const HARD_CAP_MS = 5 * 60 * 1000;
-    try{ await audioEl.play(); }catch(err){ /* lecture bloqu\u00e9e par le navigateur, on continue quand m\u00eame */ }
+    stage = "before-play";
+    try{ await audioEl.play(); stage = "playing"; }catch(err){ stage = "play-rejected"; /* lecture bloqu\u00e9e par le navigateur, on continue quand m\u00eame */ }
     await new Promise((resolve) => {
       audioEl.onended = resolve;
       setTimeout(resolve, HARD_CAP_MS);
     });
+    stage = "playback-ended";
     try{ rec.stop(); }catch(e){}
+    stage = "rec-stopping";
     await waitEnd();
 
     const text = finalText || interimText;
