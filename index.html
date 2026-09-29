@@ -365,6 +365,9 @@ const STRINGS = {
     dictateListening: "\u00c9coute en cours\u2026 parlez, puis touchez Arr\u00eater.",
     dictateEmpty: "Rien capt\u00e9 \u2014 r\u00e9essayez.", dictateSaved: "Dict\u00e9e enregistr\u00e9e",
     dictateHint: "Texte direct, sans fichier audio \u2014 fiable sur mobile. Pour garder le son, utilisez plut\u00f4t Enregistrer.",
+    editPosition: "\u{1F4CD} Position", editPositionPrompt: "Coordonn\u00e9es GPS (latitude, longitude) :", editPositionInvalid: "Format invalide \u2014 attendu : latitude, longitude (ex. -1.9536, 30.0605)",
+    editPositionCleared: "Position effac\u00e9e", editPositionSaved: "Position enregistr\u00e9e",
+    exifGpsFound: "Position reprise depuis la photo (GPS int\u00e9gr\u00e9)",
     addFile: "\u{1F4CE} Joindre un fichier", fileImported: "Fichier joint", fileTooBig: "Fichier trop volumineux (max 20 Mo)",
     exportWeightEstimate: "poids estim\u00e9", exportWeightWarn: "certaines pi\u00e8ces jointes ne sont pas compressibles",
     settingsSynthProvider: "Fournisseur de synth\u00e8se", settingsSynthProviderSub: "Distinct de la cl\u00e9 Whisper (transcription), qui reste toujours OpenAI.",
@@ -467,6 +470,9 @@ const STRINGS = {
     dictateListening: "Listening\u2026 speak, then tap Stop.",
     dictateEmpty: "Nothing captured \u2014 try again.", dictateSaved: "Dictation saved",
     dictateHint: "Direct text, no audio file \u2014 reliable on mobile. To keep the sound, use Record instead.",
+    editPosition: "\u{1F4CD} Position", editPositionPrompt: "GPS coordinates (latitude, longitude):", editPositionInvalid: "Invalid format \u2014 expected: latitude, longitude (e.g. -1.9536, 30.0605)",
+    editPositionCleared: "Position cleared", editPositionSaved: "Position saved",
+    exifGpsFound: "Position taken from the photo (embedded GPS)",
     addFile: "\u{1F4CE} Attach a file", fileImported: "File attached", fileTooBig: "File too large (max 20 MB)",
     exportWeightEstimate: "estimated size", exportWeightWarn: "some attachments cannot be compressed",
     settingsSynthProvider: "Synthesis provider", settingsSynthProviderSub: "Separate from the Whisper key (transcription), which always stays OpenAI.",
@@ -563,6 +569,9 @@ const STRINGS = {
     dictateListening: "Inasikiliza\u2026 ongea, kisha gusa Simamisha.",
     dictateEmpty: "Hakuna kilichopatikana \u2014 jaribu tena.", dictateSaved: "Nakala imehifadhiwa",
     dictateHint: "Maandishi moja kwa moja, bila faili ya sauti \u2014 ya kutegemewa kwenye simu. Kuhifadhi sauti, tumia Rekodi badala yake.",
+    editPosition: "\u{1F4CD} Nafasi", editPositionPrompt: "Kuratibu za GPS (latitudo, longitudo):", editPositionInvalid: "Muundo si sahihi \u2014 tarajiwa: latitudo, longitudo (mfano -1.9536, 30.0605)",
+    editPositionCleared: "Nafasi imefutwa", editPositionSaved: "Nafasi imehifadhiwa",
+    exifGpsFound: "Nafasi imechukuliwa kutoka kwenye picha (GPS iliyojumuishwa)",
     addFile: "\u{1F4CE} Ambatisha faili", fileImported: "Faili imeambatishwa", fileTooBig: "Faili kubwa mno (upeo 20 MB)",
     exportWeightEstimate: "ukubwa uliokadiriwa", exportWeightWarn: "faili zingine hazibanwiki",
     settingsSynthProvider: "Mtoa huduma wa muhtasari", settingsSynthProviderSub: "Tofauti na ufunguo wa Whisper (uandishi), unaobaki OpenAI kila wakati.",
@@ -574,7 +583,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "2026-09-29.3";
+const APP_VERSION = "2026-09-29.4";
 function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("calepin_lang", l); }
 function t(key){
@@ -947,6 +956,80 @@ function arrayBufferToBase64(buf){
     binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
   }
   return btoa(binary);
+}
+/* Lecteur EXIF minimal, cibl\u00e9 UNIQUEMENT sur les tags GPS (pas un parseur EXIF complet) —
+   \u00e0 utiliser sur le fichier ORIGINAL, avant la compression canvas qui supprime tout EXIF.
+   M\u00eame chemin de code, que la photo vienne de l'appareil photo en direct ou d'un import
+   depuis la galerie/le disque (aucune distinction faite ailleurs dans Calepin). Renvoie
+   {lat, lng} ou null — jamais d'exception propag\u00e9e, une photo sans GPS ou mal form\u00e9e
+   retombe simplement sur la g\u00e9olocalisation en direct (comportement d\u00e9j\u00e0 en place). */
+function extractExifGps(buffer){
+  try{
+    const view = new DataView(buffer);
+    if(view.getUint16(0, false) !== 0xFFD8) return null; // pas un JPEG
+    let offset = 2;
+    const length = view.byteLength;
+    while(offset + 4 <= length){
+      const marker = view.getUint16(offset, false);
+      if((marker & 0xFF00) !== 0xFF00) break; // structure inattendue, on abandonne proprement
+      if(marker === 0xFFD8 || marker === 0xFFD9){ offset += 2; continue; } // SOI/EOI, sans longueur
+      if(marker === 0xFFDA) break; // d\u00e9but des donn\u00e9es image compress\u00e9es, plus d'EXIF apr\u00e8s
+      const segLength = view.getUint16(offset + 2, false);
+      if(marker !== 0xFFE1){ offset += 2 + segLength; continue; } // pas APP1/Exif, segment suivant
+      const exifStart = offset + 4;
+      if(exifStart + 6 > length) return null;
+      if(view.getUint32(exifStart, false) !== 0x45786966 || view.getUint16(exifStart + 4, false) !== 0x0000){
+        offset += 2 + segLength; continue; // APP1 mais pas un en-t\u00eate "Exif\0\0" (ex. XMP)
+      }
+      const tiffStart = exifStart + 6;
+      const byteOrderMark = view.getUint16(tiffStart, false);
+      if(byteOrderMark !== 0x4949 && byteOrderMark !== 0x4D4D) return null;
+      const little = byteOrderMark === 0x4949;
+      const u16 = (o) => view.getUint16(o, little);
+      const u32 = (o) => view.getUint32(o, little);
+      const ifd0 = tiffStart + u32(tiffStart + 4);
+      if(ifd0 + 2 > length) return null;
+      const numEntries = u16(ifd0);
+      let gpsIFDOffset = null;
+      for(let i = 0; i < numEntries; i++){
+        const entryOffset = ifd0 + 2 + i * 12;
+        if(entryOffset + 12 > length) break;
+        if(u16(entryOffset) === 0x8825){ gpsIFDOffset = tiffStart + u32(entryOffset + 8); break; }
+      }
+      if(gpsIFDOffset === null || gpsIFDOffset + 2 > length) return null;
+      const gpsEntries = u16(gpsIFDOffset);
+      let latRef = null, lonRef = null, lat = null, lon = null;
+      const readRational3 = (valOffset) => {
+        let v = 0;
+        for(let k = 0; k < 3; k++){
+          const num = u32(valOffset + k * 8);
+          const den = u32(valOffset + k * 8 + 4);
+          const part = den ? num / den : 0;
+          v += k === 0 ? part : (k === 1 ? part / 60 : part / 3600);
+        }
+        return v;
+      };
+      for(let i = 0; i < gpsEntries; i++){
+        const entryOffset = gpsIFDOffset + 2 + i * 12;
+        if(entryOffset + 12 > length) break;
+        const tag = u16(entryOffset);
+        const valueField = entryOffset + 8;
+        if(tag === 0x0001) latRef = String.fromCharCode(view.getUint8(valueField));
+        else if(tag === 0x0003) lonRef = String.fromCharCode(view.getUint8(valueField));
+        else if(tag === 0x0002) lat = readRational3(tiffStart + u32(valueField));
+        else if(tag === 0x0004) lon = readRational3(tiffStart + u32(valueField));
+      }
+      if(lat !== null && lon !== null && latRef && lonRef){
+        if(latRef === "S") lat = -lat;
+        if(lonRef === "W") lon = -lon;
+        if(isFinite(lat) && isFinite(lon)) return { lat, lng: lon };
+      }
+      return null;
+    }
+    return null;
+  }catch(e){
+    return null;
+  }
 }
 /* R\u00e9trocompatibilit\u00e9 : les entr\u00e9es captur\u00e9es AVANT ce correctif ont un champ
    `blob` (Blob) plut\u00f4t que `data` (ArrayBuffer) + `mime`. On continue \u00e0 les lire
@@ -1512,6 +1595,7 @@ async function renderVisitDetail(uidVal){
         </div>
         <div class="entry-body"></div>
         <button class="label-btn" data-act="label">${entry.label ? "\u270f\ufe0f" : "+ " + t("entryLabelPrompt").replace(" :","").replace(":","")}</button>
+        <button class="label-btn" data-act="position" style="margin-left:14px;">${entry.location ? "\u270f\ufe0f " : "+ "}${t("editPosition")}</button>
       `;
       const body = card.querySelector(".entry-body");
       if(entry.kind === "audio"){
@@ -1561,6 +1645,30 @@ async function renderVisitDetail(uidVal){
         const val = prompt(t("entryLabelPrompt"), entry.label || "");
         if(val !== null){ entry.label = val.trim(); await migrateEntryIfLegacy(entry); await idbPut("entries", entry); refreshEntries(); }
       });
+      card.querySelector('[data-act="position"]').addEventListener("click", async () => {
+        const current = entry.location ? entry.location.lat + ", " + entry.location.lng : "";
+        const val = prompt(t("editPositionPrompt"), current);
+        if(val === null) return;
+        const trimmed = val.trim();
+        if(trimmed === ""){
+          entry.location = null;
+          await migrateEntryIfLegacy(entry); await idbPut("entries", entry);
+          showToast(t("editPositionCleared"));
+          refreshEntries();
+          return;
+        }
+        const parts = trimmed.split(",").map(s => s.trim());
+        const lat = parts.length === 2 ? Number(parts[0]) : NaN;
+        const lng = parts.length === 2 ? Number(parts[1]) : NaN;
+        if(!isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180){
+          showToast(t("editPositionInvalid"));
+          return;
+        }
+        entry.location = { lat, lng };
+        await migrateEntryIfLegacy(entry); await idbPut("entries", entry);
+        showToast(t("editPositionSaved"));
+        refreshEntries();
+      });
       entryList.appendChild(card);
     }
   }
@@ -1578,19 +1686,31 @@ async function renderVisitDetail(uidVal){
   main.querySelector("#photoInput").addEventListener("change", async (e) => {
     const files = Array.from(e.target.files || []);
     const q = QUALITY_LEVELS[currentQuality()] || QUALITY_LEVELS.std;
-    let added = 0;
+    let added = 0, foundExifGps = false;
     for(const file of files){
       try{
+        // Lu AVANT compression : le canvas de compression supprime tout EXIF, donc c'est
+        // la seule fen\u00eatre o\u00f9 un GPS d\u00e9j\u00e0 pr\u00e9sent dans la photo (prise ailleurs, import\u00e9e
+        // depuis un ordinateur) est encore accessible. M\u00eame chemin pour une prise en direct
+        // ou un import galerie/disque — aucune distinction faite ici.
+        let exifLocation = null;
+        try{
+          const rawBuf = await file.arrayBuffer();
+          exifLocation = extractExifGps(rawBuf);
+        }catch(exifErr){ /* pas grave, on retombe sur le GPS live ci-dessous */ }
+
         const blob = await compressImage(file, q.maxDim, q.quality);
         const data = await blob.arrayBuffer();
-        const location = await tryGetPosition();
+        const location = exifLocation || await tryGetPosition();
         await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "photo", data, mime: blob.type || "image/jpeg", label: "", location, timestamp: Date.now() });
+        if(exifLocation) foundExifGps = true;
         added++;
       }catch(err){ showToast(t("photoUnreadable")); }
     }
     e.target.value = "";
     refreshEntries(); refreshWeight();
-    if(added) showToast(t("photosAdded"));
+    if(foundExifGps) showToast(t("exifGpsFound"));
+    else if(added) showToast(t("photosAdded"));
   });
 
   addRow.querySelector("#btnRec").addEventListener("click", () => toggleRecording(visit.uid));
