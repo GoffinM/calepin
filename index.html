@@ -562,7 +562,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "2026-09-28.2";
+const APP_VERSION = "2026-09-28.3";
 function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("calepin_lang", l); }
 function t(key){
@@ -1680,14 +1680,19 @@ async function renderVisitDetail(uidVal){
     return new Promise((resolve) => {
       let done = false;
       const finish = () => { if(!done){ done = true; resolve(); } };
-      const fix = () => {
+      const maybeFix = () => {
+        // Le bug de dur\u00e9e \u00e0 Infinity est sp\u00e9cifique \u00e0 certains encodages webm (Chrome/Android).
+        // Si la dur\u00e9e est d\u00e9j\u00e0 correcte (cas normal, notamment Safari/iOS), on ne touche \u00e0
+        // RIEN : le seek de contournement partage la session audio avec SpeechRecognition
+        // et provoque sur iOS une erreur "aborted" imm\u00e9diate — observ\u00e9 en test r\u00e9el.
+        if(isFinite(audioEl.duration) && audioEl.duration > 0){ finish(); return; }
         try{
           audioEl.currentTime = 1e9;
           audioEl.ontimeupdate = () => { audioEl.ontimeupdate = null; audioEl.currentTime = 0; finish(); };
         }catch(e){ finish(); }
       };
-      if(audioEl.readyState > 0) fix();
-      else audioEl.addEventListener("loadedmetadata", fix, { once: true });
+      if(audioEl.readyState > 0) maybeFix();
+      else audioEl.addEventListener("loadedmetadata", maybeFix, { once: true });
       setTimeout(finish, 1500);
     });
   }
