@@ -361,6 +361,10 @@ const STRINGS = {
     synthGeneratedFormat: "format",
     exportDigest: "\u{1F9E9} Exporter (digest JSON)", digestExported: "Digest export\u00e9",
     digestConfirm: "Exporter un digest JSON unique (photos incluses, audio exclu \u2014 transcription seule) ?",
+    addDictate: "\u{1F5E3}\ufe0f Dicter", dictateStop: "\u23F9 Arr\u00eater",
+    dictateListening: "\u00c9coute en cours\u2026 parlez, puis touchez Arr\u00eater.",
+    dictateEmpty: "Rien capt\u00e9 \u2014 r\u00e9essayez.", dictateSaved: "Dict\u00e9e enregistr\u00e9e",
+    dictateHint: "Texte direct, sans fichier audio \u2014 fiable sur mobile. Pour garder le son, utilisez plut\u00f4t Enregistrer.",
     addFile: "\u{1F4CE} Joindre un fichier", fileImported: "Fichier joint", fileTooBig: "Fichier trop volumineux (max 20 Mo)",
     exportWeightEstimate: "poids estim\u00e9", exportWeightWarn: "certaines pi\u00e8ces jointes ne sont pas compressibles",
     settingsSynthProvider: "Fournisseur de synth\u00e8se", settingsSynthProviderSub: "Distinct de la cl\u00e9 Whisper (transcription), qui reste toujours OpenAI.",
@@ -459,6 +463,10 @@ const STRINGS = {
     synthGeneratedFormat: "format",
     exportDigest: "\u{1F9E9} Export (JSON digest)", digestExported: "Digest exported",
     digestConfirm: "Export a single JSON digest (photos included, audio excluded \u2014 transcript only)?",
+    addDictate: "\u{1F5E3}\ufe0f Dictate", dictateStop: "\u23F9 Stop",
+    dictateListening: "Listening\u2026 speak, then tap Stop.",
+    dictateEmpty: "Nothing captured \u2014 try again.", dictateSaved: "Dictation saved",
+    dictateHint: "Direct text, no audio file \u2014 reliable on mobile. To keep the sound, use Record instead.",
     addFile: "\u{1F4CE} Attach a file", fileImported: "File attached", fileTooBig: "File too large (max 20 MB)",
     exportWeightEstimate: "estimated size", exportWeightWarn: "some attachments cannot be compressed",
     settingsSynthProvider: "Synthesis provider", settingsSynthProviderSub: "Separate from the Whisper key (transcription), which always stays OpenAI.",
@@ -551,6 +559,10 @@ const STRINGS = {
     synthGeneratedFormat: "muundo",
     exportDigest: "\u{1F9E9} Hamisha (JSON digest)", digestExported: "Digest imehamishwa",
     digestConfirm: "Hamisha JSON moja (picha zimejumuishwa, sauti imeondolewa \u2014 maandishi tu)?",
+    addDictate: "\u{1F5E3}\ufe0f Nakili", dictateStop: "\u23F9 Simamisha",
+    dictateListening: "Inasikiliza\u2026 ongea, kisha gusa Simamisha.",
+    dictateEmpty: "Hakuna kilichopatikana \u2014 jaribu tena.", dictateSaved: "Nakala imehifadhiwa",
+    dictateHint: "Maandishi moja kwa moja, bila faili ya sauti \u2014 ya kutegemewa kwenye simu. Kuhifadhi sauti, tumia Rekodi badala yake.",
     addFile: "\u{1F4CE} Ambatisha faili", fileImported: "Faili imeambatishwa", fileTooBig: "Faili kubwa mno (upeo 20 MB)",
     exportWeightEstimate: "ukubwa uliokadiriwa", exportWeightWarn: "faili zingine hazibanwiki",
     settingsSynthProvider: "Mtoa huduma wa muhtasari", settingsSynthProviderSub: "Tofauti na ufunguo wa Whisper (uandishi), unaobaki OpenAI kila wakati.",
@@ -562,7 +574,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "2026-09-29.2";
+const APP_VERSION = "2026-09-29.3";
 function currentLang(){ return localStorage.getItem("calepin_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("calepin_lang", l); }
 function t(key){
@@ -1382,6 +1394,7 @@ async function renderVisitDetail(uidVal){
   addRow.className = "add-row";
   addRow.innerHTML = `
     <button class="btn" id="btnRec" title="${t("addAudio")}">\u{1F3A4} ${t("addAudio")}</button>
+    <button class="btn" id="btnDictate" title="${t("dictateHint")}">${t("addDictate")}</button>
     <button class="btn" id="btnAddPhoto" title="${t("addPhoto")}">\u{1F4F7} ${t("addPhoto")}</button>
     <button class="btn" id="btnAddText" title="${t("addText")}">\u{1F4DD} ${t("addText")}</button>
     <button class="btn" id="btnImportAudio" title="${t("addAudioImport")}">\u{1F4C2} ${t("addAudioImport")}</button>
@@ -1581,6 +1594,7 @@ async function renderVisitDetail(uidVal){
   });
 
   addRow.querySelector("#btnRec").addEventListener("click", () => toggleRecording(visit.uid));
+  addRow.querySelector("#btnDictate").addEventListener("click", () => toggleDictation(visit.uid));
 
   addRow.querySelector("#btnImportAudio").addEventListener("click", () => main.querySelector("#audioInput").click());
   main.querySelector("#audioInput").addEventListener("change", async (e) => {
@@ -1629,6 +1643,7 @@ async function renderVisitDetail(uidVal){
   async function toggleRecording(visitUid){
     const btn = addRow.querySelector("#btnRec");
     if(mediaRecorder && mediaRecorder.state === "recording"){ mediaRecorder.stop(); return; }
+    if(dictationRec){ return; } // \u00e9vite de recr\u00e9er le conflit micro qu'on vient de r\u00e9soudre
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ showToast(t("micUnavailable")); return; }
     try{ activeStream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
     catch(err){ showToast(t("micDenied")); return; }
@@ -1659,6 +1674,73 @@ async function renderVisitDetail(uidVal){
       const el = document.getElementById("recTimer");
       if(el) el.textContent = String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0");
     }, 250);
+  }
+
+  /* ---------- Dict\u00e9e directe : texte uniquement, AUCUN fichier audio, jamais de
+     lecture/enregistrement simultan\u00e9. Contrairement au palier "l\u00e9ger" (qui rejoue un
+     audio d\u00e9j\u00e0 enregistr\u00e9 pendant que la reconnaissance \u00e9coute — conflit mat\u00e9riel
+     confirm\u00e9 sur Android ET iOS, pour deux raisons diff\u00e9rentes mais toutes deux
+     insurmontables en JS), ici la reconnaissance est SEULE consommatrice du micro,
+     exactement comme Siri ou le clavier — fiable sur mobile, confirm\u00e9 en test r\u00e9el. ---------- */
+  let dictationRec = null;
+  async function toggleDictation(visitUid){
+    const btn = addRow.querySelector("#btnDictate");
+    if(dictationRec){ dictationRec.stop(); return; }
+    if(mediaRecorder && mediaRecorder.state === "recording"){ return; } // \u00e9vite le conflit micro
+    const SpeechRecCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SpeechRecCtor){ showToast(t("transcribeUnsupported")); return; }
+
+    let finalText = "", interimText = "", errorShown = false, weStoppedIt = false;
+    dictationRec = new SpeechRecCtor();
+    dictationRec.lang = speechRecogLangTag();
+    dictationRec.continuous = true;
+    dictationRec.interimResults = true;
+    dictationRec.onresult = (e) => {
+      let f = "", i2 = "";
+      for(let i = 0; i < e.results.length; i++){
+        if(e.results[i].isFinal) f += e.results[i][0].transcript + " ";
+        else i2 += e.results[i][0].transcript + " ";
+      }
+      if(f) finalText = f.trim();
+      interimText = i2.trim();
+    };
+    dictationRec.onerror = (e) => {
+      // M\u00eame comportement b\u00e9nin observ\u00e9 et corrig\u00e9 pour le palier "l\u00e9ger" : un "aborted"
+      // caus\u00e9 par notre propre arr\u00eat, sans rien avoir capt\u00e9, n'est pas une vraie erreur.
+      if(e.error === "aborted" && weStoppedIt) return;
+      if(!errorShown){ errorShown = true; showToast(t("dictationErrorPrefix") + " : " + dictationErrorLabel(e.error)); }
+    };
+    dictationRec.onend = async () => {
+      dictationRec = null;
+      clearInterval(recordTimerInterval);
+      recStatus.innerHTML = "";
+      btn.textContent = t("addDictate");
+      const text = (finalText || interimText).trim();
+      if(text){
+        const location = await tryGetPosition();
+        await idbPut("entries", { id: uid(), visitUid, kind: "texte", text, label: "", location, timestamp: Date.now() });
+        refreshEntries(); refreshWeight();
+        showToast(t("dictateSaved"));
+      } else if(!errorShown){
+        showToast(t("dictateEmpty"));
+      }
+    };
+
+    try{ dictationRec.start(); }
+    catch(err){ dictationRec = null; showToast(t("dictationErrorPrefix") + " : " + t("dictationErrorOther")); return; }
+    btn.textContent = t("dictateStop");
+    recordStart = Date.now();
+    recStatus.innerHTML = `<span class="rec-timer" id="recTimer">${t("dictateListening")} 00:00</span>`;
+    recordTimerInterval = setInterval(() => {
+      const s = Math.floor((Date.now() - recordStart) / 1000);
+      const el = document.getElementById("recTimer");
+      if(el) el.textContent = t("dictateListening") + " " + String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0");
+    }, 250);
+
+    // Point d'arr\u00eat r\u00e9utilis\u00e9 par le bouton (toggle) : marque qu'on a nous-m\u00eames demand\u00e9
+    // l'arr\u00eat, pour appliquer le m\u00eame traitement b\u00e9nin du code "aborted" que ci-dessus.
+    const origStop = dictationRec.stop.bind(dictationRec);
+    dictationRec.stop = () => { weStoppedIt = true; origStop(); };
   }
 
   /* ---------- Palier "l\u00e9ger" : rejoue l'audio via haut-parleur + \u00e9coute avec
