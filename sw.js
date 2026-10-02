@@ -33,7 +33,9 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((names) =>
       Promise.all(
         names
-          .filter((name) => name !== CACHE_NAME)
+          // Uniquement nos propres caches : la même origine (github.io) héberge aussi
+          // d'autres apps (ex. sous-dossier rdc39/) dont les caches ne doivent pas être effacés.
+          .filter((name) => name.startsWith('calepin-') && name !== CACHE_NAME)
           .map((name) => caches.delete(name))
       )
     ).then(() => self.clients.claim())
