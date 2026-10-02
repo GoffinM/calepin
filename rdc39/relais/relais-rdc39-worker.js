@@ -59,8 +59,10 @@ const AI_ROUTES = {
 const MAX_DIGEST_BYTES = 24 * 1024 * 1024; // marge sous la limite KV de 25 Mio
 
 function corsHeaders(env){
+  // Défensif : une valeur mal saisie (espace, retour à la ligne) ferait planter le Worker.
+  const origin = String((env && env.ALLOWED_ORIGIN) || "*").trim().replace(/\/+$/, "") || "*";
   return {
-    "Access-Control-Allow-Origin": env.ALLOWED_ORIGIN || "*",
+    "Access-Control-Allow-Origin": /^[\x21-\x7e]+$/.test(origin) ? origin : "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Access-Control-Allow-Headers": "X-Access-Code, X-Device-Id, anthropic-version, Content-Type",
     "Access-Control-Max-Age": "86400"
@@ -93,11 +95,30 @@ function isValidCode(env, code){
 
 export default {
   async fetch(request, env) {
+    // Toute erreur inattendue est renvoyée en clair (sans jamais inclure de clé), plutôt que
+    // la page générique "Error 1101" de Cloudflare : beaucoup plus simple à diagnostiquer.
+    try {
+      return await handle(request, env || {});
+    } catch (err) {
+      return new Response("Erreur interne du relais : " + (err && err.message ? err.message : String(err)), {
+        status: 500,
+        headers: { "Content-Type": "text/plain; charset=utf-8", "Access-Control-Allow-Origin": "*" }
+      });
+    }
+  }
+};
+
+async function handle(request, env) {
     if (request.method === "OPTIONS") {
       return new Response(null, { headers: corsHeaders(env) });
     }
     if (request.method !== "POST") {
-      return new Response("Méthode non supportée.", { status: 405, headers: corsHeaders(env) });
+      // Réponse visible quand on ouvre l'URL du relais dans un navigateur : sert de test.
+      const diag = "Relais RDC39 actif. " +
+        "Codes configurés : " + (validCodes(env).length ? "oui" : "NON (ACCESS_CODES manquant)") + ". " +
+        "Stockage KV : " + (env.DIGESTS ? "lié" : "NON lié (binding DIGESTS manquant)") + ". " +
+        "Clé IA : " + (env.ANTHROPIC_API_KEY || env.OPENAI_API_KEY || env.OPENROUTER_API_KEY ? "présente" : "AUCUNE") + ".";
+      return new Response(diag, { status: 200, headers: Object.assign({ "Content-Type": "text/plain; charset=utf-8" }, corsHeaders(env)) });
     }
     const url = new URL(request.url);
 
@@ -162,5 +183,4 @@ export default {
     const responseHeaders = new Headers(upstreamResponse.headers);
     Object.entries(corsHeaders(env)).forEach(([k, v]) => responseHeaders.set(k, v));
     return new Response(upstreamResponse.body, { status: upstreamResponse.status, headers: responseHeaders });
-  }
-};
+}
