@@ -871,7 +871,7 @@ function setSynthModel(provider, m){ localStorage.setItem("rdc39_synth_model_" +
 
 /* URL du relais Cloudflare RDC39 : \u00e0 renseigner ici une fois le Worker d\u00e9ploy\u00e9 (cf. README).
    Tant qu'elle est vide, l'\u00e9cran de code d'acc\u00e8s propose un champ pour la saisir (utile pour tester). */
-const RELAY_URL = "";
+const RELAY_URL = "https://terrain-relais.michel-goffin.workers.dev";
 function currentRelayUrl(){
   return (RELAY_URL || localStorage.getItem("rdc39_relay_url") || "").trim().replace(/\/$/, "");
 }
