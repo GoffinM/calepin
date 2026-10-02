@@ -1,0 +1,3351 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#171A16">
+<title>RDC39-Calepin</title>
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.svg">
+<meta name="robots" content="noindex, nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  :root{
+    --bg: #14170F;
+    --surface: #1D2116;
+    --surface-raised: #262B1D;
+    --paper: #EDE8DC;
+    --ink: #1B1B15;
+    --text: #EDE8DC;
+    --text-dim: #A6A896;
+    --accent: #C9A227;
+    --accent-ink: #171A16;
+    --danger: #B5462E;
+    --warn: #C97B27;
+    --line: #33392A;
+    --radius: 10px;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --mono: "SF Mono", "SFMono-Regular", Consolas, Menlo, monospace;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; }
+  body{
+    background: var(--bg); color: var(--text); font-family: var(--sans);
+    -webkit-font-smoothing: antialiased; min-height: 100vh; min-height: 100dvh;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  button{ font-family: inherit; }
+  :focus-visible{ outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .appbar{
+    position: sticky; top:0; z-index: 20;
+    display:flex; align-items:center; justify-content:space-between;
+    padding: 14px 18px 14px 18px; padding-top: calc(14px + env(safe-area-inset-top));
+    background: var(--bg); border-bottom: 1px solid var(--line);
+  }
+  .appbar h1{ font-size: 19px; margin:0; font-weight: 700; letter-spacing: 0.2px; }
+  .appbar button.icon-btn{
+    background:none; border:none; color: var(--text); font-size: 20px;
+    padding: 4px 6px; cursor:pointer; line-height:1;
+  }
+  .appbar .left{ display:flex; align-items:center; gap:4px; width:36px; }
+  .appbar .right{ width:auto; display:flex; justify-content:flex-end; gap:2px; }
+
+  main{ max-width: 560px; margin: 0 auto; padding: 16px 16px 100px 16px; }
+
+  .filters{ display:flex; gap:8px; margin-bottom: 16px; flex-wrap: wrap; }
+  .filters select, .filters input[type="search"]{
+    background: var(--surface); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; font-size: 14px;
+  }
+  .filters input[type="search"]{ flex: 1; min-width: 120px; }
+
+  .visit-list{ display:flex; flex-direction:column; gap:10px; }
+  .visit-card{
+    display:flex; align-items:center; gap:12px;
+    background: var(--surface); border:1px solid var(--line); border-radius: var(--radius);
+    padding: 12px 14px; text-align:left; width:100%; cursor:pointer; color: var(--text);
+  }
+  .visit-card .glyph{
+    font-size: 22px; width:38px; height:38px; border-radius:8px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; background: var(--surface-raised);
+  }
+  .visit-card .info{ flex:1; min-width:0; }
+  .visit-card .tag{ font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .visit-card .meta{ font-size:12px; color: var(--text-dim); font-family: var(--mono); margin-top:2px; }
+  .visit-card .counts{ font-size:12px; color: var(--text-dim); display:flex; gap:8px; flex-shrink:0; }
+  .visit-card .check{ width:20px; height:20px; border-radius:5px; border:2px solid var(--line); flex-shrink:0; display:flex; align-items:center; justify-content:center; font-size:13px; }
+  .visit-card.selected{ border-color: var(--accent); }
+  .visit-card.selected .check{ background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  .select-bar{
+    position: sticky; top: 0; z-index: 10; display:flex; flex-direction:column; gap:8px;
+    background: var(--surface); border:1px solid var(--line); border-radius: var(--radius);
+    padding: 10px 14px; margin-bottom: 14px;
+  }
+  .select-bar .count{ font-size:14px; color: var(--text); }
+  .select-bar .actions{ display:flex; gap:8px; width:100%; }
+  .select-bar .actions .btn{ flex:1; padding:9px 4px; font-size:13px; white-space:nowrap; }
+  .home-toolbar{ display:flex; justify-content:flex-end; margin-bottom: 10px; }
+  .home-toolbar button{ background:none; border:none; color: var(--accent); font-size:13px; cursor:pointer; padding:4px 2px; }
+  .active-folder{
+    display:flex; justify-content:space-between; align-items:center; background: var(--surface-raised);
+    border:1px solid var(--accent); border-radius:8px; padding:8px 12px; margin-bottom:12px; font-size:13px;
+  }
+  .active-folder button{ background:none; border:none; color: var(--text-dim); font-size:12px; cursor:pointer; }
+
+  .folder-top{ margin-bottom: 18px; }
+  .folder-top-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background: var(--surface); border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-bottom:6px; cursor:pointer;
+  }
+  .folder-top-row .name{ font-weight:600; font-size:14px; }
+  .folder-top-row .count, .folder-sub-row .count{ font-weight:400; color: var(--text-dim); font-size:12px; margin-left:6px; }
+  .folder-actions{ display:flex; gap:6px; }
+  .folder-actions button{ background:none; border:none; color: var(--text-dim); font-size:14px; cursor:pointer; padding:2px 4px; }
+  .folder-sub-list{ padding-left: 18px; margin-bottom: 8px; }
+  .folder-sub-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background: var(--surface-raised); border:1px solid var(--line); border-radius:8px; padding:8px 10px; margin-bottom:6px; cursor:pointer; font-size:13px;
+  }
+  .folder-add-sub{ padding-left: 18px; margin-bottom: 10px; }
+  .folder-add-sub button{ background:none; border:1px dashed var(--line); color: var(--text-dim); border-radius:6px; padding:6px 10px; font-size:12px; cursor:pointer; }
+  .simple-list-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background: var(--surface); border:1px solid var(--line); border-radius:8px; padding:10px 12px; margin-bottom:8px; cursor:pointer;
+  }
+
+  .tag-chip-list{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  .tag-chip{
+    display:inline-flex; align-items:center; gap:6px; background: var(--surface-raised); border:1px solid var(--line);
+    border-radius: 999px; padding: 4px 10px; font-size:12px;
+  }
+  .tag-chip button{ background:none; border:none; color: var(--text-dim); font-size:12px; cursor:pointer; padding:0; }
+
+  .modal-overlay{
+    position: fixed; inset:0; background: rgba(0,0,0,0.55); z-index: 60;
+    display:flex; align-items:flex-end; justify-content:center;
+  }
+  .modal-sheet{
+    background: var(--bg); border-radius: 14px 14px 0 0; padding: 18px 18px calc(18px + env(safe-area-inset-bottom)) 18px;
+    width:100%; max-width:560px; max-height:80vh; overflow-y:auto;
+  }
+  .modal-sheet h3{ margin: 0 0 12px 0; font-size:16px; }
+  .modal-option{
+    display:block; width:100%; text-align:left; background: var(--surface); border:1px solid var(--line);
+    border-radius:8px; padding:10px 12px; margin-bottom:8px; color: var(--text); font-size:14px; cursor:pointer;
+  }
+  .modal-option.sub{ margin-left:16px; background: var(--surface-raised); }
+
+  .empty-state{ text-align:center; padding: 60px 20px; color: var(--text-dim); }
+  .empty-state .glyph{ font-size:32px; margin-bottom:10px; }
+  .empty-state p{ margin: 4px 0; font-size: 14px; line-height:1.5; }
+
+  .fab{
+    position: fixed; right: 20px; bottom: calc(24px + env(safe-area-inset-bottom));
+    width: 58px; height: 58px; border-radius: 50%;
+    background: var(--accent); color: var(--accent-ink); border:none;
+    font-size: 28px; line-height:1; cursor:pointer;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.45);
+    display:flex; align-items:center; justify-content:center; z-index: 15;
+  }
+
+  .field{ margin-bottom: 18px; }
+  .field label{ display:block; font-size:13px; color: var(--text-dim); margin-bottom:6px; }
+  .field select, .field input[type="text"], .field input[type="date"], .field textarea{
+    width:100%; background: var(--surface); color: var(--text); border:1px solid var(--line);
+    border-radius: 8px; padding: 11px 12px; font-size: 15px; font-family: inherit;
+  }
+  .field textarea{ min-height: 80px; resize: vertical; line-height:1.5; }
+  .cat-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(90px,1fr)); gap:8px; }
+  .cat-btn{
+    background: var(--surface); border:1px solid var(--line); border-radius: 8px;
+    padding: 12px 6px; color: var(--text); cursor:pointer; text-align:center; font-size:13px;
+  }
+  .cat-btn .glyph{ font-size:20px; display:block; margin-bottom:4px; }
+  .cat-btn.selected{ border-color: var(--accent); background: var(--surface-raised); }
+  .cat-btn.add-new{ color: var(--text-dim); }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    background: var(--surface-raised); color: var(--text); border:1px solid var(--line);
+    border-radius: 8px; padding: 10px 14px; font-size: 14px; cursor:pointer;
+  }
+  .btn.primary{ background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight:600; }
+  .btn.danger{ color: #E6A18C; border-color: var(--danger); }
+  .btn:disabled{ opacity: 0.5; cursor:default; }
+  .form-actions{ position: sticky; bottom:0; background: var(--bg); padding: 14px 0 6px 0; margin-top: 20px; }
+
+  .detail-head{ margin-bottom: 16px; }
+  .detail-head .cat-line{ display:flex; align-items:center; gap:8px; font-size:14px; color: var(--text-dim); margin-bottom:4px; }
+  .detail-head h2{ font-size: 21px; margin: 2px 0 4px 0; }
+  .detail-head .meta{ font-size:12px; font-family: var(--mono); color: var(--text-dim); }
+
+  .weight-banner{
+    display:flex; justify-content:space-between; align-items:center;
+    background: var(--surface); border:1px solid var(--line); border-radius:8px;
+    padding: 8px 12px; font-size:12px; font-family: var(--mono); color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+  .weight-banner.warn{ border-color: var(--warn); color: var(--warn); }
+  .weight-banner.danger{ border-color: var(--danger); color: #E6A18C; }
+
+  .add-row{ display:flex; gap:8px; margin-bottom: 18px; flex-wrap: wrap; }
+  .add-row .btn{ flex:1; min-width: 100px; }
+
+  .rec-status{ display:flex; align-items:center; gap:10px; margin-bottom:18px; }
+  .rec-timer{ font-family: var(--mono); font-size: 14px; color: var(--danger); }
+  .capture-hint{ font-size:12px; color: var(--text-dim); margin: -10px 0 18px 0; line-height:1.5; }
+
+  .entry-list{ display:flex; flex-direction:column; gap:10px; }
+  .entry-card{
+    background: var(--surface); border:1px solid var(--line); border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .entry-card .entry-head{
+    display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;
+  }
+  .entry-card .entry-meta{ font-size:12px; color: var(--text-dim); font-family: var(--mono); display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .entry-card .del{ background:none; border:none; color: var(--text-dim); font-size:16px; cursor:pointer; padding:2px 6px; }
+  .entry-card audio{ width:100%; height:32px; margin-bottom:8px; }
+  .entry-card img{ width:100%; border-radius:6px; display:block; margin-bottom:8px; max-height:280px; object-fit:cover; }
+  .entry-card textarea{
+    width:100%; background: var(--surface-raised); color: var(--text); border:1px solid var(--line);
+    border-radius:6px; padding:8px 10px; font-size:14px; min-height:52px; line-height:1.4;
+  }
+  .transcribe-row{ display:flex; gap:8px; margin-bottom:8px; }
+  .transcribe-row .btn{ flex:1; padding:8px 6px; font-size:12px; }
+  .transcribe-status{ font-size:12px; color: var(--accent); margin: 0 0 8px 0; }
+  .label-btn{ background:none; border:none; color: var(--accent); font-size:12px; cursor:pointer; padding:0; }
+
+  .group-toggle{ display:flex; gap:8px; margin-bottom: 16px; }
+  .group-toggle button{
+    flex:1; background: var(--surface); border:1px solid var(--line); border-radius:8px;
+    padding: 9px; color: var(--text-dim); font-size:13px; cursor:pointer;
+  }
+  .group-toggle button.active{ border-color: var(--accent); color: var(--text); background: var(--surface-raised); }
+
+  .report-group{ margin-bottom: 22px; }
+  .report-group h3{ font-size:14px; color: var(--accent); margin: 0 0 10px 0; font-weight:600; }
+  .report-entry{ font-size:14px; line-height:1.6; margin-bottom:10px; }
+  .report-entry .rmeta{ font-size:11px; color: var(--text-dim); font-family: var(--mono); display:block; margin-bottom:2px; }
+  .report-entry img{ width:100%; max-width:260px; border-radius:6px; display:block; margin-top:4px; }
+
+  .settings-group{ margin-bottom: 26px; }
+  .settings-group h3{ font-size:14px; color: var(--text-dim); margin: 0 0 10px 0; font-weight:600; }
+  .lang-grid, .quality-grid{ display:flex; flex-direction:column; gap:8px; }
+  .opt-btn{
+    display:flex; justify-content:space-between; align-items:center;
+    background: var(--surface); border:1px solid var(--line); border-radius:8px;
+    padding: 12px 14px; color: var(--text); cursor:pointer; text-align:left; font-size:14px;
+  }
+  .opt-btn.selected{ border-color: var(--accent); }
+  .opt-btn .sub{ font-size:12px; color: var(--text-dim); font-family: var(--mono); }
+  .storage-line{ font-size:13px; color: var(--text-dim); font-family: var(--mono); }
+
+  .toast{
+    position: fixed; left:50%; bottom: 90px; transform: translateX(-50%);
+    background: var(--paper); color: var(--ink); padding: 10px 16px; border-radius: 8px;
+    font-size: 13px; z-index: 50; box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+    opacity:0; pointer-events:none; transition: opacity 0.2s ease;
+  }
+  .toast.show{ opacity:1; }
+  .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+  @media (prefers-reduced-motion: reduce){ .toast{ transition: none; } }
+
+  /* .fab force display:flex, ce qui annulait l'attribut hidden : le "+" restait visible partout
+     (y compris sur la carte, qui ne doit jamais servir à créer). */
+  .fab[hidden]{ display:none; }
+  /* ---------- RDC39 : porte d'accès ---------- */
+  body.locked .appbar, body.locked main, body.locked .fab{ display:none; }
+  .gate{
+    position: fixed; inset:0; z-index: 100; background: var(--bg);
+    display:flex; align-items:center; justify-content:center; padding: 24px 18px;
+    padding-top: calc(24px + env(safe-area-inset-top));
+  }
+  .gate-box{ width:100%; max-width: 380px; }
+  .gate-logo{ font-size: 40px; text-align:center; }
+  .gate-box h2{ text-align:center; margin: 6px 0 8px 0; font-size: 22px; }
+  .gate-sub{ text-align:center; color: var(--text-dim); font-size: 14px; line-height:1.5; margin: 0 0 20px 0; }
+  .gate-box input[type="password"]{
+    width:100%; background: var(--surface); color: var(--text); border:1px solid var(--line);
+    border-radius: 8px; padding: 11px 12px; font-size: 16px; font-family: inherit;
+  }
+  .gate-msg{ font-size: 13px; color: var(--text-dim); text-align:center; margin-top: 14px; line-height:1.5; }
+  .gate-msg.warn{ color: #E6A18C; border:1px solid var(--danger); border-radius: 8px; padding: 10px; margin: 0 0 16px 0; }
+
+  /* ---------- RDC39 : indicateur d'envoi ---------- */
+  .sync-badge{ font-size: 12px; font-family: var(--mono); color: var(--warn); align-self:center; margin-right: 4px; }
+
+  /* ---------- RDC39 : écran Carte ---------- */
+  body.map-mode main{ max-width:none; padding:0; }
+  .map-wrap{ position: fixed; left:0; right:0; bottom:0; top: var(--appbar-h, 60px); }
+  .map-canvas{ position:absolute; inset:0; background: #ddd; }
+  .map-tools{
+    position:absolute; top: 10px; right: 10px; z-index: 1000; display:flex; flex-direction:column; gap:8px;
+  }
+  .map-tool{
+    width: 42px; height: 42px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.2);
+    background: #fff; color: #222; font-size: 19px; cursor:pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+  }
+  .map-panel{
+    position:absolute; top: 10px; right: 62px; z-index: 1001; background: #fff; color: #222;
+    padding: 12px 14px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    font-size: 13px; width: min(290px, calc(100vw - 84px)); max-height: calc(100% - 20px); overflow-y:auto;
+  }
+  .map-panel h3{ margin: 0 0 4px 0; font-size: 14px; }
+  .map-panel-sub{ font-size: 11px; color: #666; margin-bottom: 10px; line-height:1.4; }
+  .layer-list{ list-style:none; margin:0; padding:0; }
+  .layer-row{
+    display:flex; align-items:center; gap:6px; padding: 7px 4px; border-radius:5px;
+    background:#f7f7f7; margin-bottom:5px; border:1px solid #e5e5e5;
+  }
+  .layer-row.dragging{ opacity: 0.5; border-color: #3182ce; }
+  .drag-handle{ color:#999; font-size:16px; cursor:grab; user-select:none; touch-action:none; padding: 2px 6px; }
+  .layer-row label{ display:flex; align-items:center; gap:6px; flex:1; cursor:pointer; }
+  .layer-row input{ margin:0; }
+  .swatch{ width:13px; height:13px; border-radius:3px; display:inline-block; flex-shrink:0; }
+  .map-offline{ border-top: 1px solid #e5e5e5; margin-top: 10px; padding-top: 10px; }
+  .map-offline .btn{ background:#f1f1f1; color:#222; border-color:#ccc; }
+  .map-status{
+    position:absolute; left: 10px; right: 10px; bottom: 24px; z-index: 1000; background: var(--paper); color: var(--ink);
+    padding: 10px 12px; border-radius: 8px; font-size: 13px; text-align:center;
+  }
+  .map-popup{ font-size: 13px; line-height: 1.4; max-width: 220px; }
+  .map-popup .pmeta{ font-size: 11px; color:#555; }
+  .map-popup .psnip{ margin: 4px 0; color:#333; }
+  .map-popup a{ display:inline-block; margin-top: 4px; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<div id="appbar" class="appbar">
+  <div class="left"><button class="icon-btn" id="btnBack" aria-label="Retour" hidden>&#8592;</button></div>
+  <h1 id="pageTitle">RDC39-Calepin</h1>
+  <div class="right">
+    <span class="sync-badge" id="syncBadge" hidden></span>
+    <button class="icon-btn" id="btnMap" aria-label="Carte">&#128506;&#65039;</button>
+    <button class="icon-btn" id="btnFolders" aria-label="Dossiers">&#128193;</button>
+    <button class="icon-btn" id="btnSettings" aria-label="R\u00e9glages">&#9881;</button>
+  </div>
+</div>
+
+<main id="main"></main>
+<button class="fab" id="fabNew" aria-label="Nouvelle visite" title="Nouvelle visite">+</button>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================================================
+   Internationalisation — FR (base) / EN / SW, extensible
+   ============================================================ */
+const STRINGS = {
+  fr: {
+    appName: "RDC39-Calepin", settings: "R\u00e9glages", back: "Retour",
+    filterAllCat: "Toutes cat\u00e9gories", filterAllPeriod: "Toute p\u00e9riode",
+    period7: "7 derniers jours", period30: "30 derniers jours", search: "Rechercher (rep\u00e8re, contenu)",
+    emptyTitle: "Aucune visite ici.", emptyBody: "Touchez + pour cr\u00e9er la premi\u00e8re visite \u2014 dict\u00e9es, photos et notes s'y ajoutent ensuite.",
+    newVisit: "Nouvelle visite", category: "Cat\u00e9gorie", newCategory: "Nouvelle",
+    newCategoryPrompt: "Nom de la nouvelle cat\u00e9gorie :",
+    landmark: "Rep\u00e8re (adresse, r\u00e9f\u00e9rence, nom)", landmarkPh: "Ex. Appartement rue X, Toyota RAV4...",
+    date: "Date", createVisit: "Cr\u00e9er la visite", visitCreated: "Visite cr\u00e9\u00e9e",
+    cat_immobilier: "Immobilier", cat_vehicule: "V\u00e9hicule", cat_technique: "Technique", cat_autre: "Autre",
+    addAudio: "Enregistrer", addPhoto: "Photo", addText: "Note texte",
+    captureHint: "Parlez distinctement, une id\u00e9e \u00e0 la fois.",
+    entryLabelPrompt: "Nommer ce rep\u00e8re (facultatif) :",
+    transcriptPh: "Transcription (\u00e0 compl\u00e9ter)...", textEntryPh: "\u00c9crivez votre observation...",
+    save: "Enregistrer", cancel: "Annuler",
+    consolidate: "Consolider / Rapport", exportVisit: "Exporter cette visite", deleteVisit: "Supprimer la visite",
+    confirmDeleteVisit: "Supprimer d\u00e9finitivement cette visite et tous ses fichiers ?",
+    deletedVisit: "Visite supprim\u00e9e", exportLaunched: "Export lanc\u00e9",
+    micDenied: "Acc\u00e8s au micro refus\u00e9.", micUnavailable: "Micro non disponible sur cet appareil.",
+    photoUnreadable: "Photo illisible, ignor\u00e9e.", photosAdded: "Photo(s) ajout\u00e9e(s)", audioSaved: "Audio enregistr\u00e9",
+    noEntries: "Aucune entr\u00e9e pour l'instant.",
+    reportTitle: "Rapport", groupChrono: "Chronologique", groupLandmark: "Par rep\u00e8re",
+    noLandmark: "Sans rep\u00e8re", exportReport: "Exporter le texte du rapport", reportExported: "Rapport export\u00e9",
+    settingsLang: "Langue", settingsQuality: "Qualit\u00e9 des photos", settingsStorage: "Stockage",
+    qualityEco: "\u00c9conome", qualityStd: "Standard", qualityHi: "D\u00e9taill\u00e9e",
+    qualityEcoSub: "~80 Ko/photo \u2014 lisible, tr\u00e8s l\u00e9ger", qualityStdSub: "~250 Ko/photo \u2014 bon \u00e9quilibre (recommand\u00e9)",
+    qualityHiSub: "~600 Ko/photo \u2014 zoom fin (plaques, inscriptions)",
+    storageUsed: "utilis\u00e9 sur cet appareil", storageUnknown: "Estimation indisponible sur ce navigateur.",
+    weightLabel: "entr\u00e9es",
+    addAudioImport: "Importer audio", audioImported: "Audio import\u00e9",
+    dictationErrorPrefix: "Reconnaissance indisponible", dictationErrorNoAllow: "permission micro refus\u00e9e",
+    dictationErrorNetwork: "pas de r\u00e9seau", dictationErrorNoSpeech: "aucune voix d\u00e9tect\u00e9e",
+    dictationErrorOther: "erreur",
+    transcribeLight: "\u{1F50A} Transcrire (l\u00e9ger)", transcribeAI: "\u{1F916} Transcrire (IA)",
+    transcribeLightRunning: "\u00c9coute en cours\u2026 volume au max, pas d'\u00e9couteurs, endroit calme.",
+    transcribeLightDone: "Transcription (l\u00e9g\u00e8re) termin\u00e9e", transcribeLightEmpty: "Rien capt\u00e9 \u2014 r\u00e9essayez dans un endroit plus calme, volume plus fort.",
+    transcribeUnsupported: "Reconnaissance vocale non support\u00e9e sur ce navigateur.",
+    transcribeAINoKey: "Ajoutez votre cl\u00e9 API OpenAI dans R\u00e9glages pour utiliser la transcription IA.",
+    transcribeAIConfirm: "Envoyer cet audio \u00e0 OpenAI pour transcription ?",
+    transcribeAIRunning: "Transcription IA en cours\u2026", transcribeAIDone: "Transcription IA termin\u00e9e",
+    transcribeAIError: "\u00c9chec de la transcription IA",
+    settingsAI: "Synth\u00e8se IA",
+    settingsAIKeyLabel: "Cl\u00e9 API OpenAI", settingsAIKeySub: "Stock\u00e9e uniquement sur cet appareil (localStorage). Jamais envoy\u00e9e ailleurs qu'\u00e0 OpenAI. Facturation directe sur votre compte.",
+    settingsAICallsLabel: "Appels IA cette session",
+    settingsRelayLabel: "URL du relais (optionnel)", settingsRelaySub: "Contourne le blocage CORS d'OpenAI (les appels directs \u00e9chouent depuis un navigateur). Laissez vide pour un appel direct \u2014 probablement inop\u00e9rant sans relais.",
+    reportAISynth: "\u{1F916} G\u00e9n\u00e9rer une synth\u00e8se IA", reportAISynthTitle: "Synth\u00e8se IA", reportAISynthRunning: "G\u00e9n\u00e9ration en cours\u2026",
+    reportAISynthDone: "Synth\u00e8se g\u00e9n\u00e9r\u00e9e \u2014 relisez et corrigez au besoin.", reportAISynthError: "\u00c9chec de la g\u00e9n\u00e9ration",
+    reportAISynthConfirm: "Envoyer le contenu de ce rapport pour g\u00e9n\u00e9rer une synth\u00e8se ?",
+    reportAISynthNote: "G\u00e9n\u00e9r\u00e9e par IA \u2014 relisez avant de vous y fier.",
+    selectMode: "S\u00e9lectionner", selectCancel: "Annuler", selectedCount: "s\u00e9lectionn\u00e9e(s)",
+    deleteSelected: "Supprimer", confirmDeleteSelected: "Supprimer d\u00e9finitivement ces visites et tous leurs fichiers ?",
+    deletedSelectedCount: "visite(s) supprim\u00e9e(s)",
+    folders: "Dossiers", trash: "Corbeille", allVisits: "Toutes les visites", unfiled: "Non class\u00e9",
+    newTopFolder: "+ Nouveau dossier", newTopFolderPrompt: "Nom du dossier (pays, client...) :",
+    newSubFolder: "+ Sous-dossier", newSubFolderPrompt: "Nom du sous-dossier (projet, chantier...) :",
+    renameFolder: "Renommer", renameFolderPrompt: "Nouveau nom :",
+    deleteFolder: "Supprimer", confirmDeleteFolder: "Supprimer ce dossier ? Les visites qu'il contient passeront en \"Non class\u00e9\".",
+    moveFolder: "D\u00e9placer", moveFolderPrompt: "D\u00e9placer ce sous-dossier vers quel dossier parent ?",
+    tagsSection: "Tags", noTags: "Aucun tag utilis\u00e9 pour l'instant.", renameTag: "Renommer", deleteTag: "Supprimer",
+    renameTagPrompt: "Nouveau nom pour ce tag :", confirmDeleteTag: "Retirer ce tag de toutes les visites concern\u00e9es ?",
+    classement: "Classement", folderLabel: "Dossier", changeFolder: "Changer", tagsLabel: "Tags",
+    addTag: "+ Ajouter un tag", addTagPrompt: "Nom du tag :", pickFolderTitle: "Choisir un dossier",
+    moveSelected: "D\u00e9placer vers...", movedSelectedCount: "visite(s) d\u00e9plac\u00e9e(s)",
+    trashedVisit: "D\u00e9plac\u00e9e vers la corbeille", trashedSelectedCount: "visite(s) d\u00e9plac\u00e9e(s) vers la corbeille",
+    emptyTrash: "Vider la corbeille", confirmEmptyTrash: "Supprimer d\u00e9finitivement toutes les visites de la corbeille ? Action irr\u00e9versible.",
+    restoreVisit: "Restaurer", deleteForever: "Supprimer d\u00e9finitivement", confirmDeleteForever: "Supprimer d\u00e9finitivement cette visite ? Action irr\u00e9versible.",
+    emptyTrashState: "La corbeille est vide.", restoredVisit: "Visite restaur\u00e9e",
+    activeFolderClear: "\u2715 effacer le filtre",
+    transcribeAllExport: "\u{1F4C4} Transcrire tout & exporter le texte",
+    transcribeAllConfirmAI: "Transcrire les audios manquants avec l'IA avant d'exporter ?",
+    transcribeAllConfirmMissing: "audio(s) sans transcription seront envoy\u00e9s \u00e0 l'IA",
+    transcribeAllProgress: "Transcription en cours\u2026",
+    transcribeAllDone: "Export complet g\u00e9n\u00e9r\u00e9", transcribeAllPartial: "Export g\u00e9n\u00e9r\u00e9 \u2014 certains audios restent sans transcription (pas de cl\u00e9 IA configur\u00e9e)",
+    transcribeAllSomeFailed: "audio(s) n'ont pas pu \u00eatre transcrits (voir texte marqu\u00e9 \u00e9chec)",
+    synthLevel: "Niveau de synth\u00e8se", synthLevelComplet: "Complet", synthLevelSynthese: "Synth\u00e8se", synthLevelSuccinct: "Succinct",
+    synthLevelCompletSub: "Tout, juste mis au propre", synthLevelSyntheseSub: "Condens\u00e9, faits importants", synthLevelSuccinctSub: "L'essentiel, tr\u00e8s court",
+    synthGeneratedAt: "G\u00e9n\u00e9r\u00e9e au niveau",
+    synthFormat: "Format", synthFormatNotes: "Notes de terrain", synthFormatPV: "PV de r\u00e9union",
+    synthFormatNotesSub: "Structure libre, par rep\u00e8re ou chronologique", synthFormatPVSub: "Pr\u00e9sents / Points abord\u00e9s / D\u00e9cisions / Actions / Prochaine r\u00e9union",
+    addDocument: "Importer un document (.txt)", documentImported: "Document import\u00e9",
+    documentUnsupported: "Seuls les fichiers texte (.txt) sont support\u00e9s pour l'instant.",
+    synthGeneratedFormat: "format",
+    exportDigest: "\u{1F9E9} Exporter (digest JSON)", digestExported: "Digest export\u00e9",
+    digestConfirm: "Exporter un digest JSON unique (photos incluses, audio exclu \u2014 transcription seule) ?",
+    addDictate: "\u{1F5E3}\ufe0f Dicter", dictateStop: "\u23F9 Arr\u00eater",
+    dictateListening: "\u00c9coute en cours\u2026 parlez, puis touchez Arr\u00eater.",
+    dictateEmpty: "Rien capt\u00e9 \u2014 r\u00e9essayez.", dictateSaved: "Dict\u00e9e enregistr\u00e9e",
+    dictateHint: "Texte direct, sans fichier audio \u2014 fiable sur mobile.",
+    editPosition: "\u{1F4CD} Position", editPositionPrompt: "Coordonn\u00e9es GPS (latitude, longitude) :", editPositionInvalid: "Format invalide \u2014 attendu : latitude, longitude (ex. -1.9536, 30.0605)",
+    editPositionCleared: "Position effac\u00e9e", editPositionSaved: "Position enregistr\u00e9e",
+    exifGpsFound: "Position reprise depuis la photo (GPS int\u00e9gr\u00e9)",
+    addFile: "\u{1F4CE} Joindre un fichier", fileImported: "Fichier joint", fileTooBig: "Fichier trop volumineux (max 20 Mo)",
+    exportWeightEstimate: "poids estim\u00e9", exportWeightWarn: "certaines pi\u00e8ces jointes ne sont pas compressibles",
+    settingsSynthProvider: "Fournisseur de synth\u00e8se", settingsSynthProviderSub: "Distinct de la cl\u00e9 Whisper (transcription), qui reste toujours OpenAI.",
+    providerOpenAI: "OpenAI (m\u00eame cl\u00e9 que Whisper)", providerAnthropic: "Anthropic (Claude)", providerOpenRouter: "OpenRouter (autres mod\u00e8les)",
+    settingsAnthropicKey: "Cl\u00e9 API Anthropic", settingsOpenRouterKey: "Cl\u00e9 API OpenRouter", settingsModelLabel: "Mod\u00e8le (optionnel)", settingsModelSub: "Laisser vide = mod\u00e8le par d\u00e9faut (indiqu\u00e9 en gris). \u00c0 changer si un mod\u00e8le est retir\u00e9 par le fournisseur.",
+    feedbackSend: "\u{1F4EC} Envoyer un retour", feedbackPrompt: "Votre remarque, bug ou suggestion :",
+    feedbackSent: "Retour pr\u00eat \u00e0 envoyer", feedbackShareTitle: "Retour RDC39-Calepin", feedbackNoShare: "Partage non support\u00e9 sur cet appareil \u2014 fichier t\u00e9l\u00e9charg\u00e9 \u00e0 la place.",
+    hintConsolidate: "Regrouper toutes les entr\u00e9es en un rapport lisible, avec synth\u00e8se IA optionnelle",
+    hintExport: "T\u00e9l\u00e9charger les fichiers d'origine s\u00e9par\u00e9ment (usage personnel)",
+    hintExportDigest: "Un seul fichier JSON, pens\u00e9 pour \u00eatre lu par une autre application",
+    hintTranscribeAllExport: "Transcrit les audios manquants puis exporte un texte complet unique",
+    hintDelete: "D\u00e9place vers la corbeille (r\u00e9cup\u00e9rable, pas d\u00e9finitif)",
+    hintFolders: "Range tes visites par pays/client puis projet, et g\u00e8re tes tags librement.",
+    relayMissing: "Relais non configur\u00e9 \u2014 contactez le responsable de l'application.",
+    synthOffline: "Pas de connexion \u2014 la synth\u00e8se IA n\u00e9cessite le r\u00e9seau.",
+    settingsAISubRdc: "Aucune cl\u00e9 \u00e0 saisir : la synth\u00e8se passe par le relais du projet, prot\u00e9g\u00e9 par votre code d'acc\u00e8s. Elle ne se lance jamais toute seule \u2014 uniquement via le bouton du rapport.",
+    settingsSync: "Envoi des relev\u00e9s",
+    syncNow: "\u21bb Envoyer maintenant",
+    settingsSyncSub: "L'envoi est automatique d\u00e8s qu'une connexion est disponible (\u00e0 l'ouverture, au retour du r\u00e9seau, et quelques minutes apr\u00e8s une modification), tant que l'app est ouverte.",
+    syncAllSent: "\u2713 Tout est envoy\u00e9",
+    syncPendingCount: "visite(s) en attente d'envoi",
+    syncOffline: "hors connexion",
+    syncLast: "Dernier envoi r\u00e9ussi",
+    syncError: "\u00c9chec de l'envoi",
+    syncDone: "Envoi termin\u00e9",
+    settingsAccess: "Acc\u00e8s",
+    accessLastCheck: "Derni\u00e8re validation du code",
+    accessDevice: "Appareil",
+    accessRelay: "Relais",
+    gateIntro: "Application r\u00e9serv\u00e9e \u00e0 l'\u00e9quipe du projet. Saisissez le code d'acc\u00e8s qui vous a \u00e9t\u00e9 communiqu\u00e9.",
+    gateCodeLabel: "Code d'acc\u00e8s",
+    gateRelayLabel: "URL du relais (configuration)",
+    gateSubmit: "Valider",
+    gateChecking: "V\u00e9rification\u2026",
+    gateRefused: "Code refus\u00e9.",
+    gateUnreachable: "Relais injoignable \u2014 une connexion est n\u00e9cessaire pour valider le code.",
+    gateRevoked: "Ce code d'acc\u00e8s n'est plus valide. Vos donn\u00e9es restent sur l'appareil ; saisissez un nouveau code pour y acc\u00e9der.",
+    gateGraceExpired: "Derni\u00e8re validation trop ancienne (plus de 14 jours hors-ligne). Connectez-vous \u00e0 un r\u00e9seau pour revalider le code.",
+    map: "Carte",
+    mapLayers: "Couches",
+    mapLayersSub: "Glisser une ligne (\u22ee\u22ee) pour changer l'ordre d'affichage (dessus/dessous).",
+    mapLocate: "Ma position",
+    mapFit: "Vue du projet",
+    mapOffline: "Fond de carte hors-ligne",
+    mapDownload: "T\u00e9l\u00e9charger pour le terrain",
+    mapDownloadConfirm: "T\u00e9l\u00e9charger le fond de carte de la zone du projet ({n} tuiles, environ 25 Mo) ? \u00c0 faire avant le d\u00e9part, avec une bonne connexion (Wi-Fi de pr\u00e9f\u00e9rence).",
+    mapDownloading: "T\u00e9l\u00e9chargement\u2026",
+    mapDownloadDone: "Fond de carte disponible hors-ligne",
+    mapTilesCached: "tuiles disponibles hors-ligne",
+    mapTilesDoneAt: "complet le",
+    mapTilesFailed: "tuile(s) non t\u00e9l\u00e9charg\u00e9e(s) \u2014 relancez plus tard",
+    mapLeafletError: "Carte indisponible : biblioth\u00e8que non charg\u00e9e (ouvrez la carte une premi\u00e8re fois avec une connexion).",
+    mapTeamLayer: "Points relev\u00e9s (\u00e9quipe)",
+    mapOpenVisit: "Ouvrir le relev\u00e9",
+    mapDrag: "D\u00e9placer",
+    mapMe: "Vous \u00eates ici",
+    mapNoFix: "Position GPS pas encore disponible\u2026"
+  },
+  en: {
+    appName: "RDC39-Calepin", settings: "Settings", back: "Back",
+    filterAllCat: "All categories", filterAllPeriod: "Any period",
+    period7: "Last 7 days", period30: "Last 30 days", search: "Search (landmark, content)",
+    emptyTitle: "No visits yet.", emptyBody: "Tap + to create the first visit \u2014 dictations, photos and notes come next.",
+    newVisit: "New visit", category: "Category", newCategory: "New",
+    newCategoryPrompt: "Name of the new category:",
+    landmark: "Landmark (address, reference, name)", landmarkPh: "E.g. Apartment on X street, Toyota RAV4...",
+    date: "Date", createVisit: "Create visit", visitCreated: "Visit created",
+    cat_immobilier: "Real estate", cat_vehicule: "Vehicle", cat_technique: "Technical", cat_autre: "Other",
+    addAudio: "Record", addPhoto: "Photo", addText: "Text note",
+    captureHint: "Speak clearly, one idea at a time.",
+    entryLabelPrompt: "Name this landmark (optional):",
+    transcriptPh: "Transcript (to complete)...", textEntryPh: "Write your observation...",
+    save: "Save", cancel: "Cancel",
+    consolidate: "Consolidate / Report", exportVisit: "Export this visit", deleteVisit: "Delete visit",
+    confirmDeleteVisit: "Permanently delete this visit and all its files?",
+    deletedVisit: "Visit deleted", exportLaunched: "Export started",
+    micDenied: "Microphone access denied.", micUnavailable: "Microphone unavailable on this device.",
+    photoUnreadable: "Unreadable photo, skipped.", photosAdded: "Photo(s) added", audioSaved: "Audio saved",
+    noEntries: "No entries yet.",
+    reportTitle: "Report", groupChrono: "Chronological", groupLandmark: "By landmark",
+    noLandmark: "No landmark", exportReport: "Export report text", reportExported: "Report exported",
+    settingsLang: "Language", settingsQuality: "Photo quality", settingsStorage: "Storage",
+    qualityEco: "Economical", qualityStd: "Standard", qualityHi: "Detailed",
+    qualityEcoSub: "~80 KB/photo \u2014 readable, very light", qualityStdSub: "~250 KB/photo \u2014 good balance (recommended)",
+    qualityHiSub: "~600 KB/photo \u2014 fine zoom (plates, labels)",
+    storageUsed: "used on this device", storageUnknown: "Estimate unavailable in this browser.",
+    weightLabel: "entries",
+    addAudioImport: "Import audio", audioImported: "Audio imported",
+    dictationErrorPrefix: "Recognition unavailable", dictationErrorNoAllow: "mic permission denied",
+    dictationErrorNetwork: "no network", dictationErrorNoSpeech: "no speech detected",
+    dictationErrorOther: "error",
+    transcribeLight: "\u{1F50A} Transcribe (light)", transcribeAI: "\u{1F916} Transcribe (AI)",
+    transcribeLightRunning: "Listening\u2026 volume maxed, no headphones, quiet room.",
+    transcribeLightDone: "Light transcription done", transcribeLightEmpty: "Nothing captured \u2014 try a quieter spot, louder volume.",
+    transcribeUnsupported: "Speech recognition not supported on this browser.",
+    transcribeAINoKey: "Add your OpenAI API key in Settings to use AI transcription.",
+    transcribeAIConfirm: "Send this audio to OpenAI for transcription?",
+    transcribeAIRunning: "AI transcription running\u2026", transcribeAIDone: "AI transcription done",
+    transcribeAIError: "AI transcription failed",
+    settingsAI: "AI synthesis",
+    settingsAIKeyLabel: "OpenAI API key", settingsAIKeySub: "Stored only on this device (localStorage). Never sent anywhere except OpenAI. Billed directly to your account.",
+    settingsAICallsLabel: "AI calls this session",
+    settingsRelayLabel: "Relay URL (optional)", settingsRelaySub: "Bypasses OpenAI's CORS block (direct calls fail from a browser). Leave empty for a direct call \u2014 likely non-functional without a relay.",
+    reportAISynth: "\u{1F916} Generate AI synthesis", reportAISynthTitle: "AI synthesis", reportAISynthRunning: "Generating\u2026",
+    reportAISynthDone: "Synthesis generated \u2014 review and correct as needed.", reportAISynthError: "Generation failed",
+    reportAISynthConfirm: "Send this report's content to generate a synthesis?",
+    reportAISynthNote: "AI-generated \u2014 review before relying on it.",
+    selectMode: "Select", selectCancel: "Cancel", selectedCount: "selected",
+    deleteSelected: "Delete", confirmDeleteSelected: "Permanently delete these visits and all their files?",
+    deletedSelectedCount: "visit(s) deleted",
+    folders: "Folders", trash: "Trash", allVisits: "All visits", unfiled: "Unfiled",
+    newTopFolder: "+ New folder", newTopFolderPrompt: "Folder name (country, client...):",
+    newSubFolder: "+ Subfolder", newSubFolderPrompt: "Subfolder name (project, site...):",
+    renameFolder: "Rename", renameFolderPrompt: "New name:",
+    deleteFolder: "Delete", confirmDeleteFolder: "Delete this folder? Its visits will become \"Unfiled\".",
+    moveFolder: "Move", moveFolderPrompt: "Move this subfolder to which parent folder?",
+    tagsSection: "Tags", noTags: "No tags used yet.", renameTag: "Rename", deleteTag: "Delete",
+    renameTagPrompt: "New name for this tag:", confirmDeleteTag: "Remove this tag from all visits using it?",
+    classement: "Organization", folderLabel: "Folder", changeFolder: "Change", tagsLabel: "Tags",
+    addTag: "+ Add a tag", addTagPrompt: "Tag name:", pickFolderTitle: "Choose a folder",
+    moveSelected: "Move to...", movedSelectedCount: "visit(s) moved",
+    trashedVisit: "Moved to trash", trashedSelectedCount: "visit(s) moved to trash",
+    emptyTrash: "Empty trash", confirmEmptyTrash: "Permanently delete all visits in the trash? This cannot be undone.",
+    restoreVisit: "Restore", deleteForever: "Delete forever", confirmDeleteForever: "Permanently delete this visit? This cannot be undone.",
+    emptyTrashState: "Trash is empty.", restoredVisit: "Visit restored",
+    activeFolderClear: "\u2715 clear filter",
+    transcribeAllExport: "\u{1F4C4} Transcribe all & export text",
+    transcribeAllConfirmAI: "Transcribe missing audios with AI before exporting?",
+    transcribeAllConfirmMissing: "audio(s) without a transcript will be sent to the AI",
+    transcribeAllProgress: "Transcribing\u2026",
+    transcribeAllDone: "Full export generated", transcribeAllPartial: "Export generated \u2014 some audios remain untranscribed (no AI key configured)",
+    transcribeAllSomeFailed: "audio(s) could not be transcribed (marked as failed in the text)",
+    synthLevel: "Synthesis level", synthLevelComplet: "Full", synthLevelSynthese: "Summary", synthLevelSuccinct: "Brief",
+    synthLevelCompletSub: "Everything, just cleaned up", synthLevelSyntheseSub: "Condensed, key facts", synthLevelSuccinctSub: "Essentials only, very short",
+    synthGeneratedAt: "Generated at level",
+    synthFormat: "Format", synthFormatNotes: "Field notes", synthFormatPV: "Meeting minutes",
+    synthFormatNotesSub: "Free structure, by landmark or chronological", synthFormatPVSub: "Attendees / Topics / Decisions / Actions / Next meeting",
+    addDocument: "Import a document (.txt)", documentImported: "Document imported",
+    documentUnsupported: "Only plain text files (.txt) are supported for now.",
+    synthGeneratedFormat: "format",
+    exportDigest: "\u{1F9E9} Export (JSON digest)", digestExported: "Digest exported",
+    digestConfirm: "Export a single JSON digest (photos included, audio excluded \u2014 transcript only)?",
+    addDictate: "\u{1F5E3}\ufe0f Dictate", dictateStop: "\u23F9 Stop",
+    dictateListening: "Listening\u2026 speak, then tap Stop.",
+    dictateEmpty: "Nothing captured \u2014 try again.", dictateSaved: "Dictation saved",
+    dictateHint: "Direct text, no audio file \u2014 reliable on mobile.",
+    editPosition: "\u{1F4CD} Position", editPositionPrompt: "GPS coordinates (latitude, longitude):", editPositionInvalid: "Invalid format \u2014 expected: latitude, longitude (e.g. -1.9536, 30.0605)",
+    editPositionCleared: "Position cleared", editPositionSaved: "Position saved",
+    exifGpsFound: "Position taken from the photo (embedded GPS)",
+    addFile: "\u{1F4CE} Attach a file", fileImported: "File attached", fileTooBig: "File too large (max 20 MB)",
+    exportWeightEstimate: "estimated size", exportWeightWarn: "some attachments cannot be compressed",
+    settingsSynthProvider: "Synthesis provider", settingsSynthProviderSub: "Separate from the Whisper key (transcription), which always stays OpenAI.",
+    providerOpenAI: "OpenAI (same key as Whisper)", providerAnthropic: "Anthropic (Claude)", providerOpenRouter: "OpenRouter (other models)",
+    settingsAnthropicKey: "Anthropic API key", settingsOpenRouterKey: "OpenRouter API key", settingsModelLabel: "Model (optional)", settingsModelSub: "Leave empty = default model (shown in grey). Change it if the provider retires a model.",
+    feedbackSend: "\u{1F4EC} Send feedback", feedbackPrompt: "Your remark, bug or suggestion:",
+    feedbackSent: "Feedback ready to send", feedbackShareTitle: "RDC39-Calepin feedback", feedbackNoShare: "Sharing not supported on this device \u2014 file downloaded instead.",
+    relayMissing: "Relay not configured \u2014 contact the app administrator.",
+    synthOffline: "No connection \u2014 AI synthesis needs the network.",
+    settingsAISubRdc: "No key to enter: synthesis goes through the project relay, protected by your access code. It never runs on its own \u2014 only from the report button.",
+    settingsSync: "Sending records",
+    syncNow: "\u21bb Send now",
+    settingsSyncSub: "Sending is automatic whenever a connection is available (on opening, when the network returns, and a few minutes after a change), while the app is open.",
+    syncAllSent: "\u2713 Everything sent",
+    syncPendingCount: "visit(s) waiting to be sent",
+    syncOffline: "offline",
+    syncLast: "Last successful send",
+    syncError: "Send failed",
+    syncDone: "Send complete",
+    settingsAccess: "Access",
+    accessLastCheck: "Last code validation",
+    accessDevice: "Device",
+    accessRelay: "Relay",
+    gateIntro: "This app is reserved for the project team. Enter the access code you were given.",
+    gateCodeLabel: "Access code",
+    gateRelayLabel: "Relay URL (setup)",
+    gateSubmit: "Confirm",
+    gateChecking: "Checking\u2026",
+    gateRefused: "Code refused.",
+    gateUnreachable: "Relay unreachable \u2014 a connection is needed to validate the code.",
+    gateRevoked: "This access code is no longer valid. Your data stays on the device; enter a new code to access it.",
+    gateGraceExpired: "Last validation too old (more than 14 days offline). Connect to a network to revalidate the code.",
+    map: "Map",
+    mapLayers: "Layers",
+    mapLayersSub: "Drag a row (\u22ee\u22ee) to change the drawing order (top/bottom).",
+    mapLocate: "My position",
+    mapFit: "Project view",
+    mapOffline: "Offline base map",
+    mapDownload: "Download for the field",
+    mapDownloadConfirm: "Download the base map for the project area ({n} tiles, about 25 MB)? Do this before leaving, with a good connection (Wi-Fi preferably).",
+    mapDownloading: "Downloading\u2026",
+    mapDownloadDone: "Base map available offline",
+    mapTilesCached: "tiles available offline",
+    mapTilesDoneAt: "completed on",
+    mapTilesFailed: "tile(s) not downloaded \u2014 try again later",
+    mapLeafletError: "Map unavailable: library not loaded (open the map once with a connection).",
+    mapTeamLayer: "Recorded points (team)",
+    mapOpenVisit: "Open record",
+    mapDrag: "Move",
+    mapMe: "You are here",
+    mapNoFix: "GPS position not available yet\u2026"
+  },
+  sw: {
+    appName: "RDC39-Calepin", settings: "Mipangilio", back: "Rudi",
+    filterAllCat: "Jamii zote", filterAllPeriod: "Muda wowote",
+    period7: "Siku 7 zilizopita", period30: "Siku 30 zilizopita", search: "Tafuta (alama, maudhui)",
+    emptyTitle: "Hakuna ziara bado.", emptyBody: "Gusa + kuunda ziara ya kwanza \u2014 sauti, picha na maelezo huongezwa baadaye.",
+    newVisit: "Ziara mpya", category: "Jamii", newCategory: "Mpya",
+    newCategoryPrompt: "Jina la jamii mpya:",
+    landmark: "Alama (anwani, rejeleo, jina)", landmarkPh: "Mfano: Nyumba mtaa X, Toyota RAV4...",
+    date: "Tarehe", createVisit: "Unda ziara", visitCreated: "Ziara imeundwa",
+    cat_immobilier: "Mali isiyohamishika", cat_vehicule: "Gari", cat_technique: "Kiufundi", cat_autre: "Nyingine",
+    addAudio: "Rekodi", addPhoto: "Picha", addText: "Maandishi",
+    captureHint: "Ongea wazi, wazo moja kwa wakati.",
+    entryLabelPrompt: "Peana jina la alama (hiari):",
+    transcriptPh: "Nakala (kukamilika)...", textEntryPh: "Andika uchunguzi wako...",
+    save: "Hifadhi", cancel: "Ghairi",
+    consolidate: "Unganisha / Ripoti", exportVisit: "Hamisha ziara hii", deleteVisit: "Futa ziara",
+    confirmDeleteVisit: "Futa kabisa ziara hii na faili zake zote?",
+    deletedVisit: "Ziara imefutwa", exportLaunched: "Uhamishaji umeanza",
+    micDenied: "Ufikiaji wa maikrofoni umekataliwa.", micUnavailable: "Maikrofoni haipatikani kwenye kifaa hiki.",
+    photoUnreadable: "Picha haisomeki, imerukwa.", photosAdded: "Picha zimeongezwa", audioSaved: "Sauti imehifadhiwa",
+    noEntries: "Hakuna maingizo bado.",
+    reportTitle: "Ripoti", groupChrono: "Kwa mpangilio wa wakati", groupLandmark: "Kwa alama",
+    noLandmark: "Bila alama", exportReport: "Hamisha maandishi ya ripoti", reportExported: "Ripoti imehamishwa",
+    settingsLang: "Lugha", settingsQuality: "Ubora wa picha", settingsStorage: "Hifadhi",
+    qualityEco: "Kiuchumi", qualityStd: "Kawaida", qualityHi: "Kina",
+    qualityEcoSub: "~KB 80/picha \u2014 inasomeka, nyepesi sana", qualityStdSub: "~KB 250/picha \u2014 uwiano mzuri (inapendekezwa)",
+    qualityHiSub: "~KB 600/picha \u2014 ukaribiaji (mabamba, maandishi)",
+    storageUsed: "imetumika kwenye kifaa hiki", storageUnknown: "Makadirio hayapatikani kwenye kivinjari hiki.",
+    weightLabel: "maingizo",
+    addAudioImport: "Leta sauti", audioImported: "Sauti imeletwa",
+    dictationErrorPrefix: "Utambuzi hapatikani", dictationErrorNoAllow: "ruhusa ya maikrofoni imekataliwa",
+    dictationErrorNetwork: "hakuna mtandao", dictationErrorNoSpeech: "hakuna sauti iliyogunduliwa",
+    dictationErrorOther: "hitilafu",
+    transcribeLight: "\u{1F50A} Andika (nyepesi)", transcribeAI: "\u{1F916} Andika (AI)",
+    transcribeLightRunning: "Inasikiliza\u2026 sauti kubwa zaidi, bila vipokea sauti, mahali kimya.",
+    transcribeLightDone: "Uandishi (nyepesi) umekamilika", transcribeLightEmpty: "Hakuna kilichopatikana \u2014 jaribu mahali kimya zaidi, sauti kubwa zaidi.",
+    transcribeUnsupported: "Utambuzi wa sauti haupatikani kwenye kivinjari hiki.",
+    transcribeAINoKey: "Ongeza ufunguo wako wa API wa OpenAI kwenye Mipangilio kutumia uandishi wa AI.",
+    transcribeAIConfirm: "Tuma sauti hii kwa OpenAI kwa uandishi?",
+    transcribeAIRunning: "Uandishi wa AI unaendelea\u2026", transcribeAIDone: "Uandishi wa AI umekamilika",
+    transcribeAIError: "Uandishi wa AI umeshindwa",
+    settingsAI: "Muhtasari wa AI",
+    settingsAIKeyLabel: "Ufunguo wa API wa OpenAI", settingsAIKeySub: "Umehifadhiwa kwenye kifaa hiki tu (localStorage). Haitumwi popote isipokuwa OpenAI. Malipo moja kwa moja kwenye akaunti yako.",
+    settingsAICallsLabel: "Miito ya AI kikao hiki",
+    settingsRelayLabel: "URL ya relay (hiari)", settingsRelaySub: "Hupita kizuizi cha CORS cha OpenAI (miito ya moja kwa moja hushindwa kutoka kivinjari). Acha wazi kwa mwito wa moja kwa moja \u2014 huenda usifanye kazi bila relay.",
+    reportAISynth: "\u{1F916} Tengeneza muhtasari wa AI", reportAISynthTitle: "Muhtasari wa AI", reportAISynthRunning: "Inatengeneza\u2026",
+    reportAISynthDone: "Muhtasari umetengenezwa \u2014 soma na urekebishe ikihitajika.", reportAISynthError: "Utengenezaji umeshindwa",
+    reportAISynthConfirm: "Tuma maudhui ya ripoti hii kutengeneza muhtasari?",
+    reportAISynthNote: "Imetengenezwa na AI \u2014 soma kabla ya kuitegemea.",
+    selectMode: "Chagua", selectCancel: "Ghairi", selectedCount: "zimechaguliwa",
+    deleteSelected: "Futa", confirmDeleteSelected: "Futa kabisa ziara hizi na faili zake zote?",
+    deletedSelectedCount: "ziara zimefutwa",
+    folders: "Folda", trash: "Takataka", allVisits: "Ziara zote", unfiled: "Bila mpangilio",
+    newTopFolder: "+ Folda mpya", newTopFolderPrompt: "Jina la folda (nchi, mteja...):",
+    newSubFolder: "+ Folda ndogo", newSubFolderPrompt: "Jina la folda ndogo (mradi, tovuti...):",
+    renameFolder: "Badilisha jina", renameFolderPrompt: "Jina jipya:",
+    deleteFolder: "Futa", confirmDeleteFolder: "Futa folda hii? Ziara zake zitakuwa \"Bila mpangilio\".",
+    moveFolder: "Hamisha", moveFolderPrompt: "Hamisha folda ndogo hii kwenda folda gani mzazi?",
+    tagsSection: "Tags", noTags: "Hakuna tag iliyotumika bado.", renameTag: "Badilisha jina", deleteTag: "Futa",
+    renameTagPrompt: "Jina jipya la tag hii:", confirmDeleteTag: "Ondoa tag hii kwenye ziara zote zinazoitumia?",
+    classement: "Mpangilio", folderLabel: "Folda", changeFolder: "Badilisha", tagsLabel: "Tags",
+    addTag: "+ Ongeza tag", addTagPrompt: "Jina la tag:", pickFolderTitle: "Chagua folda",
+    moveSelected: "Hamisha kwenda...", movedSelectedCount: "ziara zimehamishwa",
+    trashedVisit: "Imehamishiwa kwenye takataka", trashedSelectedCount: "ziara zimehamishiwa kwenye takataka",
+    emptyTrash: "Futa takataka", confirmEmptyTrash: "Futa kabisa ziara zote kwenye takataka? Haiwezi kutenduliwa.",
+    restoreVisit: "Rejesha", deleteForever: "Futa kabisa", confirmDeleteForever: "Futa kabisa ziara hii? Haiwezi kutenduliwa.",
+    emptyTrashState: "Takataka ni tupu.", restoredVisit: "Ziara imerejeshwa",
+    activeFolderClear: "\u2715 futa kichujio",
+    transcribeAllExport: "\u{1F4C4} Andika zote & hamisha maandishi",
+    transcribeAllConfirmAI: "Andika sauti zisizo na maandishi kwa AI kabla ya kuhamisha?",
+    transcribeAllConfirmMissing: "sauti bila maandishi zitatumwa kwa AI",
+    transcribeAllProgress: "Inaandika\u2026",
+    transcribeAllDone: "Uhamishaji kamili umetengenezwa", transcribeAllPartial: "Uhamishaji umetengenezwa \u2014 sauti kadhaa bado hazina maandishi (hakuna ufunguo wa AI)",
+    transcribeAllSomeFailed: "sauti hazikuweza kuandikwa (zimeonyeshwa kama zimeshindwa)",
+    synthLevel: "Kiwango cha muhtasari", synthLevelComplet: "Kamili", synthLevelSynthese: "Muhtasari", synthLevelSuccinct: "Fupi",
+    synthLevelCompletSub: "Kila kitu, kimesafishwa tu", synthLevelSyntheseSub: "Kifupi, ukweli muhimu", synthLevelSuccinctSub: "Muhimu tu, fupi sana",
+    synthGeneratedAt: "Imetengenezwa kwa kiwango",
+    synthFormat: "Muundo", synthFormatNotes: "Maelezo ya uwandani", synthFormatPV: "Muhtasari wa mkutano",
+    synthFormatNotesSub: "Muundo huru, kwa alama au mpangilio wa wakati", synthFormatPVSub: "Waliohudhuria / Mada / Maamuzi / Hatua / Mkutano ujao",
+    addDocument: "Leta hati (.txt)", documentImported: "Hati imeletwa",
+    documentUnsupported: "Faili za maandishi (.txt) tu ndizo zinazotumika kwa sasa.",
+    synthGeneratedFormat: "muundo",
+    exportDigest: "\u{1F9E9} Hamisha (JSON digest)", digestExported: "Digest imehamishwa",
+    digestConfirm: "Hamisha JSON moja (picha zimejumuishwa, sauti imeondolewa \u2014 maandishi tu)?",
+    addDictate: "\u{1F5E3}\ufe0f Nakili", dictateStop: "\u23F9 Simamisha",
+    dictateListening: "Inasikiliza\u2026 ongea, kisha gusa Simamisha.",
+    dictateEmpty: "Hakuna kilichopatikana \u2014 jaribu tena.", dictateSaved: "Nakala imehifadhiwa",
+    dictateHint: "Maandishi moja kwa moja, bila faili ya sauti \u2014 ya kutegemewa kwenye simu.",
+    editPosition: "\u{1F4CD} Nafasi", editPositionPrompt: "Kuratibu za GPS (latitudo, longitudo):", editPositionInvalid: "Muundo si sahihi \u2014 tarajiwa: latitudo, longitudo (mfano -1.9536, 30.0605)",
+    editPositionCleared: "Nafasi imefutwa", editPositionSaved: "Nafasi imehifadhiwa",
+    exifGpsFound: "Nafasi imechukuliwa kutoka kwenye picha (GPS iliyojumuishwa)",
+    addFile: "\u{1F4CE} Ambatisha faili", fileImported: "Faili imeambatishwa", fileTooBig: "Faili kubwa mno (upeo 20 MB)",
+    exportWeightEstimate: "ukubwa uliokadiriwa", exportWeightWarn: "faili zingine hazibanwiki",
+    settingsSynthProvider: "Mtoa huduma wa muhtasari", settingsSynthProviderSub: "Tofauti na ufunguo wa Whisper (uandishi), unaobaki OpenAI kila wakati.",
+    providerOpenAI: "OpenAI (ufunguo sawa na Whisper)", providerAnthropic: "Anthropic (Claude)", providerOpenRouter: "OpenRouter (miundo mingine)",
+    settingsAnthropicKey: "Ufunguo wa API wa Anthropic", settingsOpenRouterKey: "Ufunguo wa API wa OpenRouter", settingsModelLabel: "Modeli (hiari)", settingsModelSub: "Acha wazi = modeli chaguomsingi (inaonyeshwa kijivu). Ibadilishe mtoa huduma akiondoa modeli.",
+    feedbackSend: "\u{1F4EC} Tuma maoni", feedbackPrompt: "Maoni, hitilafu au pendekezo lako:",
+    feedbackSent: "Maoni tayari kutumwa", feedbackShareTitle: "Maoni ya RDC39-Calepin", feedbackNoShare: "Kushiriki hakupatikani kwenye kifaa hiki \u2014 faili imehamishwa badala yake."
+  }
+};
+/* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
+   jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
+const APP_VERSION = "rdc39-2026-10-02.1";
+function currentLang(){ return localStorage.getItem("rdc39_lang") || "fr"; }
+function setLang(l){ localStorage.setItem("rdc39_lang", l); }
+function t(key){
+  const lang = currentLang();
+  return (STRINGS[lang] && STRINGS[lang][key]) || STRINGS.fr[key] || key;
+}
+
+/* ============================================================
+   Cat\u00e9gories — 4 par d\u00e9faut (traduites) + personnalis\u00e9es (libres)
+   ============================================================ */
+const DEFAULT_CATEGORY_IDS = ["immobilier", "vehicule", "technique", "autre"];
+const DEFAULT_GLYPHS = { immobilier: "\u{1F3E0}", vehicule: "\u{1F697}", technique: "\u{1F527}", autre: "\u{1F4CC}" };
+function loadCategories(){
+  const custom = JSON.parse(localStorage.getItem("rdc39_categories_custom") || "[]");
+  const defaults = DEFAULT_CATEGORY_IDS.map(id => ({ id, label: t("cat_" + id), glyph: DEFAULT_GLYPHS[id], custom: false }));
+  return defaults.concat(custom.map(c => ({ ...c, custom: true })));
+}
+function addCustomCategory(label){
+  const id = "c_" + Date.now();
+  const custom = JSON.parse(localStorage.getItem("rdc39_categories_custom") || "[]");
+  custom.push({ id, label, glyph: "\u{1F4CB}" });
+  localStorage.setItem("rdc39_categories_custom", JSON.stringify(custom));
+  return id;
+}
+function catById(id){
+  const found = loadCategories().find(c => c.id === id);
+  return found || { id: "autre", label: t("cat_autre"), glyph: DEFAULT_GLYPHS.autre };
+}
+
+/* ============================================================
+   Dossiers (2 niveaux : pays/client -> projet) et tags libres
+   ============================================================ */
+async function getTopFolders(){
+  const all = await idbGetAll("folders");
+  return all.filter(f => !f.parentId).sort((a,b) => a.name.localeCompare(b.name));
+}
+async function getSubFolders(parentId){
+  const all = await idbGetByIndex("folders", "parentId", parentId);
+  return all.sort((a,b) => a.name.localeCompare(b.name));
+}
+async function folderPathLabel(folderId){
+  if(!folderId) return t("unfiled");
+  const folder = await idbGet("folders", folderId);
+  if(!folder) return t("unfiled");
+  if(!folder.parentId) return folder.name;
+  const parent = await idbGet("folders", folder.parentId);
+  return (parent ? parent.name + " \u203a " : "") + folder.name;
+}
+async function allTagsWithCounts(){
+  const visits = await idbGetAll("visits");
+  const counts = {};
+  for(const v of visits){
+    if(v.trashedAt) continue;
+    (v.tags || []).forEach(tag => { counts[tag] = (counts[tag] || 0) + 1; });
+  }
+  return Object.keys(counts).sort((a,b) => a.localeCompare(b)).map(tag => ({ tag, count: counts[tag] }));
+}
+function allKnownTagsFlat(visits){
+  const set = new Set();
+  visits.forEach(v => (v.tags || []).forEach(tag => set.add(tag)));
+  return Array.from(set).sort((a,b) => a.localeCompare(b));
+}
+
+/* S\u00e9lecteur de dossier r\u00e9utilisable (feuille modale) : renvoie le folderId choisi
+   (null = Non class\u00e9) via le callback onPick, ou rien si annul\u00e9. */
+async function showFolderPicker(onPick){
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  const sheet = document.createElement("div");
+  sheet.className = "modal-sheet";
+  sheet.innerHTML = `<h3>${t("pickFolderTitle")}</h3><div id="pickerList"></div><button class="btn" id="btnPickerCancel" style="width:100%;">${t("cancel")}</button>`;
+  overlay.appendChild(sheet);
+  document.body.appendChild(overlay);
+
+  function close(){ overlay.remove(); }
+  overlay.addEventListener("click", (e) => { if(e.target === overlay) close(); });
+  sheet.querySelector("#btnPickerCancel").addEventListener("click", close);
+
+  const list = sheet.querySelector("#pickerList");
+  const unfiledBtn = document.createElement("button");
+  unfiledBtn.className = "modal-option";
+  unfiledBtn.textContent = t("unfiled");
+  unfiledBtn.addEventListener("click", () => { close(); onPick(null); });
+  list.appendChild(unfiledBtn);
+
+  const tops = await getTopFolders();
+  for(const top of tops){
+    const topBtn = document.createElement("button");
+    topBtn.className = "modal-option";
+    topBtn.textContent = top.name;
+    topBtn.addEventListener("click", () => { close(); onPick(top.id); });
+    list.appendChild(topBtn);
+    const subs = await getSubFolders(top.id);
+    for(const sub of subs){
+      const subBtn = document.createElement("button");
+      subBtn.className = "modal-option sub";
+      subBtn.textContent = sub.name;
+      subBtn.addEventListener("click", () => { close(); onPick(sub.id); });
+      list.appendChild(subBtn);
+    }
+  }
+}
+
+/* ============================================================
+   R\u00e9glages qualit\u00e9 photo
+   ============================================================ */
+const QUALITY_LEVELS = {
+  eco:  { maxDim: 800,  quality: 0.60 },
+  std:  { maxDim: 1600, quality: 0.75 },
+  hi:   { maxDim: 2400, quality: 0.85 }
+};
+function currentQuality(){ return localStorage.getItem("rdc39_quality") || "std"; }
+function setQuality(q){ localStorage.setItem("rdc39_quality", q); }
+function speechRecogLangTag(){
+  const map = { fr: "fr-FR", en: "en-US", sw: "sw-KE" };
+  return map[currentLang()] || "fr-FR";
+}
+/* RDC39 : AUCUNE cl\u00e9 API c\u00f4t\u00e9 t\u00e9l\u00e9phone. Les cl\u00e9s vivent uniquement comme variables
+   secr\u00e8tes du relais Cloudflare d\u00e9di\u00e9 (relais/relais-rdc39-worker.js), qui les ajoute
+   lui-m\u00eame \u00e0 la requ\u00eate. Chaque appel au relais porte le code d'acc\u00e8s (en-t\u00eate
+   X-Access-Code) : une URL de relais d\u00e9couverte par hasard ne suffit pas \u00e0 consommer le budget IA. */
+function currentSynthProvider(){ return localStorage.getItem("rdc39_synth_provider") || "anthropic"; }
+function setSynthProvider(p){ localStorage.setItem("rdc39_synth_provider", p); }
+/* Mod\u00e8le utilis\u00e9 pour la synth\u00e8se, par fournisseur. R\u00e9glable dans R\u00e9glages : les mod\u00e8les sont
+   retir\u00e9s r\u00e9guli\u00e8rement par les fournisseurs, donc changer de mod\u00e8le ne doit jamais exiger de
+   red\u00e9ployer l'app. */
+const DEFAULT_SYNTH_MODELS = { openai: "gpt-4o-mini", anthropic: "claude-haiku-4-5-20251001", openrouter: "anthropic/claude-haiku-4.5" };
+function storedSynthModel(provider){ return (localStorage.getItem("rdc39_synth_model_" + provider) || "").trim(); }
+function currentSynthModel(provider){ return storedSynthModel(provider) || DEFAULT_SYNTH_MODELS[provider] || DEFAULT_SYNTH_MODELS.openai; }
+function setSynthModel(provider, m){ localStorage.setItem("rdc39_synth_model_" + provider, (m || "").trim()); }
+
+/* URL du relais Cloudflare RDC39 : \u00e0 renseigner ici une fois le Worker d\u00e9ploy\u00e9 (cf. README).
+   Tant qu'elle est vide, l'\u00e9cran de code d'acc\u00e8s propose un champ pour la saisir (utile pour tester). */
+const RELAY_URL = "https://terrain-relais.michel-goffin.workers.dev";
+function currentRelayUrl(){
+  return (RELAY_URL || localStorage.getItem("rdc39_relay_url") || "").trim().replace(/\/$/, "");
+}
+function setRelayUrl(u){ localStorage.setItem("rdc39_relay_url", (u || "").trim().replace(/\/$/, "")); }
+function bumpAICallCount(){
+  const n = Number(sessionStorage.getItem("rdc39_ai_calls") || "0") + 1;
+  sessionStorage.setItem("rdc39_ai_calls", String(n));
+  return n;
+}
+/* En-t\u00eates communs \u00e0 tout appel au relais (code d'acc\u00e8s + identifiant d'appareil anonyme). */
+function relayHeaders(extra){
+  return Object.assign({ "X-Access-Code": currentAccessCode(), "X-Device-Id": deviceId() }, extra || {});
+}
+function synthEndpoint(provider){
+  const relay = currentRelayUrl();
+  if(provider === "anthropic") return relay + "/anthropic-chat";
+  if(provider === "openrouter") return relay + "/openrouter-chat";
+  return relay + "/chat";
+}
+const SYNTH_LEVEL_INSTRUCTIONS = {
+  complet: "Reformule INTÉGRALEMENT le texte fourni, sans rien couper ni résumer — uniquement une mise au propre " +
+    "(orthographe, grammaire, phrases claires). La longueur finale doit rester proche de l'original, quelle que soit sa longueur.",
+  synthese: "Condense le texte fourni en gardant TOUS les faits importants (observations, anomalies, mesures, actions à mener), " +
+    "en supprimant seulement les répétitions et détails secondaires. Vise une réduction significative de la longueur " +
+    "(par exemple environ moitié moins de mots que l'original), sans perdre d'information opérationnellement utile.",
+  succinct: "Résume le texte fourni de façon TRÈS COURTE (quelques phrases ou une courte liste à puces, l'équivalent " +
+    "d'un paragraphe maximum, peu importe la longueur de la source). Ne garde que l'essentiel : problèmes constatés, " +
+    "urgences, décisions ou actions à prendre. Sacrifie le détail au profit de la brièveté, mais ne déforme jamais un fait."
+};
+/* Rep\u00e8res reconnus par convention (texte libre, jamais valid\u00e9 techniquement — cf. note
+   de connexion Calepin/pompage : m\u00eame principe de discipline de nommage plut\u00f4t que de
+   contrainte impos\u00e9e) pour signaler un ordre du jour ou un compte-rendu oral de r\u00e9union. */
+function isAgendaLabel(label){ return /ordre du jour|agenda/i.test(label || ""); }
+function isDebriefLabel(label){ return /compte.?rendu|d\u00e9briefing|debrief|r\u00e9sum\u00e9 r\u00e9union/i.test(label || ""); }
+
+const SYNTH_FORMAT_INSTRUCTIONS = {
+  notes: "Pr\u00e9sente le r\u00e9sultat sous forme de notes structur\u00e9es (par rep\u00e8re ou dans l'ordre fourni), sans forcer un format de compte-rendu formel.",
+  pv: "Pr\u00e9sente le r\u00e9sultat sous la forme d'un PROC\u00c8S-VERBAL DE R\u00c9UNION, avec exactement ces sections, dans cet ordre : " +
+    "\"Pr\u00e9sents\", \"Points abord\u00e9s\", \"D\u00e9cisions\", \"Actions\" (qui / quoi / \u00e9ch\u00e9ance, si mentionn\u00e9), \"Prochaine r\u00e9union\". " +
+    "IMPORTANT : si une section n'a AUCUNE information dans les notes fournies, \u00e9cris explicitement \"Non mentionn\u00e9 dans les notes\" " +
+    "pour cette section — ne devine jamais qui \u00e9tait pr\u00e9sent, quelle d\u00e9cision a \u00e9t\u00e9 prise, ou qui fait quoi, si ce n'est pas dit clairement."
+};
+
+async function callChatSynthesis(rawText, level, format, agendaText, provider){
+  provider = provider || "openai";
+  const lengthInstruction = SYNTH_LEVEL_INSTRUCTIONS[level] || SYNTH_LEVEL_INSTRUCTIONS.complet;
+  const formatInstruction = SYNTH_FORMAT_INSTRUCTIONS[format] || SYNTH_FORMAT_INSTRUCTIONS.notes;
+  let systemPrompt = "Tu reformules des notes de terrain en un texte clair et bien r\u00e9dig\u00e9, en fran\u00e7ais. " +
+    "R\u00e8gle absolue : n'ajoute, ne suppose et n'invente AUCUN fait absent du texte fourni. " +
+    "Ne fais aucune interpr\u00e9tation technique. " +
+    "Si une information est ambigu\u00eb ou manquante, dis-le explicitement plut\u00f4t que de combler.\n\n" +
+    formatInstruction + "\n\n" + lengthInstruction;
+  if(agendaText){
+    systemPrompt += "\n\nUn ordre du jour a \u00e9t\u00e9 fourni s\u00e9par\u00e9ment (ci-dessous). Utilise-le UNIQUEMENT pour structurer " +
+      "l'ordre des points dans \"Points abord\u00e9s\" si les notes le permettent — ne l'impose pas artificiellement si les " +
+      "notes couvrent des sujets diff\u00e9rents, et ne le recopie pas tel quel s'il n'a pas \u00e9t\u00e9 effectivement abord\u00e9.\n\n" +
+      "ORDRE DU JOUR PR\u00c9VU :\n" + agendaText;
+  } else {
+    systemPrompt += "\n\nConserve l'ordre chronologique ou par rep\u00e8re fourni dans les notes.";
+  }
+
+  if(provider === "anthropic"){
+    const resp = await fetch(synthEndpoint(provider), {
+      method: "POST",
+      headers: relayHeaders({ "anthropic-version": "2023-06-01", "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        model: currentSynthModel("anthropic"),
+        max_tokens: 3000,
+        system: systemPrompt,
+        messages: [ { role: "user", content: rawText } ]
+      })
+    });
+    if(!resp.ok){
+      const errText = await resp.text().catch(() => "");
+      throw new Error("HTTP " + resp.status + (errText ? " " + errText.slice(0,120) : ""));
+    }
+    const data = await resp.json();
+    return (data.content && data.content[0] && data.content[0].text) || "";
+  }
+
+  if(provider === "openrouter"){
+    const resp = await fetch(synthEndpoint(provider), {
+      method: "POST",
+      headers: relayHeaders({ "Content-Type": "application/json" }),
+      body: JSON.stringify({
+        model: currentSynthModel("openrouter"),
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: rawText }
+        ],
+        temperature: 0.2
+      })
+    });
+    if(!resp.ok){
+      const errText = await resp.text().catch(() => "");
+      throw new Error("HTTP " + resp.status + (errText ? " " + errText.slice(0,120) : ""));
+    }
+    const data = await resp.json();
+    return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || "";
+  }
+
+  // provider === "openai"
+  const resp = await fetch(synthEndpoint(provider), {
+    method: "POST",
+    headers: relayHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify({
+      model: currentSynthModel("openai"),
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: rawText }
+      ],
+      temperature: 0.2
+    })
+  });
+  if(!resp.ok){
+    const errText = await resp.text().catch(() => "");
+    throw new Error("HTTP " + resp.status + (errText ? " " + errText.slice(0,120) : ""));
+  }
+  const data = await resp.json();
+  return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || "";
+}
+
+/* ============================================================
+   IndexedDB — visits (m\u00e9tadonn\u00e9es) + entries (audio/photo/texte)
+   ============================================================ */
+const DB_NAME = "rdc39-calepin"; // distinct du Calepin personnel (même origine github.io => sinon base PARTAGÉE)
+const DB_VERSION = 2;
+let dbPromise = null;
+
+function openDB(){
+  if(dbPromise) return dbPromise;
+  dbPromise = new Promise((resolve, reject) => {
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if(!db.objectStoreNames.contains("visits")) db.createObjectStore("visits", { keyPath: "uid" });
+      if(!db.objectStoreNames.contains("entries")){
+        const store = db.createObjectStore("entries", { keyPath: "id" });
+        store.createIndex("visitUid", "visitUid", { unique: false });
+      }
+      if(!db.objectStoreNames.contains("folders")){
+        const store = db.createObjectStore("folders", { keyPath: "id" });
+        store.createIndex("parentId", "parentId", { unique: false });
+      }
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e.target.error);
+  });
+  return dbPromise;
+}
+function tx(storeName, mode){ return openDB().then(db => db.transaction(storeName, mode).objectStore(storeName)); }
+function idbPutRaw(storeName, value){
+  return tx(storeName, "readwrite").then(store => new Promise((resolve, reject) => {
+    const r = store.put(value); r.onsuccess = () => resolve(value); r.onerror = () => reject(r.error);
+  }));
+}
+function idbDeleteRaw(storeName, key){
+  return tx(storeName, "readwrite").then(store => new Promise((resolve, reject) => {
+    const r = store.delete(key); r.onsuccess = () => resolve(); r.onerror = () => reject(r.error);
+  }));
+}
+/* RDC39 — toute modification d'une visite ou de ses entr\u00e9es la repasse "en attente d'envoi".
+   syncRev est un compteur de r\u00e9vision : la synchro ne marque "envoy\u00e9e" que si la r\u00e9vision
+   envoy\u00e9e est encore la derni\u00e8re (une modification pendant l'envoi reste donc en attente).
+   La r\u00e9vision repart TOUJOURS de la valeur en base, jamais de l'objet en m\u00e9moire (qui peut
+   \u00eatre une copie plus ancienne tenue par un \u00e9cran ouvert). */
+async function idbPut(storeName, value){
+  if(storeName === "visits" && value && value.uid){
+    const current = await idbGet("visits", value.uid);
+    value.syncRev = Math.max((current && current.syncRev) || 0, value.syncRev || 0) + 1;
+    value.syncState = "pending";
+    value.updatedAt = new Date().toISOString();
+    await idbPutRaw("visits", value);
+    scheduleSync();
+    return value;
+  }
+  await idbPutRaw(storeName, value);
+  if(storeName === "entries" && value && value.visitUid) await markVisitPending(value.visitUid);
+  return value;
+}
+async function idbDelete(storeName, key){
+  let visitUid = null;
+  if(storeName === "entries"){
+    const e = await idbGet("entries", key);
+    visitUid = e && e.visitUid;
+  }
+  await idbDeleteRaw(storeName, key);
+  if(visitUid) await markVisitPending(visitUid);
+}
+async function markVisitPending(visitUid){
+  const v = await idbGet("visits", visitUid);
+  if(v) await idbPut("visits", v);
+}
+function idbGetAll(storeName){
+  return tx(storeName, "readonly").then(store => new Promise((resolve, reject) => {
+    const r = store.getAll(); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error);
+  }));
+}
+function idbGet(storeName, key){
+  return tx(storeName, "readonly").then(store => new Promise((resolve, reject) => {
+    const r = store.get(key); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error);
+  }));
+}
+function idbGetByIndex(storeName, indexName, value){
+  return tx(storeName, "readonly").then(store => new Promise((resolve, reject) => {
+    const r = store.index(indexName).getAll(value); r.onsuccess = () => resolve(r.result); r.onerror = () => reject(r.error);
+  }));
+}
+function uid(){
+  if(crypto.randomUUID) return crypto.randomUUID();
+  return "u_" + Date.now() + "_" + Math.random().toString(16).slice(2);
+}
+
+/* Digest JSON d'une visite : m\u00eame format que l'export manuel de Calepin (photos et pi\u00e8ces
+   jointes en base64, audio exclu), enrichi de quelques champs utiles au suivi d'\u00e9quipe
+   (dossier, tags, corbeille, appareil). Sert \u00e0 la fois \u00e0 l'export manuel et \u00e0 la synchro. */
+async function buildDigest(v){
+  const entries = (await idbGetByIndex("entries", "visitUid", v.uid)).sort((a,b) => a.timestamp - b.timestamp);
+  const digestEntries = [];
+  for(const e of entries){
+    const base = {
+      type: e.kind,
+      horodatage: new Date(e.timestamp).toISOString(),
+      repere: e.label || null,
+      position: e.location || null
+    };
+    if(e.kind === "photo" || e.kind === "fichier"){
+      try{
+        // Encodage direct depuis l'ArrayBuffer stock\u00e9 — jamais via un Blob relu depuis
+        // IndexedDB (c'est exactement ce chemin qui d\u00e9clenchait le bug WebKit corrig\u00e9 ici).
+        let arrayBuf = e.data;
+        let mime = getEntryMime(e);
+        if(!arrayBuf && e.blob){ arrayBuf = await e.blob.arrayBuffer(); mime = e.blob.type || mime; } // legacy
+        if(!arrayBuf) throw new Error("aucune donn\u00e9e disponible");
+        const base64 = arrayBufferToBase64(arrayBuf);
+        const fileField = e.kind === "fichier"
+          ? { fichier: { nom: e.fileName || null, mime: mime || "application/octet-stream", base64 } }
+          : { image: { mime: mime || "image/jpeg", base64 } };
+        digestEntries.push({ ...base, ...fileField });
+      }catch(err){
+        // Un fichier illisible ne doit jamais faire \u00e9chouer tout le digest — on le
+        // signale explicitement plut\u00f4t que de le faire dispara\u00eetre silencieusement.
+        const emptyField = e.kind === "fichier" ? { fichier: null } : { image: null };
+        digestEntries.push({ ...base, ...emptyField, erreur: (e.kind === "fichier" ? "fichier" : "photo") + " illisible : " + err.message });
+      }
+    } else {
+      // texte (note, dict\u00e9e, document import\u00e9)
+      digestEntries.push({ ...base, texte: e.text || null });
+    }
+  }
+
+  const digest = {
+    schemaVersion: 1,
+    uid: v.uid,
+    category: catById(v.category).label,
+    tag: v.tag,
+    date: v.date,
+    syntheseBrute: buildReportText(v, entries, "landmark"),
+    syntheseIA: v.aiSynthesis || null,
+    dossier: v.folderId ? await folderPathLabel(v.folderId) : null,
+    tags: v.tags || [],
+    corbeille: v.trashedAt ? new Date(v.trashedAt).toISOString() : null,
+    appareil: deviceId(),
+    versionApp: APP_VERSION,
+    genereLe: new Date().toISOString(),
+    entries: digestEntries
+  };
+  return digest;
+}
+
+/* ============================================================
+   Utilitaires
+   ============================================================ */
+function fmtDate(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString(currentLang() === "en" ? "en-GB" : "fr-FR", { day:"2-digit", month:"2-digit", year:"numeric" });
+}
+function fmtTime(ts){
+  const d = new Date(ts);
+  return d.toLocaleTimeString(currentLang() === "en" ? "en-GB" : "fr-FR", { hour:"2-digit", minute:"2-digit" });
+}
+function fmtDateTime(iso){
+  const d = new Date(iso);
+  return fmtDate(iso) + " \u00b7 " + fmtTime(d.getTime());
+}
+function escapeHtml(s){
+  return (s || "").replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+}
+function fmtBytes(n){
+  if(n < 1024) return n + " o";
+  if(n < 1024*1024) return (n/1024).toFixed(0) + " Ko";
+  return (n/(1024*1024)).toFixed(1) + " Mo";
+}
+/* Encodage base64 d'un Blob, par blocs pour \u00e9viter tout d\u00e9passement de pile sur de
+   grosses images (String.fromCharCode.apply sur un tableau complet peut \u00e9chouer au-del\u00e0
+   de quelques dizaines de milliers d'octets sur certains moteurs). */
+/* ============================================================
+   Stockage des fichiers : ArrayBuffer plutôt que Blob (correctif
+   bug WebKit #235687, confirmé — non corrigé depuis 2022) :
+   "Blobs retrieved from IndexedDB and re-saved causes
+   WebKitBlobResource error 1" — un Blob relu depuis IndexedDB puis
+   réutilisé (affichage, export, transcription...) devient
+   silencieusement corrompu sur Safari iOS, quasi systématiquement.
+   Un ArrayBuffer stocké directement (pas adossé à un fichier
+   séparé sur disque comme un Blob) n'est PAS concerné par ce bug.
+   Un Blob n'est reconstruit qu'en mémoire, au moment de l'usage,
+   et n'est JAMAIS réécrit tel quel en base.
+   ============================================================ */
+function arrayBufferToBlob(buf, mime){
+  return new Blob([buf], { type: mime || "application/octet-stream" });
+}
+function arrayBufferToBase64(buf){
+  const bytes = new Uint8Array(buf);
+  let binary = "";
+  const chunkSize = 0x8000;
+  for(let i = 0; i < bytes.length; i += chunkSize){
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+/* Lecteur EXIF minimal, cibl\u00e9 UNIQUEMENT sur les tags GPS (pas un parseur EXIF complet) —
+   \u00e0 utiliser sur le fichier ORIGINAL, avant la compression canvas qui supprime tout EXIF.
+   M\u00eame chemin de code, que la photo vienne de l'appareil photo en direct ou d'un import
+   depuis la galerie/le disque (aucune distinction faite ailleurs dans Calepin). Renvoie
+   {lat, lng} ou null — jamais d'exception propag\u00e9e, une photo sans GPS ou mal form\u00e9e
+   retombe simplement sur la g\u00e9olocalisation en direct (comportement d\u00e9j\u00e0 en place). */
+function extractExifGps(buffer){
+  try{
+    const view = new DataView(buffer);
+    if(view.getUint16(0, false) !== 0xFFD8) return null; // pas un JPEG
+    let offset = 2;
+    const length = view.byteLength;
+    while(offset + 4 <= length){
+      const marker = view.getUint16(offset, false);
+      if((marker & 0xFF00) !== 0xFF00) break; // structure inattendue, on abandonne proprement
+      if(marker === 0xFFD8 || marker === 0xFFD9){ offset += 2; continue; } // SOI/EOI, sans longueur
+      if(marker === 0xFFDA) break; // d\u00e9but des donn\u00e9es image compress\u00e9es, plus d'EXIF apr\u00e8s
+      const segLength = view.getUint16(offset + 2, false);
+      if(marker !== 0xFFE1){ offset += 2 + segLength; continue; } // pas APP1/Exif, segment suivant
+      const exifStart = offset + 4;
+      if(exifStart + 6 > length) return null;
+      if(view.getUint32(exifStart, false) !== 0x45786966 || view.getUint16(exifStart + 4, false) !== 0x0000){
+        offset += 2 + segLength; continue; // APP1 mais pas un en-t\u00eate "Exif\0\0" (ex. XMP)
+      }
+      const tiffStart = exifStart + 6;
+      const byteOrderMark = view.getUint16(tiffStart, false);
+      if(byteOrderMark !== 0x4949 && byteOrderMark !== 0x4D4D) return null;
+      const little = byteOrderMark === 0x4949;
+      const u16 = (o) => view.getUint16(o, little);
+      const u32 = (o) => view.getUint32(o, little);
+      const ifd0 = tiffStart + u32(tiffStart + 4);
+      if(ifd0 + 2 > length) return null;
+      const numEntries = u16(ifd0);
+      let gpsIFDOffset = null;
+      for(let i = 0; i < numEntries; i++){
+        const entryOffset = ifd0 + 2 + i * 12;
+        if(entryOffset + 12 > length) break;
+        if(u16(entryOffset) === 0x8825){ gpsIFDOffset = tiffStart + u32(entryOffset + 8); break; }
+      }
+      if(gpsIFDOffset === null || gpsIFDOffset + 2 > length) return null;
+      const gpsEntries = u16(gpsIFDOffset);
+      let latRef = null, lonRef = null, lat = null, lon = null;
+      const readRational3 = (valOffset) => {
+        let v = 0;
+        for(let k = 0; k < 3; k++){
+          const num = u32(valOffset + k * 8);
+          const den = u32(valOffset + k * 8 + 4);
+          const part = den ? num / den : 0;
+          v += k === 0 ? part : (k === 1 ? part / 60 : part / 3600);
+        }
+        return v;
+      };
+      for(let i = 0; i < gpsEntries; i++){
+        const entryOffset = gpsIFDOffset + 2 + i * 12;
+        if(entryOffset + 12 > length) break;
+        const tag = u16(entryOffset);
+        const valueField = entryOffset + 8;
+        if(tag === 0x0001) latRef = String.fromCharCode(view.getUint8(valueField));
+        else if(tag === 0x0003) lonRef = String.fromCharCode(view.getUint8(valueField));
+        else if(tag === 0x0002) lat = readRational3(tiffStart + u32(valueField));
+        else if(tag === 0x0004) lon = readRational3(tiffStart + u32(valueField));
+      }
+      if(lat !== null && lon !== null && latRef && lonRef){
+        if(latRef === "S") lat = -lat;
+        if(lonRef === "W") lon = -lon;
+        if(isFinite(lat) && isFinite(lon)) return { lat, lng: lon };
+      }
+      return null;
+    }
+    return null;
+  }catch(e){
+    return null;
+  }
+}
+/* R\u00e9trocompatibilit\u00e9 : les entr\u00e9es captur\u00e9es AVANT ce correctif ont un champ
+   `blob` (Blob) plut\u00f4t que `data` (ArrayBuffer) + `mime`. On continue \u00e0 les lire
+   (best-effort — si le Blob est d\u00e9j\u00e0 corrompu par le bug WebKit, rien ne peut le
+   r\u00e9cup\u00e9rer), mais toute NOUVELLE capture utilise d\u00e9sormais le sch\u00e9ma s\u00fbr. */
+function getEntryBlob(e){
+  if(e.data) return arrayBufferToBlob(e.data, e.mime || (e.kind === "photo" ? "image/jpeg" : "application/octet-stream"));
+  return e.blob || null;
+}
+function getEntrySize(e){
+  if(e.data) return e.data.byteLength;
+  if(e.blob) return e.blob.size;
+  return 0;
+}
+function getEntryMime(e){
+  if(e.mime) return e.mime;
+  if(e.blob) return e.blob.type;
+  return "";
+}
+/* Migration opportuniste : une entr\u00e9e captur\u00e9e AVANT ce correctif (champ `blob`) est
+   convertie vers le sch\u00e9ma s\u00fbr (`data`/`mime`) d\u00e8s qu'on la r\u00e9\u00e9crit pour une autre raison
+   (transcription, renommage de rep\u00e8re...) — sinon la r\u00e9\u00e9criture telle quelle d'un Blob
+   d\u00e9j\u00e0 pass\u00e9 par IndexedDB red\u00e9clencherait exactement le bug WebKit qu'on corrige ici. */
+async function migrateEntryIfLegacy(e){
+  if(e.blob && !e.data){
+    try{
+      e.data = await e.blob.arrayBuffer();
+      e.mime = e.blob.type || e.mime || "";
+      delete e.blob;
+    }catch(err){
+      // Blob d\u00e9j\u00e0 corrompu par le bug WebKit — rien \u00e0 migrer, on laisse tel quel plut\u00f4t
+      // que de faire \u00e9chouer l'op\u00e9ration en cours (transcription, renommage...).
+    }
+  }
+  return e;
+}
+function fileGlyph(fileName){
+  const ext = ((fileName || "").split(".").pop() || "").toLowerCase();
+  if(ext === "pdf") return "\u{1F4D5}";
+  if(ext === "doc" || ext === "docx") return "\u{1F4D8}";
+  if(ext === "xls" || ext === "xlsx") return "\u{1F4D7}";
+  return "\u{1F4CE}";
+}
+let toastTimer = null;
+function showToast(msg){
+  const el = document.getElementById("toast");
+  el.textContent = msg; el.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+function compressImage(file, maxDim, quality){
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      let { width, height } = img;
+      if(width > height && width > maxDim){ height = Math.round(height * maxDim / width); width = maxDim; }
+      else if(height > maxDim){ width = Math.round(width * maxDim / height); height = maxDim; }
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+      canvas.toBlob(blob => { URL.revokeObjectURL(url); if(blob) resolve(blob); else reject(new Error("compress")); }, "image/jpeg", quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("unreadable")); };
+    img.src = url;
+  });
+}
+function bestAudioMime(){
+  const candidates = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg"];
+  for(const c of candidates){
+    if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)) return c;
+  }
+  return "";
+}
+/* Tentative de position GPS silencieuse, best-effort — n'interrompt jamais la capture */
+function tryGetPosition(){
+  return new Promise(resolve => {
+    if(!navigator.geolocation){ resolve(null); return; }
+    let done = false;
+    const finish = (v) => { if(!done){ done = true; resolve(v); } };
+    navigator.geolocation.getCurrentPosition(
+      pos => finish({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+      () => finish(null),
+      { enableHighAccuracy: true, timeout: 6000 }
+    );
+    setTimeout(() => finish(null), 6500);
+  });
+}
+
+/* ============================================================
+   RDC39 — Porte d'accès par code (révocable, délai de grâce hors-ligne)
+   ------------------------------------------------------------
+   - Le code est validé par le relais Cloudflare (/validate-code) à chaque ouverture
+     si une connexion existe ; Michel active/révoque en changeant ACCESS_CODES côté
+     Cloudflare, sans redéployer l'app.
+   - Hors-ligne : l'app reste utilisable tant que la dernière validation réussie date
+     de moins de GRACE_DAYS jours (14 par défaut, ajustable côté relais).
+   - Code refusé par le relais = révoqué : l'app se verrouille immédiatement. Les
+     données locales ne sont PAS effacées (elles redeviennent accessibles avec un
+     nouveau code valide).
+   ============================================================ */
+const DEFAULT_GRACE_DAYS = 14;
+function currentAccessCode(){ return localStorage.getItem("rdc39_access_code") || ""; }
+function deviceId(){
+  let d = localStorage.getItem("rdc39_device_id");
+  if(!d){ d = uid(); localStorage.setItem("rdc39_device_id", d); }
+  return d;
+}
+function graceMs(){
+  const days = Number(localStorage.getItem("rdc39_grace_days")) || DEFAULT_GRACE_DAYS;
+  return days * 86400000;
+}
+function fetchWithTimeout(url, opts, ms){
+  const ctrl = window.AbortController ? new AbortController() : null;
+  const timer = setTimeout(() => { if(ctrl) ctrl.abort(); }, ms);
+  return fetch(url, Object.assign({}, opts, ctrl ? { signal: ctrl.signal } : {})).finally(() => clearTimeout(timer));
+}
+/* Renvoie "ok" | "refused" | "unreachable" — jamais d'exception. */
+async function validateCodeOnline(code){
+  const relay = currentRelayUrl();
+  if(!relay) return "unreachable";
+  try{
+    const resp = await fetchWithTimeout(relay + "/validate-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "X-Device-Id": deviceId() },
+      body: JSON.stringify({ code })
+    }, 10000);
+    if(resp.ok){
+      const data = await resp.json().catch(() => ({}));
+      if(data && data.graceDays) localStorage.setItem("rdc39_grace_days", String(data.graceDays));
+      localStorage.setItem("rdc39_access_validated_at", String(Date.now()));
+      return "ok";
+    }
+    if(resp.status === 401 || resp.status === 403) return "refused";
+    return "unreachable";
+  }catch(err){
+    return "unreachable";
+  }
+}
+function withinGrace(){
+  const lastOk = Number(localStorage.getItem("rdc39_access_validated_at") || "0");
+  return lastOk > 0 && (Date.now() - lastOk) < graceMs();
+}
+
+let appUnlocked = false;
+function lockApp(reasonKey){
+  appUnlocked = false;
+  if(currentViewCleanup){ try{ currentViewCleanup(); }catch(e){} currentViewCleanup = null; }
+  main.innerHTML = "";
+  showGate(reasonKey);
+}
+function unlockApp(){
+  const wasUnlocked = appUnlocked;
+  appUnlocked = true;
+  const gate = document.getElementById("gate");
+  if(gate) gate.remove();
+  document.body.classList.remove("locked");
+  if(!wasUnlocked){ route(); syncPending(); }
+}
+function showGate(reasonKey){
+  document.body.classList.add("locked");
+  let gate = document.getElementById("gate");
+  if(gate) gate.remove();
+  gate = document.createElement("div");
+  gate.id = "gate";
+  gate.className = "gate";
+  gate.innerHTML = `
+    <div class="gate-box">
+      <div class="gate-logo">\u{1F4D3}</div>
+      <h2>${t("appName")}</h2>
+      <p class="gate-sub">${t("gateIntro")}</p>
+      ${reasonKey ? `<p class="gate-msg warn">${t(reasonKey)}</p>` : ""}
+      <div class="field">
+        <label for="gateCode">${t("gateCodeLabel")}</label>
+        <input type="password" id="gateCode" autocomplete="off" autocapitalize="off" spellcheck="false" value="">
+      </div>
+      ${RELAY_URL ? "" : `
+      <div class="field">
+        <label for="gateRelay">${t("gateRelayLabel")}</label>
+        <input type="text" id="gateRelay" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="https://….workers.dev" value="${escapeHtml(currentRelayUrl())}">
+      </div>`}
+      <button class="btn primary" id="gateSubmit" style="width:100%;">${t("gateSubmit")}</button>
+      <p class="gate-msg" id="gateMsg" hidden></p>
+    </div>
+  `;
+  document.body.appendChild(gate);
+  const input = gate.querySelector("#gateCode");
+  const msg = gate.querySelector("#gateMsg");
+  const btn = gate.querySelector("#gateSubmit");
+  async function submit(){
+    const code = input.value.trim();
+    if(!code) return;
+    const relayInput = gate.querySelector("#gateRelay");
+    if(relayInput) setRelayUrl(relayInput.value);
+    if(!currentRelayUrl()){ msg.hidden = false; msg.textContent = t("relayMissing"); return; }
+    btn.disabled = true; msg.hidden = false; msg.textContent = t("gateChecking");
+    const res = await validateCodeOnline(code);
+    btn.disabled = false;
+    if(res === "ok"){
+      localStorage.setItem("rdc39_access_code", code);
+      unlockApp();
+    } else if(res === "refused"){
+      msg.textContent = t("gateRefused");
+    } else {
+      msg.textContent = t("gateUnreachable");
+    }
+  }
+  btn.addEventListener("click", submit);
+  input.addEventListener("keydown", (e) => { if(e.key === "Enter") submit(); });
+  setTimeout(() => input.focus(), 50);
+}
+
+/* Revérification en arrière-plan (app ouverte) : à l'ouverture, au retour du réseau et au
+   retour au premier plan (au plus une fois par heure dans ce dernier cas). */
+let lastBackgroundCheck = 0;
+async function revalidateInBackground(force){
+  const code = currentAccessCode();
+  if(!code || !navigator.onLine) return;
+  if(!force && Date.now() - lastBackgroundCheck < 3600000) return;
+  lastBackgroundCheck = Date.now();
+  const res = await validateCodeOnline(code);
+  if(res === "refused"){
+    localStorage.removeItem("rdc39_access_code");
+    localStorage.removeItem("rdc39_access_validated_at");
+    lockApp("gateRevoked");
+  } else if(res === "ok" && !appUnlocked){
+    unlockApp();
+  }
+}
+
+async function startAccessGate(){
+  const code = currentAccessCode();
+  if(!code){ showGate(); return; }
+  if(withinGrace()){
+    // Dans le délai de grâce : on ouvre tout de suite, la revérification se fait en fond.
+    unlockApp();
+    revalidateInBackground(true);
+    return;
+  }
+  // Hors délai de grâce : validation en ligne obligatoire avant d'ouvrir.
+  showGate();
+  const msg = document.getElementById("gateMsg");
+  if(msg){ msg.hidden = false; msg.textContent = t("gateChecking"); }
+  const res = await validateCodeOnline(code);
+  if(res === "ok") unlockApp();
+  else if(res === "refused"){
+    localStorage.removeItem("rdc39_access_code");
+    localStorage.removeItem("rdc39_access_validated_at");
+    showGate("gateRevoked");
+  } else {
+    showGate("gateGraceExpired");
+  }
+}
+
+/* ============================================================
+   RDC39 — Synchronisation automatique des digests (niveau 2)
+   ------------------------------------------------------------
+   Chaque visite porte syncState "pending" | "sent". Dès qu'une connexion est
+   disponible (ouverture, retour du réseau, retour au premier plan, ou ~2 min après
+   une modification), les visites en attente sont envoyées au relais (/upload-digest),
+   qui les range dans Cloudflare KV (une clé par visite, écrasée à chaque envoi).
+   Pas de synchro app fermée (niveau 3, impossible sur iOS).
+   ============================================================ */
+const SYNC_DEBOUNCE_MS = 2 * 60 * 1000;
+let syncTimer = null;
+let syncInFlight = null;
+function scheduleSync(){
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => syncPending(), SYNC_DEBOUNCE_MS);
+}
+async function syncStatus(){
+  const visits = await idbGetAll("visits");
+  return { total: visits.length, pending: visits.filter(v => v.syncState !== "sent").length };
+}
+function syncPending(opts){
+  if(syncInFlight) return syncInFlight;
+  syncInFlight = doSyncPending(opts || {}).finally(() => { syncInFlight = null; refreshSyncBadge(); });
+  return syncInFlight;
+}
+async function doSyncPending(opts){
+  if(!appUnlocked) return { skipped: true };
+  const relay = currentRelayUrl();
+  const code = currentAccessCode();
+  if(!relay || !code) return { error: t("relayMissing") };
+  if(!navigator.onLine) return { error: t("syncOffline") };
+  const visits = (await idbGetAll("visits")).filter(v => v.syncState !== "sent");
+  let sent = 0, lastError = null;
+  for(const v of visits){
+    const rev = v.syncRev || 0;
+    try{
+      const digest = await buildDigest(v);
+      const resp = await fetchWithTimeout(relay + "/upload-digest", {
+        method: "POST",
+        headers: relayHeaders({ "Content-Type": "application/json" }),
+        body: JSON.stringify(digest)
+      }, 120000);
+      if(resp.status === 401 || resp.status === 403){
+        localStorage.removeItem("rdc39_access_code");
+        localStorage.removeItem("rdc39_access_validated_at");
+        lockApp("gateRevoked");
+        return { error: t("gateRevoked") };
+      }
+      if(!resp.ok){
+        const txt = await resp.text().catch(() => "");
+        throw new Error("HTTP " + resp.status + (txt ? " " + txt.slice(0, 120) : ""));
+      }
+      // Marquée "envoyée" seulement si personne ne l'a modifiée pendant l'envoi.
+      const fresh = await idbGet("visits", v.uid);
+      if(fresh && (fresh.syncRev || 0) === rev){
+        fresh.syncState = "sent";
+        fresh.syncedAt = new Date().toISOString();
+        fresh.syncError = null;
+        await idbPutRaw("visits", fresh);
+      }
+      sent++;
+    }catch(err){
+      lastError = err.name === "AbortError" ? "timeout" : err.message;
+      const fresh = await idbGet("visits", v.uid);
+      if(fresh){ fresh.syncError = lastError; await idbPutRaw("visits", fresh); }
+    }
+  }
+  if(sent > 0 || visits.length === 0) localStorage.setItem("rdc39_last_sync", String(Date.now()));
+  return lastError ? { sent, error: lastError } : { sent };
+}
+/* Petit indicateur dans la barre du haut : ⏳ + nombre de visites en attente. */
+async function refreshSyncBadge(){
+  const badge = document.getElementById("syncBadge");
+  if(!badge) return;
+  if(!appUnlocked){ badge.hidden = true; return; }
+  const st = await syncStatus();
+  badge.hidden = st.pending === 0;
+  badge.textContent = "⏳" + st.pending;
+  badge.title = st.pending + " " + t("syncPendingCount");
+}
+
+window.addEventListener("online", () => { revalidateInBackground(true); syncPending(); });
+document.addEventListener("visibilitychange", () => {
+  if(document.visibilityState === "visible"){ revalidateInBackground(false); syncPending(); }
+});
+
+/* ============================================================
+   RDC39 — Écran Carte : navigation et consultation UNIQUEMENT
+   ------------------------------------------------------------
+   Jamais de création depuis la carte (la création reste le "+" de l'accueil).
+   Taper un point déjà relevé ouvre la visite correspondante.
+   Couches : GeoJSON préparés (dossier layers/, reprojetés UTM 36N -> WGS84) +
+   couche dynamique des points relevés (base locale). Panneau de couches avec
+   cases à cocher et réordonnancement par glisser (souris ET doigt).
+   Fond OSM mis en cache hors-ligne uniquement sur demande explicite
+   ("Télécharger pour le terrain"), jamais automatiquement.
+   ============================================================ */
+const LEAFLET_CSS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css";
+const LEAFLET_JS = "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js";
+const OSM_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+const TILE_CACHE = "rdc39-tiles-v1";
+const TILE_MIN_ZOOM = 12, TILE_MAX_ZOOM = 17;
+/* Emprise du projet (union des couches, + petite marge) — sert au téléchargement hors-ligne. */
+const PROJECT_BOUNDS = { south: 1.4886, west: 30.2770, north: 1.5666, east: 30.3503 };
+const LAYER_DEFS = [
+  { id: "bvbig",                     label: "Bassin versant (global)",              color: "#2b6cb0", kind: "polygon" },
+  { id: "bv-dam-site-1",             label: "Bassin versant — Nyamukau site 1", color: "#38a169", kind: "polygon" },
+  { id: "bv-dam-site-2",             label: "Bassin versant — Nyamukau site 2", color: "#2f855a", kind: "polygon" },
+  { id: "bv-dam-site-3",             label: "Bassin versant — Nyamukau site 3", color: "#276749", kind: "polygon" },
+  { id: "max-possible-site-1",       label: "Cuvette max — Nyamukau site 1",    color: "#dd6b20", kind: "polygon" },
+  { id: "max-possible-site-2",       label: "Cuvette max — Nyamukau site 2",    color: "#c05621", kind: "polygon" },
+  { id: "max-possible-site-3",       label: "Cuvette max — Nyamukau site 3",    color: "#9c4221", kind: "polygon" },
+  { id: "riviere",                   label: "Rivière",                          color: "#1a365d", kind: "line" },
+  { id: "contours-0-5mfrom-barrage", label: "Courbes de niveau (0,5 m, simplifiées)", color: "#718096", kind: "line" },
+  { id: "points-sites",              label: "Points de site",                        color: "#e53e3e", kind: "point" }
+];
+const TEAM_LAYER_ID = "releves";
+const TEAM_LAYER_COLOR = "#C9A227";
+
+let currentViewCleanup = null;
+let leafletPromise = null;
+function loadLeaflet(){
+  if(window.L) return Promise.resolve(window.L);
+  if(leafletPromise) return leafletPromise;
+  leafletPromise = new Promise((resolve, reject) => {
+    const css = document.createElement("link");
+    css.rel = "stylesheet"; css.href = LEAFLET_CSS;
+    document.head.appendChild(css);
+    const js = document.createElement("script");
+    js.src = LEAFLET_JS;
+    js.onload = () => resolve(window.L);
+    js.onerror = () => { leafletPromise = null; reject(new Error("Leaflet")); };
+    document.head.appendChild(js);
+  });
+  return leafletPromise;
+}
+const geojsonCache = {};
+async function loadLayerData(id){
+  if(geojsonCache[id]) return geojsonCache[id];
+  const resp = await fetch("layers/" + id + ".geojson");
+  if(!resp.ok) throw new Error("HTTP " + resp.status);
+  geojsonCache[id] = await resp.json();
+  return geojsonCache[id];
+}
+function loadMapPrefs(){
+  const allIds = LAYER_DEFS.map(l => l.id).concat([TEAM_LAYER_ID]);
+  let order = [];
+  try{ order = JSON.parse(localStorage.getItem("rdc39_map_order") || "[]"); }catch(e){}
+  order = order.filter(id => allIds.includes(id));
+  allIds.forEach(id => { if(!order.includes(id)) order.push(id); }); // nouvelles couches : au-dessus
+  let hidden = [];
+  try{ hidden = JSON.parse(localStorage.getItem("rdc39_map_hidden") || "[]"); }catch(e){}
+  return { order, hidden: new Set(hidden) }; // order : du DESSOUS vers le DESSUS
+}
+function saveMapPrefs(order, hidden){
+  localStorage.setItem("rdc39_map_order", JSON.stringify(order));
+  localStorage.setItem("rdc39_map_hidden", JSON.stringify(Array.from(hidden)));
+}
+
+function tileXY(lat, lng, z){
+  const n = Math.pow(2, z);
+  const x = Math.floor((lng + 180) / 360 * n);
+  const latRad = lat * Math.PI / 180;
+  const y = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
+  return { x, y };
+}
+function projectTileUrls(){
+  const urls = [];
+  for(let z = TILE_MIN_ZOOM; z <= TILE_MAX_ZOOM; z++){
+    const a = tileXY(PROJECT_BOUNDS.north, PROJECT_BOUNDS.west, z);
+    const b = tileXY(PROJECT_BOUNDS.south, PROJECT_BOUNDS.east, z);
+    for(let x = a.x; x <= b.x; x++){
+      for(let y = a.y; y <= b.y; y++){
+        urls.push(OSM_TILE_URL.replace("{z}", z).replace("{x}", x).replace("{y}", y));
+      }
+    }
+  }
+  return urls;
+}
+let tileDownload = null; // { done, total, failed } pendant un téléchargement en cours
+async function downloadProjectTiles(onProgress){
+  if(tileDownload) return;
+  const urls = projectTileUrls();
+  const cache = await caches.open(TILE_CACHE);
+  tileDownload = { done: 0, total: urls.length, failed: 0 };
+  let idx = 0;
+  // 2 requêtes en parallèle au maximum : on reste raisonnable vis-à-vis des serveurs OSM.
+  async function worker(){
+    while(idx < urls.length){
+      const url = urls[idx++];
+      try{
+        const hit = await cache.match(url);
+        if(!hit){
+          const resp = await fetch(url, { mode: "cors" });
+          if(resp.ok) await cache.put(url, resp);
+          else tileDownload.failed++;
+        }
+      }catch(err){ tileDownload.failed++; }
+      tileDownload.done++;
+      if(onProgress) onProgress(tileDownload);
+    }
+  }
+  try{
+    await Promise.all([worker(), worker()]);
+    if(tileDownload.failed === 0) localStorage.setItem("rdc39_tiles_done_at", String(Date.now()));
+    return tileDownload;
+  }finally{
+    const res = tileDownload;
+    tileDownload = null;
+    if(onProgress) onProgress(Object.assign({ finished: true }, res));
+  }
+}
+async function countCachedTiles(){
+  try{
+    const cache = await caches.open(TILE_CACHE);
+    const keys = await cache.keys();
+    return keys.length;
+  }catch(e){ return 0; }
+}
+
+async function renderMap(){
+  main.innerHTML = "";
+  document.body.classList.add("map-mode");
+  const wrap = document.createElement("div");
+  wrap.className = "map-wrap";
+  wrap.innerHTML = `
+    <div id="mapCanvas" class="map-canvas"></div>
+    <div class="map-tools">
+      <button class="map-tool" id="btnLayers" title="${t("mapLayers")}">☰</button>
+      <button class="map-tool" id="btnLocate" title="${t("mapLocate")}">\u{1F4CD}</button>
+      <button class="map-tool" id="btnFit" title="${t("mapFit")}">⤢</button>
+    </div>
+    <div class="map-panel" id="mapPanel" hidden>
+      <h3>${t("mapLayers")}</h3>
+      <div class="map-panel-sub">${t("mapLayersSub")}</div>
+      <ul id="layerList" class="layer-list"></ul>
+      <div class="map-offline">
+        <h3>${t("mapOffline")}</h3>
+        <div class="map-panel-sub" id="tileInfo">…</div>
+        <button class="btn" id="btnTiles" style="width:100%;">⬇️ ${t("mapDownload")}</button>
+      </div>
+    </div>
+    <div class="map-status" id="mapStatus" hidden></div>
+  `;
+  main.appendChild(wrap);
+
+  const statusEl = wrap.querySelector("#mapStatus");
+  function setStatus(txt){ statusEl.hidden = !txt; statusEl.textContent = txt || ""; }
+
+  let L;
+  try{ L = await loadLeaflet(); }
+  catch(err){ setStatus(t("mapLeafletError")); return; }
+  if(window.location.hash !== "#map") return; // l'utilisateur est parti pendant le chargement
+
+  const map = L.map(wrap.querySelector("#mapCanvas"), { zoomControl: true, attributionControl: true });
+  L.tileLayer(OSM_TILE_URL, {
+    // Au-delà de z17 (non téléchargé pour le terrain), on agrandit les tuiles z17 :
+    // même rendu en ligne et hors-ligne.
+    maxZoom: 19, maxNativeZoom: TILE_MAX_ZOOM,
+    attribution: "© OpenStreetMap"
+  }).addTo(map);
+  map.fitBounds([[PROJECT_BOUNDS.south, PROJECT_BOUNDS.west], [PROJECT_BOUNDS.north, PROJECT_BOUNDS.east]]);
+
+  const prefs = loadMapPrefs();
+  let order = prefs.order;
+  const hidden = prefs.hidden;
+  const leafletLayers = {};
+  const defsById = {};
+  LAYER_DEFS.forEach(d => { defsById[d.id] = d; });
+  defsById[TEAM_LAYER_ID] = { id: TEAM_LAYER_ID, label: t("mapTeamLayer"), color: TEAM_LAYER_COLOR, kind: "point" };
+
+  function applyZOrder(){
+    order.forEach(id => {
+      const layer = leafletLayers[id];
+      if(layer && map.hasLayer(layer) && layer.bringToFront) layer.bringToFront();
+    });
+  }
+
+  // Couches préparées
+  await Promise.all(LAYER_DEFS.map(async (def) => {
+    try{
+      const data = await loadLayerData(def.id);
+      let layer;
+      if(def.kind === "point"){
+        layer = L.geoJSON(data, {
+          pointToLayer: (f, latlng) => L.circleMarker(latlng, { radius: 7, fillColor: def.color, color: "#fff", weight: 2, fillOpacity: 1 }),
+          onEachFeature: (f, l) => l.bindPopup(escapeHtml((f.properties && (f.properties.Name || f.properties.Nme)) || def.label))
+        });
+      } else if(def.kind === "line"){
+        layer = L.geoJSON(data, {
+          style: { color: def.color, weight: def.id === "riviere" ? 2.5 : 1.2 },
+          onEachFeature: (f, l) => {
+            const c = f.properties && f.properties.Contour;
+            if(c !== undefined && c !== null) l.bindPopup(escapeHtml(String(c)) + " m");
+          }
+        });
+      } else {
+        layer = L.geoJSON(data, { style: { color: def.color, weight: 2, fillColor: def.color, fillOpacity: 0.12 } });
+      }
+      leafletLayers[def.id] = layer;
+      if(!hidden.has(def.id)) layer.addTo(map);
+    }catch(err){ /* couche indisponible : on continue avec les autres */ }
+  }));
+
+  // Couche dynamique : points déjà relevés par l'équipe (base locale)
+  const teamLayer = L.layerGroup();
+  const visits = (await idbGetAll("visits")).filter(v => !v.trashedAt);
+  const visitById = {};
+  visits.forEach(v => { visitById[v.uid] = v; });
+  const allEntries = await idbGetAll("entries");
+  allEntries.filter(e => e.location && visitById[e.visitUid]).forEach(e => {
+    const v = visitById[e.visitUid];
+    const glyph = e.kind === "photo" ? "\u{1F4F7}" : e.kind === "fichier" ? fileGlyph(e.fileName) : "\u{1F4DD}";
+    const snippet = e.text ? escapeHtml(e.text.length > 140 ? e.text.slice(0, 140) + "…" : e.text) : "";
+    const marker = L.circleMarker([e.location.lat, e.location.lng], {
+      radius: 7, fillColor: TEAM_LAYER_COLOR, color: "#171A16", weight: 2, fillOpacity: 0.95
+    });
+    marker.bindPopup(`
+      <div class="map-popup">
+        <strong>${escapeHtml(v.tag) || catById(v.category).label}</strong><br>
+        <span class="pmeta">${glyph} ${fmtDate(v.date)} ${fmtTime(e.timestamp)}${e.label ? " · " + escapeHtml(e.label) : ""}</span>
+        ${snippet ? `<div class="psnip">${snippet}</div>` : ""}
+        <a href="#visit/${encodeURIComponent(v.uid)}">${t("mapOpenVisit")} ›</a>
+      </div>
+    `);
+    marker.addTo(teamLayer);
+  });
+  leafletLayers[TEAM_LAYER_ID] = teamLayer;
+  if(!hidden.has(TEAM_LAYER_ID)) teamLayer.addTo(map);
+  applyZOrder();
+
+  // Panneau de couches (repris de l'outil de vérification) — glisser au doigt ou à la souris
+  const panel = wrap.querySelector("#mapPanel");
+  const listEl = wrap.querySelector("#layerList");
+  wrap.querySelector("#btnLayers").addEventListener("click", () => { panel.hidden = !panel.hidden; if(!panel.hidden) refreshTileInfo(); });
+  map.on("click", () => { panel.hidden = true; });
+
+  function renderLayerList(){
+    listEl.innerHTML = "";
+    const displayOrder = [...order].reverse(); // dessus en premier, plus intuitif à lire
+    displayOrder.forEach(id => {
+      const def = defsById[id];
+      if(!def) return;
+      const li = document.createElement("li");
+      li.className = "layer-row";
+      li.dataset.id = id;
+      const available = !!leafletLayers[id];
+      const checked = available && map.hasLayer(leafletLayers[id]);
+      li.innerHTML = `
+        <span class="drag-handle" aria-label="${t("mapDrag")}">⋮⋮</span>
+        <label>
+          <input type="checkbox" ${checked ? "checked" : ""} ${available ? "" : "disabled"}>
+          <span class="swatch" style="background:${def.color}"></span><span>${escapeHtml(def.label)}</span>
+        </label>
+      `;
+      li.querySelector("input").addEventListener("change", (e) => {
+        if(e.target.checked){ leafletLayers[id].addTo(map); hidden.delete(id); applyZOrder(); }
+        else { map.removeLayer(leafletLayers[id]); hidden.add(id); }
+        saveMapPrefs(order, hidden);
+      });
+      wireDrag(li.querySelector(".drag-handle"), li);
+      listEl.appendChild(li);
+    });
+  }
+  /* Réordonnancement par pointeur (fonctionne au doigt, contrairement au drag & drop HTML5
+     du prototype, inopérant sur mobile). On déplace la ligne dans la liste pendant le geste,
+     puis on reconstruit `order` (dessous -> dessus) au relâchement. */
+  function wireDrag(handle, row){
+    handle.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      row.classList.add("dragging");
+      const onMove = (ev) => {
+        const el = document.elementFromPoint(ev.clientX, ev.clientY);
+        const over = el && el.closest(".layer-row");
+        if(!over || over === row || over.parentNode !== listEl) return;
+        const rect = over.getBoundingClientRect();
+        const after = ev.clientY > rect.top + rect.height / 2;
+        listEl.insertBefore(row, after ? over.nextSibling : over);
+      };
+      const onUp = () => {
+        window.removeEventListener("pointermove", onMove);
+        window.removeEventListener("pointerup", onUp);
+        window.removeEventListener("pointercancel", onUp);
+        row.classList.remove("dragging");
+        const displayOrder = Array.from(listEl.querySelectorAll(".layer-row")).map(r => r.dataset.id);
+        order = displayOrder.reverse();
+        saveMapPrefs(order, hidden);
+        applyZOrder();
+      };
+      // Écoute sur window (pas de setPointerCapture) : déplacer la ligne dans le DOM
+      // annulerait la capture et on perdrait le relâchement.
+      window.addEventListener("pointermove", onMove);
+      window.addEventListener("pointerup", onUp);
+      window.addEventListener("pointercancel", onUp);
+    });
+  }
+  renderLayerList();
+
+  // Position GPS en direct
+  let meMarker = null, meCircle = null, lastFix = null, watchId = null;
+  if(navigator.geolocation){
+    watchId = navigator.geolocation.watchPosition((pos) => {
+      lastFix = [pos.coords.latitude, pos.coords.longitude];
+      const acc = pos.coords.accuracy || 0;
+      if(!meMarker){
+        meCircle = L.circle(lastFix, { radius: acc, color: "#3182ce", weight: 1, fillOpacity: 0.12, interactive: false }).addTo(map);
+        meMarker = L.circleMarker(lastFix, { radius: 7, fillColor: "#3182ce", color: "#fff", weight: 3, fillOpacity: 1 }).addTo(map);
+        meMarker.bindPopup(t("mapMe"));
+      } else {
+        meMarker.setLatLng(lastFix); meCircle.setLatLng(lastFix); meCircle.setRadius(acc);
+      }
+    }, () => {}, { enableHighAccuracy: true, maximumAge: 5000 });
+  }
+  wrap.querySelector("#btnLocate").addEventListener("click", () => {
+    if(lastFix) map.setView(lastFix, Math.max(map.getZoom(), 16));
+    else showToast(t("mapNoFix"));
+  });
+  wrap.querySelector("#btnFit").addEventListener("click", () => {
+    map.fitBounds([[PROJECT_BOUNDS.south, PROJECT_BOUNDS.west], [PROJECT_BOUNDS.north, PROJECT_BOUNDS.east]]);
+  });
+
+  // Fond de carte hors-ligne : uniquement sur demande explicite
+  const tileInfo = wrap.querySelector("#tileInfo");
+  const btnTiles = wrap.querySelector("#btnTiles");
+  const totalTiles = projectTileUrls().length;
+  async function refreshTileInfo(){
+    if(tileDownload){ tileInfo.textContent = t("mapDownloading") + " " + tileDownload.done + " / " + tileDownload.total; return; }
+    const n = await countCachedTiles();
+    const doneAt = Number(localStorage.getItem("rdc39_tiles_done_at") || "0");
+    tileInfo.textContent = Math.min(n, totalTiles) + " / " + totalTiles + " " + t("mapTilesCached") +
+      (doneAt ? " — " + t("mapTilesDoneAt") + " " + fmtDate(new Date(doneAt).toISOString()) : "");
+  }
+  btnTiles.addEventListener("click", async () => {
+    if(!navigator.onLine){ showToast(t("syncOffline")); return; }
+    if(!confirm(t("mapDownloadConfirm").replace("{n}", totalTiles))) return;
+    btnTiles.disabled = true;
+    const res = await downloadProjectTiles((p) => {
+      if(!wrap.isConnected) return;
+      tileInfo.textContent = p.finished ? "" : t("mapDownloading") + " " + p.done + " / " + p.total;
+    });
+    btnTiles.disabled = false;
+    if(res && res.failed) showToast(res.failed + " " + t("mapTilesFailed"));
+    else showToast(t("mapDownloadDone"));
+    if(wrap.isConnected) refreshTileInfo();
+  });
+
+  setTimeout(() => map.invalidateSize(), 50);
+  currentViewCleanup = () => {
+    if(watchId !== null && navigator.geolocation) navigator.geolocation.clearWatch(watchId);
+    map.remove();
+    document.body.classList.remove("map-mode");
+  };
+}
+
+/* ============================================================
+   Routeur : #home | #new | #visit/<uid> | #report/<uid> | #settings | #map
+   ============================================================ */
+const main = document.getElementById("main");
+const pageTitle = document.getElementById("pageTitle");
+const btnBack = document.getElementById("btnBack");
+const btnSettings = document.getElementById("btnSettings");
+const btnFolders = document.getElementById("btnFolders");
+const btnMap = document.getElementById("btnMap");
+const fabNew = document.getElementById("fabNew");
+
+window.addEventListener("hashchange", route);
+btnBack.addEventListener("click", () => { window.location.hash = "#home"; });
+btnSettings.addEventListener("click", () => { window.location.hash = "#settings"; });
+btnFolders.addEventListener("click", () => { window.location.hash = "#folders"; });
+btnMap.addEventListener("click", () => { window.location.hash = "#map"; });
+fabNew.addEventListener("click", () => { window.location.hash = "#new"; });
+
+function route(){
+  if(!appUnlocked) return;
+  document.documentElement.style.setProperty("--appbar-h", document.getElementById("appbar").offsetHeight + "px");
+  if(currentViewCleanup){ try{ currentViewCleanup(); }catch(e){} currentViewCleanup = null; }
+  const hash = window.location.hash || "#home";
+  pageTitle.textContent = t("appName");
+  refreshSyncBadge();
+  if(hash === "#home"){
+    btnBack.hidden = true; fabNew.hidden = false;
+    renderHome();
+  } else if(hash === "#new"){
+    btnBack.hidden = false; fabNew.hidden = true; pageTitle.textContent = t("newVisit");
+    renderNewVisit();
+  } else if(hash === "#settings"){
+    btnBack.hidden = false; fabNew.hidden = true; pageTitle.textContent = t("settings");
+    renderSettings();
+  } else if(hash === "#map"){
+    btnBack.hidden = false; fabNew.hidden = true; pageTitle.textContent = t("map");
+    renderMap();
+  } else if(hash === "#folders"){
+    btnBack.hidden = false; fabNew.hidden = true; pageTitle.textContent = t("folders");
+    renderFolders();
+  } else if(hash === "#trash"){
+    btnBack.hidden = false; fabNew.hidden = true; pageTitle.textContent = t("trash");
+    renderTrash();
+  } else if(hash.startsWith("#report/")){
+    btnBack.hidden = false; fabNew.hidden = true; pageTitle.textContent = t("reportTitle");
+    renderReport(hash.slice(8));
+  } else if(hash.startsWith("#visit/")){
+    btnBack.hidden = false; fabNew.hidden = true;
+    renderVisitDetail(hash.slice(7));
+  } else {
+    window.location.hash = "#home";
+  }
+}
+
+/* ============================================================
+   Vue : accueil
+   ============================================================ */
+let filterState = { category: "", search: "", period: "", folder: null };
+let selectMode = false;
+let selectedIds = new Set();
+
+async function renderHome(){
+  main.innerHTML = "";
+  fabNew.hidden = selectMode;
+
+  const toolbar = document.createElement("div");
+  toolbar.className = "home-toolbar";
+  if(!selectMode){
+    toolbar.innerHTML = `<button id="btnEnterSelect">${t("selectMode")}</button>`;
+  }
+  main.appendChild(toolbar);
+
+  let selectBar = null;
+  if(selectMode){
+    selectBar = document.createElement("div");
+    selectBar.className = "select-bar";
+    main.appendChild(selectBar);
+  }
+
+  if(filterState.folder){
+    const label = filterState.folder === "unfiled" ? t("unfiled") : await folderPathLabel(filterState.folder);
+    const activeFolder = document.createElement("div");
+    activeFolder.className = "active-folder";
+    activeFolder.innerHTML = `<span>\u{1F4C1} ${escapeHtml(label)}</span><button id="btnClearFolder">${t("activeFolderClear")}</button>`;
+    main.appendChild(activeFolder);
+    activeFolder.querySelector("#btnClearFolder").addEventListener("click", () => { filterState.folder = null; route(); });
+  }
+
+  const filters = document.createElement("div");
+  filters.className = "filters";
+  const cats = loadCategories();
+  filters.innerHTML = `
+    <select id="fCat">
+      <option value="">${t("filterAllCat")}</option>
+      ${cats.map(c => `<option value="${c.id}">${c.glyph} ${escapeHtml(c.label)}</option>`).join("")}
+    </select>
+    <select id="fPeriod">
+      <option value="">${t("filterAllPeriod")}</option>
+      <option value="7">${t("period7")}</option>
+      <option value="30">${t("period30")}</option>
+    </select>
+    <input type="search" id="fSearch" placeholder="${t("search")}">
+  `;
+  main.appendChild(filters);
+  const listEl = document.createElement("div");
+  listEl.className = "visit-list";
+  main.appendChild(listEl);
+
+  if(!selectMode){
+    toolbar.querySelector("#btnEnterSelect").addEventListener("click", () => {
+      selectMode = true; selectedIds = new Set(); route();
+    });
+  }
+
+  function renderSelectBar(){
+    if(!selectBar) return;
+    selectBar.innerHTML = `
+      <span class="count">${selectedIds.size} ${t("selectedCount")}</span>
+      <div class="actions">
+        <button class="btn" id="btnMoveSelected" ${selectedIds.size === 0 ? "disabled" : ""}>${t("moveSelected")}</button>
+        <button class="btn danger" id="btnDeleteSelected" ${selectedIds.size === 0 ? "disabled" : ""}>${t("deleteSelected")}</button>
+        <button class="btn" id="btnCancelSelect">${t("selectCancel")}</button>
+      </div>
+    `;
+    selectBar.querySelector("#btnCancelSelect").addEventListener("click", () => {
+      selectMode = false; selectedIds = new Set(); route();
+    });
+    selectBar.querySelector("#btnMoveSelected").addEventListener("click", async () => {
+      if(selectedIds.size === 0) return;
+      await showFolderPicker(async (folderId) => {
+        const ids = Array.from(selectedIds);
+        for(const uid2 of ids){
+          const v = await idbGet("visits", uid2);
+          if(v){ v.folderId = folderId; await idbPut("visits", v); }
+        }
+        showToast(ids.length + " " + t("movedSelectedCount"));
+        selectMode = false; selectedIds = new Set();
+        route();
+      });
+    });
+    selectBar.querySelector("#btnDeleteSelected").addEventListener("click", async () => {
+      if(selectedIds.size === 0) return;
+      if(!confirm(t("confirmDeleteSelected"))) return;
+      const ids = Array.from(selectedIds);
+      for(const uid2 of ids){
+        const v = await idbGet("visits", uid2);
+        if(v){ v.trashedAt = Date.now(); await idbPut("visits", v); }
+      }
+      showToast(ids.length + " " + t("trashedSelectedCount"));
+      selectMode = false; selectedIds = new Set();
+      route();
+    });
+  }
+  renderSelectBar();
+
+  filters.querySelector("#fCat").value = filterState.category;
+  filters.querySelector("#fPeriod").value = filterState.period;
+  filters.querySelector("#fSearch").value = filterState.search;
+  filters.querySelector("#fCat").addEventListener("change", e => { filterState.category = e.target.value; refreshList(); });
+  filters.querySelector("#fPeriod").addEventListener("change", e => { filterState.period = e.target.value; refreshList(); });
+  filters.querySelector("#fSearch").addEventListener("input", e => { filterState.search = e.target.value; refreshList(); });
+
+  async function refreshList(){
+    let visits = await idbGetAll("visits");
+    visits = visits.filter(v => !v.trashedAt);
+    visits.sort((a,b) => new Date(b.date) - new Date(a.date));
+    if(filterState.category) visits = visits.filter(v => v.category === filterState.category);
+    if(filterState.folder === "unfiled") visits = visits.filter(v => !v.folderId);
+    else if(filterState.folder) visits = visits.filter(v => v.folderId === filterState.folder);
+    if(filterState.period){
+      const cutoff = Date.now() - Number(filterState.period) * 86400000;
+      visits = visits.filter(v => new Date(v.date).getTime() >= cutoff);
+    }
+    let entriesByVisit = {};
+    if(filterState.search){
+      const q = filterState.search.toLowerCase();
+      const kept = [];
+      for(const v of visits){
+        const entries = await idbGetByIndex("entries", "visitUid", v.uid);
+        entriesByVisit[v.uid] = entries;
+        const hay = [v.tag, ...(v.tags || []), ...entries.map(e => e.text || ""), ...entries.map(e => e.label || "")].join(" ").toLowerCase();
+        if(hay.includes(q)) kept.push(v);
+      }
+      visits = kept;
+    }
+
+    if(visits.length === 0){
+      listEl.innerHTML = `<div class="empty-state"><div class="glyph">\u{1F4D3}</div><p><strong>${t("emptyTitle")}</strong></p><p>${t("emptyBody")}</p></div>`;
+      return;
+    }
+    listEl.innerHTML = "";
+    for(const v of visits){
+      const cat = catById(v.category);
+      const entries = entriesByVisit[v.uid] || await idbGetByIndex("entries", "visitUid", v.uid);
+      const nPhoto = entries.filter(e => e.kind === "photo").length;
+      const nText = entries.filter(e => e.kind === "texte").length;
+      const isSelected = selectedIds.has(v.uid);
+      const card = document.createElement("button");
+      card.className = "visit-card" + (isSelected ? " selected" : "");
+      card.innerHTML = `
+        ${selectMode ? `<div class="check">${isSelected ? "\u2713" : ""}</div>` : `<div class="glyph">${cat.glyph}</div>`}
+        <div class="info">
+          <div class="tag">${escapeHtml(v.tag) || cat.label}</div>
+          <div class="meta">${fmtDate(v.date)}${v.syncState === "sent" ? " \u00b7 \u2713" : " \u00b7 \u23F3"}</div>
+        </div>
+        <div class="counts">
+          ${nPhoto ? `<span>\u{1F4F7} ${nPhoto}</span>` : ""}
+          ${nText ? `<span>\u{1F4DD} ${nText}</span>` : ""}
+        </div>
+      `;
+      if(selectMode){
+        card.addEventListener("click", () => {
+          if(selectedIds.has(v.uid)) selectedIds.delete(v.uid); else selectedIds.add(v.uid);
+          renderSelectBar();
+          card.classList.toggle("selected");
+          card.querySelector(".check").textContent = selectedIds.has(v.uid) ? "\u2713" : "";
+        });
+      } else {
+        card.addEventListener("click", () => { window.location.hash = "#visit/" + v.uid; });
+      }
+      listEl.appendChild(card);
+    }
+  }
+  refreshList();
+}
+
+/* ============================================================
+   Vue : nouvelle visite (plus de GPS unique ici)
+   ============================================================ */
+function renderNewVisit(){
+  main.innerHTML = "";
+  let selectedCat = loadCategories()[0].id;
+  const now = new Date();
+  const dateVal = now.toISOString().slice(0,10);
+
+  const form = document.createElement("div");
+  form.innerHTML = `
+    <div class="field"><label>${t("category")}</label><div class="cat-grid" id="catGrid"></div></div>
+    <div class="field"><label for="fTag">${t("landmark")}</label>
+      <input type="text" id="fTag" list="tagOptions" placeholder="${t("landmarkPh")}" autocomplete="off">
+      <datalist id="tagOptions"></datalist>
+    </div>
+    <div class="field"><label for="fDate">${t("date")}</label><input type="date" id="fDate" value="${dateVal}"></div>
+    <div class="form-actions"><button class="btn primary" id="btnCreate" style="width:100%">${t("createVisit")}</button></div>
+  `;
+  main.appendChild(form);
+
+  idbGetAll("visits").then(visits => {
+    const tags = Array.from(new Set(visits.map(v => (v.tag || "").trim()).filter(Boolean)));
+    tags.sort((a,b) => a.localeCompare(b));
+    form.querySelector("#tagOptions").innerHTML = tags.map(tg => `<option value="${escapeHtml(tg)}"></option>`).join("");
+  });
+
+  function renderCatGrid(){
+    const grid = form.querySelector("#catGrid");
+    const cats = loadCategories();
+    grid.innerHTML = cats.map(c => `
+      <button type="button" class="cat-btn ${c.id === selectedCat ? "selected" : ""}" data-id="${c.id}">
+        <span class="glyph">${c.glyph}</span>${escapeHtml(c.label)}
+      </button>
+    `).join("") + `<button type="button" class="cat-btn add-new" id="btnAddCat"><span class="glyph">+</span>${t("newCategory")}</button>`;
+    grid.querySelectorAll(".cat-btn[data-id]").forEach(btn => {
+      btn.addEventListener("click", () => { selectedCat = btn.dataset.id; renderCatGrid(); });
+    });
+    grid.querySelector("#btnAddCat").addEventListener("click", () => {
+      const label = prompt(t("newCategoryPrompt"));
+      if(label && label.trim()){ selectedCat = addCustomCategory(label.trim()); renderCatGrid(); }
+    });
+  }
+  renderCatGrid();
+
+  form.querySelector("#btnCreate").addEventListener("click", async () => {
+    const tag = form.querySelector("#fTag").value.trim();
+    const dateStr = form.querySelector("#fDate").value || dateVal;
+    const visit = {
+      uid: uid(), category: selectedCat, tag,
+      date: new Date(dateStr + "T" + now.toTimeString().slice(0,8)).toISOString(),
+      folderId: null, tags: [], trashedAt: null,
+      createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
+    };
+    await idbPut("visits", visit);
+    showToast(t("visitCreated"));
+    window.location.hash = "#visit/" + visit.uid;
+  });
+}
+
+/* ============================================================
+   Vue : d\u00e9tail d'une visite — entr\u00e9es unifi\u00e9es (audio/photo/texte)
+   ============================================================ */
+let recordStart = null, recordTimerInterval = null;
+const WEIGHT_WARN = 30 * 1024 * 1024, WEIGHT_DANGER = 80 * 1024 * 1024;
+
+async function renderVisitDetail(uidVal){
+  const visit = await idbGet("visits", uidVal);
+  if(!visit){ window.location.hash = "#home"; return; }
+  const cat = catById(visit.category);
+
+  main.innerHTML = "";
+  const head = document.createElement("div");
+  head.className = "detail-head";
+  head.innerHTML = `
+    <div class="cat-line">${cat.glyph} ${escapeHtml(cat.label)}</div>
+    <h2>${escapeHtml(visit.tag) || "\u2014"}</h2>
+    <div class="meta">${fmtDateTime(visit.date)}</div>
+  `;
+  main.appendChild(head);
+
+  const classementSection = document.createElement("div");
+  classementSection.className = "section";
+  classementSection.innerHTML = `
+    <h3>${t("classement")}</h3>
+    <div class="simple-list-row" id="rowFolder" style="cursor:pointer;">
+      <span>\u{1F4C1} <span id="folderLabelText">\u2026</span></span>
+      <span style="color: var(--accent); font-size:12px;">${t("changeFolder")}</span>
+    </div>
+    <div class="tag-chip-list" id="tagChips"></div>
+    <button class="btn" id="btnAddTag" style="font-size:12px; padding:6px 10px;">${t("addTag")}</button>
+  `;
+  main.appendChild(classementSection);
+
+  async function refreshFolderLabel(){
+    classementSection.querySelector("#folderLabelText").textContent = await folderPathLabel(visit.folderId);
+  }
+  refreshFolderLabel();
+  classementSection.querySelector("#rowFolder").addEventListener("click", () => {
+    showFolderPicker(async (folderId) => {
+      visit.folderId = folderId;
+      await idbPut("visits", visit);
+      refreshFolderLabel();
+    });
+  });
+
+  function refreshTagChips(){
+    const chips = classementSection.querySelector("#tagChips");
+    chips.innerHTML = (visit.tags || []).map(tag => `
+      <span class="tag-chip">${escapeHtml(tag)}<button data-tag="${escapeHtml(tag)}">\u2715</button></span>
+    `).join("");
+    chips.querySelectorAll("button[data-tag]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        visit.tags = (visit.tags || []).filter(tg => tg !== btn.dataset.tag);
+        await idbPut("visits", visit);
+        refreshTagChips();
+      });
+    });
+  }
+  refreshTagChips();
+  classementSection.querySelector("#btnAddTag").addEventListener("click", async () => {
+    const name = prompt(t("addTagPrompt"));
+    if(name && name.trim()){
+      visit.tags = Array.from(new Set([...(visit.tags || []), name.trim()]));
+      await idbPut("visits", visit);
+      refreshTagChips();
+    }
+  });
+
+  const weightBanner = document.createElement("div");
+  weightBanner.className = "weight-banner";
+  weightBanner.id = "weightBanner";
+  main.appendChild(weightBanner);
+
+  const addRow = document.createElement("div");
+  addRow.className = "add-row";
+  addRow.innerHTML = `
+    <button class="btn" id="btnDictate" title="${t("dictateHint")}">${t("addDictate")}</button>
+    <button class="btn" id="btnAddPhoto" title="${t("addPhoto")}">\u{1F4F7} ${t("addPhoto")}</button>
+    <button class="btn" id="btnAddText" title="${t("addText")}">\u{1F4DD} ${t("addText")}</button>
+    <button class="btn" id="btnImportDoc" title="${t("addDocument")}">\u{1F4C4} ${t("addDocument")}</button>
+    <button class="btn" id="btnImportFile" title="${t("addFile")}">${t("addFile")}</button>
+    <input type="file" id="photoInput" accept="image/*" capture="environment" multiple class="sr-only">
+    <input type="file" id="docInput" accept=".txt,text/plain" class="sr-only">
+    <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="sr-only">
+  `;
+  main.appendChild(addRow);
+
+  const recStatus = document.createElement("div");
+  recStatus.className = "rec-status";
+  recStatus.id = "recStatus";
+  main.appendChild(recStatus);
+
+  const hint = document.createElement("p");
+  hint.className = "capture-hint";
+  hint.textContent = t("captureHint");
+  main.appendChild(hint);
+
+  const entryList = document.createElement("div");
+  entryList.className = "entry-list";
+  main.appendChild(entryList);
+
+  const bottomActions = document.createElement("div");
+  bottomActions.className = "section";
+  bottomActions.style.marginTop = "22px";
+  bottomActions.innerHTML = `
+    <button class="btn primary" id="btnConsolidate" style="width:100%; margin-bottom:10px;" title="${t("hintConsolidate")}">\u{1F4D1} ${t("consolidate")}</button>
+    <button class="btn" id="btnExport" style="width:100%; margin-bottom:10px;" title="${t("hintExport")}">\u{1F4E4} ${t("exportVisit")}</button>
+    <button class="btn" id="btnExportDigest" style="width:100%; margin-bottom:10px;" title="${t("hintExportDigest")}">${t("exportDigest")}</button>
+    <button class="btn danger" id="btnDelete" style="width:100%;" title="${t("hintDelete")}">${t("deleteVisit")}</button>
+  `;
+  main.appendChild(bottomActions);
+  bottomActions.querySelector("#btnConsolidate").addEventListener("click", () => { window.location.hash = "#report/" + visit.uid; });
+  bottomActions.querySelector("#btnExport").addEventListener("click", () => exportVisit(visit));
+  bottomActions.querySelector("#btnExportDigest").addEventListener("click", () => exportDigest(visit));
+  bottomActions.querySelector("#btnDelete").addEventListener("click", () => deleteVisit(visit));
+
+  async function refreshWeight(){
+    const entries = await idbGetByIndex("entries", "visitUid", visit.uid);
+    let bytes = 0;
+    for(const e of entries) bytes += getEntrySize(e);
+    const banner = document.getElementById("weightBanner");
+    banner.classList.remove("warn", "danger");
+    if(bytes >= WEIGHT_DANGER) banner.classList.add("danger");
+    else if(bytes >= WEIGHT_WARN) banner.classList.add("warn");
+    banner.innerHTML = `<span>${entries.length} ${t("weightLabel")}</span><span>${fmtBytes(bytes)}</span>`;
+  }
+
+  async function refreshEntries(){
+    const entries = await idbGetByIndex("entries", "visitUid", visit.uid);
+    entries.sort((a,b) => a.timestamp - b.timestamp);
+    entryList.innerHTML = "";
+    if(entries.length === 0){
+      entryList.innerHTML = `<p class="capture-hint">${t("noEntries")}</p>`;
+    }
+    for(const entry of entries){
+      const card = document.createElement("div");
+      card.className = "entry-card";
+      const glyph = entry.kind === "audio" ? "\u{1F3A4}" : entry.kind === "photo" ? "\u{1F4F7}" : entry.kind === "fichier" ? fileGlyph(entry.fileName) : "\u{1F4DD}";
+      const gpsStr = entry.location ? entry.location.lat.toFixed(5) + ", " + entry.location.lng.toFixed(5) : "";
+      card.innerHTML = `
+        <div class="entry-head">
+          <span class="entry-meta">${glyph} ${fmtTime(entry.timestamp)}
+            ${entry.label ? " \u00b7 " + escapeHtml(entry.label) : ""}
+            ${gpsStr ? " \u00b7 \u{1F4CD} " + gpsStr : ""}
+          </span>
+          <button class="del" aria-label="Delete">\u2715</button>
+        </div>
+        <div class="entry-body"></div>
+        <button class="label-btn" data-act="label">${entry.label ? "\u270f\ufe0f" : "+ " + t("entryLabelPrompt").replace(" :","").replace(":","")}</button>
+        <button class="label-btn" data-act="position" style="margin-left:14px;">${entry.location ? "\u270f\ufe0f " : "+ "}${t("editPosition")}</button>
+      `;
+      const body = card.querySelector(".entry-body");
+      if(entry.kind === "photo"){      } else if(entry.kind === "photo"){
+        const entryBlob = getEntryBlob(entry);
+        const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
+        body.innerHTML = `<img src="${url}" alt="">`;
+      } else if(entry.kind === "fichier"){
+        const entryBlob = getEntryBlob(entry);
+        const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
+        body.innerHTML = `
+          <a href="${url}" download="${escapeHtml(entry.fileName || "fichier")}" class="btn" style="display:block; text-align:center; text-decoration:none;">
+            ${fileGlyph(entry.fileName)} ${escapeHtml(entry.fileName || "fichier")} (${fmtBytes(getEntrySize(entry))})
+          </a>
+        `;
+      } else {
+        body.innerHTML = `<textarea>${escapeHtml(entry.text || "")}</textarea>`;
+        let tTimer = null;
+        body.querySelector("textarea").addEventListener("input", (e) => {
+          clearTimeout(tTimer);
+          tTimer = setTimeout(async () => { entry.text = e.target.value; await idbPut("entries", entry); }, 500);
+        });
+      }
+      card.querySelector(".del").addEventListener("click", async () => {
+        await idbDelete("entries", entry.id);
+        refreshEntries(); refreshWeight();
+      });
+      card.querySelector('[data-act="label"]').addEventListener("click", async () => {
+        const val = prompt(t("entryLabelPrompt"), entry.label || "");
+        if(val !== null){ entry.label = val.trim(); await migrateEntryIfLegacy(entry); await idbPut("entries", entry); refreshEntries(); }
+      });
+      card.querySelector('[data-act="position"]').addEventListener("click", async () => {
+        const current = entry.location ? entry.location.lat + ", " + entry.location.lng : "";
+        const val = prompt(t("editPositionPrompt"), current);
+        if(val === null) return;
+        const trimmed = val.trim();
+        if(trimmed === ""){
+          entry.location = null;
+          await migrateEntryIfLegacy(entry); await idbPut("entries", entry);
+          showToast(t("editPositionCleared"));
+          refreshEntries();
+          return;
+        }
+        const parts = trimmed.split(",").map(s => s.trim());
+        const lat = parts.length === 2 ? Number(parts[0]) : NaN;
+        const lng = parts.length === 2 ? Number(parts[1]) : NaN;
+        if(!isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180){
+          showToast(t("editPositionInvalid"));
+          return;
+        }
+        entry.location = { lat, lng };
+        await migrateEntryIfLegacy(entry); await idbPut("entries", entry);
+        showToast(t("editPositionSaved"));
+        refreshEntries();
+      });
+      entryList.appendChild(card);
+    }
+  }
+
+  addRow.querySelector("#btnAddText").addEventListener("click", async () => {
+    const text = prompt(t("textEntryPh"));
+    if(text && text.trim()){
+      const location = await tryGetPosition();
+      await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "texte", text: text.trim(), label: "", location, timestamp: Date.now() });
+      refreshEntries(); refreshWeight();
+    }
+  });
+
+  addRow.querySelector("#btnAddPhoto").addEventListener("click", () => main.querySelector("#photoInput").click());
+  main.querySelector("#photoInput").addEventListener("change", async (e) => {
+    const files = Array.from(e.target.files || []);
+    const q = QUALITY_LEVELS[currentQuality()] || QUALITY_LEVELS.std;
+    let added = 0, foundExifGps = false;
+    for(const file of files){
+      try{
+        // Lu AVANT compression : le canvas de compression supprime tout EXIF, donc c'est
+        // la seule fen\u00eatre o\u00f9 un GPS d\u00e9j\u00e0 pr\u00e9sent dans la photo (prise ailleurs, import\u00e9e
+        // depuis un ordinateur) est encore accessible. M\u00eame chemin pour une prise en direct
+        // ou un import galerie/disque — aucune distinction faite ici.
+        let exifLocation = null;
+        try{
+          const rawBuf = await file.arrayBuffer();
+          exifLocation = extractExifGps(rawBuf);
+        }catch(exifErr){ /* pas grave, on retombe sur le GPS live ci-dessous */ }
+
+        const blob = await compressImage(file, q.maxDim, q.quality);
+        const data = await blob.arrayBuffer();
+        const location = exifLocation || await tryGetPosition();
+        await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "photo", data, mime: blob.type || "image/jpeg", label: "", location, timestamp: Date.now() });
+        if(exifLocation) foundExifGps = true;
+        added++;
+      }catch(err){ showToast(t("photoUnreadable")); }
+    }
+    e.target.value = "";
+    refreshEntries(); refreshWeight();
+    if(foundExifGps) showToast(t("exifGpsFound"));
+    else if(added) showToast(t("photosAdded"));
+  });
+
+  addRow.querySelector("#btnDictate").addEventListener("click", () => toggleDictation(visit.uid));
+
+  addRow.querySelector("#btnImportDoc").addEventListener("click", () => main.querySelector("#docInput").click());
+  main.querySelector("#docInput").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if(!file) return;
+    const isTextLike = file.type.startsWith("text/") || /\.txt$/i.test(file.name);
+    if(!isTextLike){ showToast(t("documentUnsupported")); return; }
+    const content = await file.text();
+    const location = await tryGetPosition();
+    const suggestedLabel = /ordre.?du.?jour|agenda/i.test(file.name) ? "Ordre du jour" : "";
+    await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "texte", text: content, label: suggestedLabel, location, timestamp: Date.now() });
+    refreshEntries(); refreshWeight();
+    showToast(t("documentImported"));
+  });
+
+  addRow.querySelector("#btnImportFile").addEventListener("click", () => main.querySelector("#fileInput").click());
+  main.querySelector("#fileInput").addEventListener("change", async (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = "";
+    if(!file) return;
+    if(file.size > 20 * 1024 * 1024){ showToast(t("fileTooBig")); return; }
+    const location = await tryGetPosition();
+    const data = await file.arrayBuffer();
+    await idbPut("entries", {
+      id: uid(), visitUid: visit.uid, kind: "fichier", data,
+      fileName: file.name, mime: file.type || "application/octet-stream",
+      label: "", location, timestamp: Date.now()
+    });
+    refreshEntries(); refreshWeight();
+    showToast(t("fileImported"));
+  });
+
+  /* ---------- Dict\u00e9e directe : texte uniquement, AUCUN fichier audio, jamais de
+     lecture/enregistrement simultan\u00e9. Contrairement au palier "l\u00e9ger" (qui rejoue un
+     audio d\u00e9j\u00e0 enregistr\u00e9 pendant que la reconnaissance \u00e9coute — conflit mat\u00e9riel
+     confirm\u00e9 sur Android ET iOS, pour deux raisons diff\u00e9rentes mais toutes deux
+     insurmontables en JS), ici la reconnaissance est SEULE consommatrice du micro,
+     exactement comme Siri ou le clavier — fiable sur mobile, confirm\u00e9 en test r\u00e9el. ---------- */
+  let dictationRec = null;
+  async function toggleDictation(visitUid){
+    const btn = addRow.querySelector("#btnDictate");
+    if(dictationRec){ dictationRec.stop(); return; }
+    const SpeechRecCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if(!SpeechRecCtor){ showToast(t("transcribeUnsupported")); return; }
+
+    let finalText = "", interimText = "", errorShown = false, weStoppedIt = false;
+    dictationRec = new SpeechRecCtor();
+    dictationRec.lang = speechRecogLangTag();
+    dictationRec.continuous = true;
+    dictationRec.interimResults = true;
+    dictationRec.onresult = (e) => {
+      let f = "", i2 = "";
+      for(let i = 0; i < e.results.length; i++){
+        if(e.results[i].isFinal) f += e.results[i][0].transcript + " ";
+        else i2 += e.results[i][0].transcript + " ";
+      }
+      if(f) finalText = f.trim();
+      interimText = i2.trim();
+    };
+    dictationRec.onerror = (e) => {
+      // M\u00eame comportement b\u00e9nin observ\u00e9 et corrig\u00e9 pour le palier "l\u00e9ger" : un "aborted"
+      // caus\u00e9 par notre propre arr\u00eat, sans rien avoir capt\u00e9, n'est pas une vraie erreur.
+      if(e.error === "aborted" && weStoppedIt) return;
+      if(!errorShown){ errorShown = true; showToast(t("dictationErrorPrefix") + " : " + dictationErrorLabel(e.error)); }
+    };
+    dictationRec.onend = async () => {
+      dictationRec = null;
+      clearInterval(recordTimerInterval);
+      recStatus.innerHTML = "";
+      btn.textContent = t("addDictate");
+      const text = (finalText || interimText).trim();
+      if(text){
+        const location = await tryGetPosition();
+        await idbPut("entries", { id: uid(), visitUid, kind: "texte", text, label: "", location, timestamp: Date.now() });
+        refreshEntries(); refreshWeight();
+        showToast(t("dictateSaved"));
+      } else if(!errorShown){
+        showToast(t("dictateEmpty"));
+      }
+    };
+
+    try{ dictationRec.start(); }
+    catch(err){ dictationRec = null; showToast(t("dictationErrorPrefix") + " : " + t("dictationErrorOther")); return; }
+    btn.textContent = t("dictateStop");
+    recordStart = Date.now();
+    recStatus.innerHTML = `<span class="rec-timer" id="recTimer">${t("dictateListening")} 00:00</span>`;
+    recordTimerInterval = setInterval(() => {
+      const s = Math.floor((Date.now() - recordStart) / 1000);
+      const el = document.getElementById("recTimer");
+      if(el) el.textContent = t("dictateListening") + " " + String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0");
+    }, 250);
+
+    // Point d'arr\u00eat r\u00e9utilis\u00e9 par le bouton (toggle) : marque qu'on a nous-m\u00eames demand\u00e9
+    // l'arr\u00eat, pour appliquer le m\u00eame traitement b\u00e9nin du code "aborted" que ci-dessus.
+    const origStop = dictationRec.stop.bind(dictationRec);
+    dictationRec.stop = () => { weStoppedIt = true; origStop(); };
+  }
+
+  function dictationErrorLabel(code){
+    if(code === "not-allowed" || code === "service-not-allowed") return t("dictationErrorNoAllow");
+    if(code === "network") return t("dictationErrorNetwork");
+    if(code === "no-speech") return t("dictationErrorNoSpeech");
+    return t("dictationErrorOther") + " (" + code + ")";
+  }
+
+  async function exportVisit(v){
+    const entries = await idbGetByIndex("entries", "visitUid", v.uid);
+    entries.sort((a,b) => a.timestamp - b.timestamp);
+    const totalBytes = entries.reduce((s,e) => s + getEntrySize(e), 0);
+    if(!confirm(t("exportVisit") + " (~" + fmtBytes(totalBytes) + " " + t("exportWeightEstimate") + ")")) return;
+    const reportText = buildReportText(v, entries, "chrono");
+    downloadBlob(new Blob([reportText], { type: "text/plain;charset=utf-8" }), safeFileName(v.tag || v.uid) + "_rapport.txt");
+    const manifest = {
+      uid: v.uid, category: catById(v.category).label, tag: v.tag, date: v.date,
+      entries: entries.map((e,i) => ({
+        type: e.kind, horodatage: new Date(e.timestamp).toISOString(), repere: e.label || null,
+        position: e.location || null, texte: e.text || null,
+        fichier: getEntrySize(e) > 0 ? (e.kind === "fichier" ? (e.fileName || ("fichier_" + (i+1))) : (e.kind === "audio" ? "audio_" : "photo_") + (i+1) + extFor(e)) : null
+      }))
+    };
+    downloadBlob(new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" }), safeFileName(v.tag || v.uid) + "_donnees.json");
+    entries.forEach((e, i) => {
+      const entryBlob = getEntryBlob(e);
+      if(!entryBlob) return;
+      const name = e.kind === "fichier" ? (e.fileName || ("fichier_" + (i+1))) : safeFileName(v.tag || v.uid) + "_" + (e.kind === "audio" ? "audio_" : "photo_") + (i+1) + extFor(e);
+      downloadBlob(entryBlob, name);
+    });
+    showToast(t("exportLaunched"));
+  }
+
+  /* Export "digest" : un seul fichier JSON autonome, pens\u00e9 pour \u00eatre lu par un programme
+     plut\u00f4t qu'un humain (cf. note de connexion Calepin -> module pompage). Photos ET pi\u00e8ces
+     jointes (PDF/DOCX/XLSX) encod\u00e9es en base64 et int\u00e9gr\u00e9es (pour les pi\u00e8ces jointes, aucun
+     substitut texte n'existe, contrairement \u00e0 l'audio — le fichier brut est donc la seule
+     trace possible de cette information) ; audio volontairement EXCLU (transcription seule) ;
+     aucune synth\u00e8se IA n'est g\u00e9n\u00e9r\u00e9e \u00e0 la demande de l'export. */
+  async function exportDigest(v){
+    const entriesForWeight = await idbGetByIndex("entries", "visitUid", v.uid);
+    const nonCompressible = entriesForWeight.filter(e => e.kind === "fichier").length;
+    const estBytes = entriesForWeight.reduce((s,e) => s + (e.kind !== "audio" ? getEntrySize(e) * 1.33 : 0), 0);
+    let confirmMsg = t("digestConfirm") + " (~" + fmtBytes(estBytes) + " " + t("exportWeightEstimate") + ")";
+    if(nonCompressible > 0) confirmMsg += " \u2014 " + t("exportWeightWarn");
+    if(!confirm(confirmMsg)) return;
+    const digest = await buildDigest(v);
+    downloadBlob(new Blob([JSON.stringify(digest)], { type: "application/json" }), safeFileName(v.tag || v.uid) + "_digest.json");
+    showToast(t("digestExported"));
+  }
+  function extFor(e){
+    if(e.kind === "photo") return ".jpg";
+    const type = getEntryMime(e) || "";
+    if(type.includes("mp4")) return ".m4a";
+    if(type.includes("ogg")) return ".ogg";
+    return ".webm";
+  }
+  function safeFileName(s){
+    return (s || "visite").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9-_]+/g, "_").slice(0, 40);
+  }
+  function downloadBlob(blob, filename){
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+  async function deleteVisit(v){
+    if(!confirm(t("confirmDeleteVisit"))) return;
+    v.trashedAt = Date.now();
+    await idbPut("visits", v);
+    showToast(t("trashedVisit"));
+    window.location.hash = "#home";
+  }
+
+  refreshWeight();
+  refreshEntries();
+}
+
+/* ============================================================
+   Assemblage d\u00e9terministe du rapport (texte, pas de mise en page)
+   ============================================================ */
+function buildReportText(visit, entries, groupBy){
+  const cat = catById(visit.category);
+  let out = (visit.tag || cat.label) + "\n" + fmtDate(visit.date) + " \u00b7 " + cat.label + "\n" + "=".repeat(40) + "\n\n";
+  const lineFor = (e) => {
+    const time = fmtTime(e.timestamp);
+    const gps = e.location ? " [" + e.location.lat.toFixed(5) + ", " + e.location.lng.toFixed(5) + "]" : "";
+    if(e.kind === "photo") return "- " + time + gps + " \u2014 [photo]" + (e.text ? " " + e.text : "");
+    const content = e.text && e.text.trim() ? e.text.trim() : "(" + t("transcriptPh") + ")";
+    return "- " + time + gps + " \u2014 " + content;
+  };
+  if(groupBy === "landmark"){
+    const groups = {};
+    for(const e of entries){
+      const key = e.label && e.label.trim() ? e.label.trim() : t("noLandmark");
+      (groups[key] = groups[key] || []).push(e);
+    }
+    for(const key of Object.keys(groups)){
+      out += key + "\n" + "-".repeat(key.length) + "\n";
+      for(const e of groups[key]) out += lineFor(e) + "\n";
+      out += "\n";
+    }
+  } else {
+    for(const e of entries) out += lineFor(e) + "\n";
+  }
+  return out;
+}
+
+/* ============================================================
+   Vue : rapport / consolidation (consultation en app)
+   ============================================================ */
+async function renderReport(uidVal){
+  const visit = await idbGet("visits", uidVal);
+  if(!visit){ window.location.hash = "#home"; return; }
+  const cat = catById(visit.category);
+  let groupBy = "chrono";
+
+  main.innerHTML = "";
+  const head = document.createElement("div");
+  head.className = "detail-head";
+  head.innerHTML = `<div class="cat-line">${cat.glyph} ${escapeHtml(cat.label)}</div><h2>${escapeHtml(visit.tag) || "\u2014"}</h2><div class="meta">${fmtDate(visit.date)}</div>`;
+  main.appendChild(head);
+
+  const toggle = document.createElement("div");
+  toggle.className = "group-toggle";
+  toggle.innerHTML = `<button data-g="chrono" class="active">${t("groupChrono")}</button><button data-g="landmark">${t("groupLandmark")}</button>`;
+  main.appendChild(toggle);
+
+  const synthSection = document.createElement("div");
+  synthSection.className = "section";
+  synthSection.innerHTML = `
+    <p class="capture-hint" style="margin-top:0;">${t("synthFormat")}</p>
+    <div class="group-toggle" id="synthFormatToggle">
+      <button data-fmt="notes" title="${t("synthFormatNotesSub")}">${t("synthFormatNotes")}</button>
+      <button data-fmt="pv" title="${t("synthFormatPVSub")}">${t("synthFormatPV")}</button>
+    </div>
+    <p class="capture-hint">${t("synthLevel")}</p>
+    <div class="group-toggle" id="synthLevelToggle">
+      <button data-lvl="complet" title="${t("synthLevelCompletSub")}">${t("synthLevelComplet")}</button>
+      <button data-lvl="synthese" title="${t("synthLevelSyntheseSub")}">${t("synthLevelSynthese")}</button>
+      <button data-lvl="succinct" title="${t("synthLevelSuccinctSub")}">${t("synthLevelSuccinct")}</button>
+    </div>
+    <button class="btn" id="btnAISynth" style="width:100%;">${t("reportAISynth")}</button>
+    <p class="transcribe-status" id="synthStatus" hidden></p>
+    <div id="synthBlock" ${visit.aiSynthesis ? "" : "hidden"}>
+      <h3 style="font-size:14px; color: var(--accent); margin: 14px 0 6px 0;">
+        ${t("reportAISynthTitle")}
+        ${visit.aiSynthesisLevel ? `<span class="storage-line" style="display:inline; font-weight:400;">(${synthMetaLabel(visit.aiSynthesisFormat, visit.aiSynthesisLevel)})</span>` : ""}
+      </h3>
+      <p class="capture-hint" style="margin-top:0;">${t("reportAISynthNote")}</p>
+      <textarea id="synthText" style="width:100%; min-height:120px; background: var(--surface); color: var(--text); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:14px; line-height:1.5;">${escapeHtml(visit.aiSynthesis || "")}</textarea>
+    </div>
+  `;
+  main.appendChild(synthSection);
+
+  function synthMetaLabel(format, level){
+    const fmtLabel = format === "pv" ? t("synthFormatPV") : t("synthFormatNotes");
+    const lvlLabel = t("synthLevel" + level.charAt(0).toUpperCase() + level.slice(1));
+    return fmtLabel + " \u00b7 " + lvlLabel;
+  }
+
+  let synthLevel = visit.aiSynthesisLevel || localStorage.getItem("rdc39_synth_level") || "complet";
+  let synthFormat = visit.aiSynthesisFormat || localStorage.getItem("rdc39_synth_format") || "notes";
+  function renderSynthToggles(){
+    synthSection.querySelectorAll("#synthLevelToggle button").forEach(b => b.classList.toggle("active", b.dataset.lvl === synthLevel));
+    synthSection.querySelectorAll("#synthFormatToggle button").forEach(b => b.classList.toggle("active", b.dataset.fmt === synthFormat));
+  }
+  renderSynthToggles();
+  synthSection.querySelectorAll("#synthLevelToggle button").forEach(b => {
+    b.addEventListener("click", () => { synthLevel = b.dataset.lvl; localStorage.setItem("rdc39_synth_level", synthLevel); renderSynthToggles(); });
+  });
+  synthSection.querySelectorAll("#synthFormatToggle button").forEach(b => {
+    b.addEventListener("click", () => { synthFormat = b.dataset.fmt; localStorage.setItem("rdc39_synth_format", synthFormat); renderSynthToggles(); });
+  });
+
+  let synthTimer = null;
+  synthSection.querySelector("#synthText").addEventListener("input", (e) => {
+    clearTimeout(synthTimer);
+    synthTimer = setTimeout(async () => { visit.aiSynthesis = e.target.value; await idbPut("visits", visit); }, 500);
+  });
+  synthSection.querySelector("#btnAISynth").addEventListener("click", async () => {
+    const provider = currentSynthProvider();
+    if(!currentRelayUrl() || !currentAccessCode()){ showToast(t("relayMissing")); return; }
+    if(!navigator.onLine){ showToast(t("synthOffline")); return; }
+    const entries = (await idbGetByIndex("entries", "visitUid", visit.uid)).sort((a,b) => a.timestamp - b.timestamp);
+    if(entries.length === 0){ showToast(t("noEntries")); return; }
+
+    // D\u00e9tection des rep\u00e8res "ordre du jour" : extraits et pass\u00e9s s\u00e9par\u00e9ment au mod\u00e8le,
+    // le reste (y compris un \u00e9ventuel compte-rendu oral) suit le flux normal des notes.
+    const agendaEntries = entries.filter(e => isAgendaLabel(e.label));
+    const agendaText = agendaEntries.map(e => e.text || "").filter(Boolean).join("\n") || null;
+    const contentEntries = agendaText ? entries.filter(e => !isAgendaLabel(e.label)) : entries;
+    const rawText = buildReportText(visit, contentEntries, groupBy);
+
+    if(!confirm(t("reportAISynthConfirm") + " (~" + rawText.length + " caract\u00e8res, " + synthMetaLabel(synthFormat, synthLevel) + ")")) return;
+    const btn = synthSection.querySelector("#btnAISynth");
+    const statusEl = synthSection.querySelector("#synthStatus");
+    btn.disabled = true; statusEl.hidden = false; statusEl.textContent = t("reportAISynthRunning");
+    try{
+      const result = await callChatSynthesis(rawText, synthLevel, synthFormat, agendaText, provider);
+      bumpAICallCount();
+      visit.aiSynthesis = result;
+      visit.aiSynthesisLevel = synthLevel;
+      visit.aiSynthesisFormat = synthFormat;
+      await idbPut("visits", visit);
+      synthSection.querySelector("#synthBlock").hidden = false;
+      synthSection.querySelector("#synthText").value = result;
+      const titleEl = synthSection.querySelector("#synthBlock h3");
+      titleEl.innerHTML = `${t("reportAISynthTitle")} <span class="storage-line" style="display:inline; font-weight:400;">(${synthMetaLabel(synthFormat, synthLevel)})</span>`;
+      showToast(t("reportAISynthDone"));
+    }catch(err){
+      showToast(t("reportAISynthError") + " : " + err.message);
+    }finally{
+      btn.disabled = false; statusEl.hidden = true;
+    }
+  });
+
+  const body = document.createElement("div");
+  main.appendChild(body);
+
+  const exportBtn = document.createElement("button");
+  exportBtn.className = "btn"; exportBtn.style.width = "100%"; exportBtn.style.marginTop = "18px";
+  exportBtn.textContent = "\u{1F4E4} " + t("exportReport");
+  main.appendChild(exportBtn);
+
+  async function render(){
+    const entries = (await idbGetByIndex("entries", "visitUid", visit.uid)).sort((a,b) => a.timestamp - b.timestamp);
+    body.innerHTML = "";
+    if(entries.length === 0){
+      body.innerHTML = `<p class="capture-hint">${t("noEntries")}</p>`;
+      return;
+    }
+    const renderEntry = (e) => {
+      const div = document.createElement("div");
+      div.className = "report-entry";
+      const gps = e.location ? " \u00b7 \u{1F4CD} " + e.location.lat.toFixed(5) + ", " + e.location.lng.toFixed(5) : "";
+      let inner = `<span class="rmeta">${fmtTime(e.timestamp)}${gps}</span>`;
+      if(e.kind === "photo"){
+        const entryBlob = getEntryBlob(e);
+        const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
+        inner += `<img src="${url}" alt="">`;
+      } else {
+        inner += escapeHtml(e.text && e.text.trim() ? e.text.trim() : "(" + t("transcriptPh") + ")");
+      }
+      div.innerHTML = inner;
+      return div;
+    };
+    if(groupBy === "landmark"){
+      const groups = {};
+      for(const e of entries){
+        const key = e.label && e.label.trim() ? e.label.trim() : t("noLandmark");
+        (groups[key] = groups[key] || []).push(e);
+      }
+      for(const key of Object.keys(groups)){
+        const g = document.createElement("div");
+        g.className = "report-group";
+        const h = document.createElement("h3"); h.textContent = key; g.appendChild(h);
+        for(const e of groups[key]) g.appendChild(renderEntry(e));
+        body.appendChild(g);
+      }
+    } else {
+      const g = document.createElement("div");
+      g.className = "report-group";
+      for(const e of entries) g.appendChild(renderEntry(e));
+      body.appendChild(g);
+    }
+  }
+
+  toggle.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      groupBy = btn.dataset.g;
+      toggle.querySelectorAll("button").forEach(b => b.classList.toggle("active", b === btn));
+      render();
+    });
+  });
+
+  exportBtn.addEventListener("click", async () => {
+    const entries = (await idbGetByIndex("entries", "visitUid", visit.uid)).sort((a,b) => a.timestamp - b.timestamp);
+    let txt = buildReportText(visit, entries, groupBy);
+    if(visit.aiSynthesis){
+      txt = t("reportAISynthTitle").toUpperCase() + " (" + t("reportAISynthNote") + ")\n" + "=".repeat(40) + "\n\n" + visit.aiSynthesis + "\n\n" + "=".repeat(40) + "\n\n" + txt;
+    }
+    const url = URL.createObjectURL(new Blob([txt], { type: "text/plain;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = (visit.tag || "rapport").replace(/[^a-zA-Z0-9-_]+/g, "_").slice(0,40) + "_rapport.txt";
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    showToast(t("reportExported"));
+  });
+
+  render();
+}
+
+/* ============================================================
+   Vue : r\u00e9glages (langue, qualit\u00e9 photo, stockage)
+   ============================================================ */
+/* ============================================================
+   Vue : Dossiers (arborescence 2 niveaux) + gestion des tags
+   ============================================================ */
+async function renderFolders(){
+  main.innerHTML = "";
+
+  const introHint = document.createElement("p");
+  introHint.className = "capture-hint";
+  introHint.style.marginTop = "0";
+  introHint.textContent = t("hintFolders");
+  main.appendChild(introHint);
+
+  const shortcuts = document.createElement("div");
+  shortcuts.className = "folder-top";
+  shortcuts.innerHTML = `
+    <div class="simple-list-row" id="rowAll"><span>${t("allVisits")}</span><span>\u203a</span></div>
+    <div class="simple-list-row" id="rowUnfiled"><span>${t("unfiled")}</span><span>\u203a</span></div>
+    <div class="simple-list-row" id="rowTrash"><span>\u{1F5D1} ${t("trash")}</span><span>\u203a</span></div>
+  `;
+  main.appendChild(shortcuts);
+  shortcuts.querySelector("#rowAll").addEventListener("click", () => { filterState.folder = null; window.location.hash = "#home"; });
+  shortcuts.querySelector("#rowUnfiled").addEventListener("click", () => { filterState.folder = "unfiled"; window.location.hash = "#home"; });
+  shortcuts.querySelector("#rowTrash").addEventListener("click", () => { window.location.hash = "#trash"; });
+
+  const folderSection = document.createElement("div");
+  folderSection.className = "section";
+  folderSection.innerHTML = `<h3>${t("folders")}</h3><div id="folderTree"></div><button class="btn" id="btnNewTop">${t("newTopFolder")}</button>`;
+  main.appendChild(folderSection);
+
+  async function renderTree(){
+    const tree = folderSection.querySelector("#folderTree");
+    tree.innerHTML = "";
+    const allVisitsForCount = (await idbGetAll("visits")).filter(v => !v.trashedAt);
+    function countFor(folderId){ return allVisitsForCount.filter(v => v.folderId === folderId).length; }
+    const tops = await getTopFolders();
+    for(const top of tops){
+      const row = document.createElement("div");
+      row.className = "folder-top-row";
+      row.style.cursor = "pointer";
+      row.innerHTML = `
+        <span class="name">${escapeHtml(top.name)}<span class="count">(${countFor(top.id)})</span></span>
+        <div class="folder-actions">
+          <button data-act="rename">\u270f\ufe0f</button>
+          <button data-act="delete">\u{1F5D1}</button>
+        </div>
+      `;
+      row.addEventListener("click", () => { filterState.folder = top.id; window.location.hash = "#home"; });
+      row.querySelector('[data-act="rename"]').addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const name = prompt(t("renameFolderPrompt"), top.name);
+        if(name && name.trim()){ top.name = name.trim(); await idbPut("folders", top); renderTree(); }
+      });
+      row.querySelector('[data-act="delete"]').addEventListener("click", async (e) => {
+        e.stopPropagation();
+        if(!confirm(t("confirmDeleteFolder"))) return;
+        const subs = await getSubFolders(top.id);
+        const allVisits = await idbGetAll("visits");
+        for(const sub of subs){
+          for(const v of allVisits.filter(v2 => v2.folderId === sub.id)){ v.folderId = null; await idbPut("visits", v); }
+          await idbDelete("folders", sub.id);
+        }
+        for(const v of allVisits.filter(v2 => v2.folderId === top.id)){ v.folderId = null; await idbPut("visits", v); }
+        await idbDelete("folders", top.id);
+        renderTree();
+      });
+      tree.appendChild(row);
+
+      const subList = document.createElement("div");
+      subList.className = "folder-sub-list";
+      const subs = await getSubFolders(top.id);
+      for(const sub of subs){
+        const subRow = document.createElement("div");
+        subRow.className = "folder-sub-row";
+        subRow.style.cursor = "pointer";
+        subRow.innerHTML = `
+          <span>${escapeHtml(sub.name)}<span class="count">(${countFor(sub.id)})</span></span>
+          <div class="folder-actions">
+            <button data-act="move">\u21c6</button>
+            <button data-act="rename">\u270f\ufe0f</button>
+            <button data-act="delete">\u{1F5D1}</button>
+          </div>
+        `;
+        subRow.addEventListener("click", () => { filterState.folder = sub.id; window.location.hash = "#home"; });
+        subRow.querySelector('[data-act="rename"]').addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const name = prompt(t("renameFolderPrompt"), sub.name);
+          if(name && name.trim()){ sub.name = name.trim(); await idbPut("folders", sub); renderTree(); }
+        });
+        subRow.querySelector('[data-act="delete"]').addEventListener("click", async (e) => {
+          e.stopPropagation();
+          if(!confirm(t("confirmDeleteFolder"))) return;
+          const allVisits = await idbGetAll("visits");
+          for(const v of allVisits.filter(v2 => v2.folderId === sub.id)){ v.folderId = null; await idbPut("visits", v); }
+          await idbDelete("folders", sub.id);
+          renderTree();
+        });
+        subRow.querySelector('[data-act="move"]').addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const others = (await getTopFolders()).filter(f => f.id !== top.id);
+          if(others.length === 0){ showToast(t("moveFolderPrompt")); return; }
+          const label = others.map((f,i) => (i+1) + ". " + f.name).join("\n");
+          const choice = prompt(t("moveFolderPrompt") + "\n" + label);
+          const idx = Number(choice) - 1;
+          if(others[idx]){ sub.parentId = others[idx].id; await idbPut("folders", sub); renderTree(); }
+        });
+        subList.appendChild(subRow);
+      }
+      tree.appendChild(subList);
+
+      const addSub = document.createElement("div");
+      addSub.className = "folder-add-sub";
+      addSub.innerHTML = `<button>${t("newSubFolder")}</button>`;
+      addSub.querySelector("button").addEventListener("click", async () => {
+        const name = prompt(t("newSubFolderPrompt"));
+        if(name && name.trim()){
+          await idbPut("folders", { id: uid(), name: name.trim(), parentId: top.id });
+          renderTree();
+        }
+      });
+      tree.appendChild(addSub);
+    }
+  }
+  renderTree();
+
+  folderSection.querySelector("#btnNewTop").addEventListener("click", async () => {
+    const name = prompt(t("newTopFolderPrompt"));
+    if(name && name.trim()){
+      await idbPut("folders", { id: uid(), name: name.trim(), parentId: null });
+      renderTree();
+    }
+  });
+
+  const tagSection = document.createElement("div");
+  tagSection.className = "section";
+  tagSection.innerHTML = `<h3>${t("tagsSection")}</h3><div id="tagList"></div>`;
+  main.appendChild(tagSection);
+
+  async function renderTagList(){
+    const list = tagSection.querySelector("#tagList");
+    const tags = await allTagsWithCounts();
+    if(tags.length === 0){ list.innerHTML = `<p class="capture-hint">${t("noTags")}</p>`; return; }
+    list.innerHTML = "";
+    for(const { tag, count } of tags){
+      const row = document.createElement("div");
+      row.className = "simple-list-row";
+      row.innerHTML = `
+        <span>${escapeHtml(tag)} <span class="storage-line" style="display:inline;">(${count})</span></span>
+        <div class="folder-actions">
+          <button data-act="rename">\u270f\ufe0f</button>
+          <button data-act="delete">\u{1F5D1}</button>
+        </div>
+      `;
+      row.querySelector('[data-act="rename"]').addEventListener("click", async () => {
+        const newName = prompt(t("renameTagPrompt"), tag);
+        if(!newName || !newName.trim() || newName.trim() === tag) return;
+        const visits = await idbGetAll("visits");
+        for(const v of visits){
+          if((v.tags || []).includes(tag)){
+            v.tags = Array.from(new Set(v.tags.map(tg => tg === tag ? newName.trim() : tg)));
+            await idbPut("visits", v);
+          }
+        }
+        renderTagList();
+      });
+      row.querySelector('[data-act="delete"]').addEventListener("click", async () => {
+        if(!confirm(t("confirmDeleteTag"))) return;
+        const visits = await idbGetAll("visits");
+        for(const v of visits){
+          if((v.tags || []).includes(tag)){
+            v.tags = v.tags.filter(tg => tg !== tag);
+            await idbPut("visits", v);
+          }
+        }
+        renderTagList();
+      });
+      list.appendChild(row);
+    }
+  }
+  renderTagList();
+}
+
+/* ============================================================
+   Vue : Corbeille
+   ============================================================ */
+async function renderTrash(){
+  main.innerHTML = "";
+  const emptyBtn = document.createElement("button");
+  emptyBtn.className = "btn danger"; emptyBtn.style.width = "100%"; emptyBtn.style.marginBottom = "16px";
+  emptyBtn.textContent = "\u{1F5D1} " + t("emptyTrash");
+  main.appendChild(emptyBtn);
+
+  const listEl = document.createElement("div");
+  main.appendChild(listEl);
+
+  async function refresh(){
+    const visits = (await idbGetAll("visits")).filter(v => v.trashedAt).sort((a,b) => b.trashedAt - a.trashedAt);
+    if(visits.length === 0){
+      listEl.innerHTML = `<p class="capture-hint">${t("emptyTrashState")}</p>`;
+      emptyBtn.hidden = true;
+      return;
+    }
+    emptyBtn.hidden = false;
+    listEl.innerHTML = "";
+    for(const v of visits){
+      const cat = catById(v.category);
+      const row = document.createElement("div");
+      row.className = "visit-card";
+      row.style.cursor = "default";
+      row.innerHTML = `
+        <div class="glyph">${cat.glyph}</div>
+        <div class="info">
+          <div class="tag">${escapeHtml(v.tag) || cat.label}</div>
+          <div class="meta">${fmtDate(v.date)}</div>
+        </div>
+        <div class="folder-actions">
+          <button data-act="restore">${t("restoreVisit")}</button>
+          <button data-act="forever">\u{1F5D1}</button>
+        </div>
+      `;
+      row.querySelector('[data-act="restore"]').addEventListener("click", async () => {
+        v.trashedAt = null;
+        await idbPut("visits", v);
+        showToast(t("restoredVisit"));
+        refresh();
+      });
+      row.querySelector('[data-act="forever"]').addEventListener("click", async () => {
+        if(!confirm(t("confirmDeleteForever"))) return;
+        const entries = await idbGetByIndex("entries", "visitUid", v.uid);
+        for(const e of entries) await idbDelete("entries", e.id);
+        await idbDelete("visits", v.uid);
+        refresh();
+      });
+      listEl.appendChild(row);
+    }
+  }
+  emptyBtn.addEventListener("click", async () => {
+    if(!confirm(t("confirmEmptyTrash"))) return;
+    const visits = (await idbGetAll("visits")).filter(v => v.trashedAt);
+    for(const v of visits){
+      const entries = await idbGetByIndex("entries", "visitUid", v.uid);
+      for(const e of entries) await idbDelete("entries", e.id);
+      await idbDelete("visits", v.uid);
+    }
+    refresh();
+  });
+  refresh();
+}
+
+async function renderSettings(){
+  main.innerHTML = "";
+
+  const langGroup = document.createElement("div");
+  langGroup.className = "settings-group";
+  langGroup.innerHTML = `<h3>${t("settingsLang")}</h3><div class="lang-grid" id="langGrid"></div>`;
+  main.appendChild(langGroup);
+  const langs = [["fr","Fran\u00e7ais"],["en","English"],["sw","Kiswahili"]];
+  function renderLangGrid(){
+    const grid = langGroup.querySelector("#langGrid");
+    grid.innerHTML = langs.map(([id,label]) => `<button class="opt-btn ${currentLang()===id?"selected":""}" data-lang="${id}">${label}</button>`).join("");
+    grid.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => { setLang(btn.dataset.lang); route(); });
+    });
+  }
+  renderLangGrid();
+
+  const qualGroup = document.createElement("div");
+  qualGroup.className = "settings-group";
+  qualGroup.innerHTML = `<h3>${t("settingsQuality")}</h3><div class="quality-grid" id="qualGrid"></div>`;
+  main.appendChild(qualGroup);
+  const qualities = [["eco", t("qualityEco"), t("qualityEcoSub")], ["std", t("qualityStd"), t("qualityStdSub")], ["hi", t("qualityHi"), t("qualityHiSub")]];
+  function renderQualGrid(){
+    const grid = qualGroup.querySelector("#qualGrid");
+    grid.innerHTML = qualities.map(([id,label,sub]) => `
+      <button class="opt-btn ${currentQuality()===id?"selected":""}" data-q="${id}">
+        <span>${label}</span><span class="sub">${sub}</span>
+      </button>`).join("");
+    grid.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => { setQuality(btn.dataset.q); renderQualGrid(); });
+    });
+  }
+  renderQualGrid();
+
+  const aiGroup = document.createElement("div");
+  aiGroup.className = "settings-group";
+  aiGroup.innerHTML = `
+    <h3>${t("settingsAI")}</h3>
+    <p class="capture-hint" style="margin-top:0;">${t("settingsAISubRdc")}</p>
+    <p class="capture-hint" style="margin-top:16px;">${t("settingsSynthProvider")}</p>
+    <div class="group-toggle" id="synthProviderToggle">
+      <button data-p="anthropic">${t("providerAnthropic")}</button>
+      <button data-p="openai">OpenAI</button>
+      <button data-p="openrouter">${t("providerOpenRouter")}</button>
+    </div>
+    <div class="field" style="margin: 10px 0 8px 0;">
+      <label for="fSynthModel">${t("settingsModelLabel")}</label>
+      <input type="text" id="fSynthModel" autocomplete="off" autocapitalize="off" spellcheck="false">
+    </div>
+    <p class="capture-hint">${t("settingsModelSub")}</p>
+    <p class="storage-line" style="margin-top:10px;">${t("settingsAICallsLabel")} : ${Number(sessionStorage.getItem("rdc39_ai_calls") || "0")}</p>
+  `;
+  main.appendChild(aiGroup);
+  function renderSynthProviderToggle(){
+    const provider = currentSynthProvider();
+    aiGroup.querySelectorAll("#synthProviderToggle button").forEach(b => b.classList.toggle("active", b.dataset.p === provider));
+    const modelInput = aiGroup.querySelector("#fSynthModel");
+    modelInput.placeholder = DEFAULT_SYNTH_MODELS[provider];
+    modelInput.value = storedSynthModel(provider);
+  }
+  let modelTimer = null;
+  aiGroup.querySelector("#fSynthModel").addEventListener("input", (e) => {
+    clearTimeout(modelTimer);
+    modelTimer = setTimeout(() => setSynthModel(currentSynthProvider(), e.target.value), 400);
+  });
+  renderSynthProviderToggle();
+  aiGroup.querySelectorAll("#synthProviderToggle button").forEach(b => {
+    b.addEventListener("click", () => { setSynthProvider(b.dataset.p); renderSynthProviderToggle(); });
+  });
+
+  /* Synchronisation : \u00e9tat seulement (l'envoi est automatique d\u00e8s qu'une connexion existe),
+     plus un bouton de repli silencieux pour forcer une tentative imm\u00e9diate. */
+  const syncGroup = document.createElement("div");
+  syncGroup.className = "settings-group";
+  syncGroup.innerHTML = `
+    <h3>${t("settingsSync")}</h3>
+    <div class="storage-line" id="syncLine">\u2026</div>
+    <div class="storage-line" id="syncLastLine" style="margin-top:4px;"></div>
+    <button class="btn" id="btnSyncNow" style="width:100%; margin-top:10px;">${t("syncNow")}</button>
+    <p class="capture-hint" style="margin-top:8px;">${t("settingsSyncSub")}</p>
+  `;
+  main.appendChild(syncGroup);
+  async function renderSyncLine(){
+    const st = await syncStatus();
+    syncGroup.querySelector("#syncLine").textContent = st.pending === 0
+      ? t("syncAllSent") + " (" + st.total + ")"
+      : st.pending + " " + t("syncPendingCount") + (navigator.onLine ? "" : " \u2014 " + t("syncOffline"));
+    const last = Number(localStorage.getItem("rdc39_last_sync") || "0");
+    syncGroup.querySelector("#syncLastLine").textContent = last ? t("syncLast") + " : " + fmtDateTime(new Date(last).toISOString()) : "";
+  }
+  renderSyncLine();
+  syncGroup.querySelector("#btnSyncNow").addEventListener("click", async () => {
+    const btn = syncGroup.querySelector("#btnSyncNow");
+    btn.disabled = true;
+    const res = await syncPending({ verbose: true });
+    btn.disabled = false;
+    renderSyncLine();
+    if(res && res.error) showToast(t("syncError") + " : " + res.error);
+    else showToast(t("syncDone"));
+  });
+
+  const accessGroup = document.createElement("div");
+  accessGroup.className = "settings-group";
+  const lastOk = Number(localStorage.getItem("rdc39_access_validated_at") || "0");
+  accessGroup.innerHTML = `
+    <h3>${t("settingsAccess")}</h3>
+    <div class="storage-line">${t("accessLastCheck")} : ${lastOk ? fmtDateTime(new Date(lastOk).toISOString()) : "\u2014"}</div>
+    <div class="storage-line" style="margin-top:4px;">${t("accessDevice")} : ${escapeHtml(deviceId().slice(0, 8))}</div>
+    ${RELAY_URL ? "" : `<div class="storage-line" style="margin-top:4px; word-break:break-all;">${t("accessRelay")} : ${escapeHtml(currentRelayUrl() || "\u2014")}</div>`}
+  `;
+  main.appendChild(accessGroup);
+
+  const storageGroup = document.createElement("div");
+  storageGroup.className = "settings-group";
+  storageGroup.innerHTML = `<h3>${t("settingsStorage")}</h3><div class="storage-line" id="storageLine">\u2026</div><div class="storage-line" id="versionLine" style="margin-top:6px;">RDC39-Calepin v${APP_VERSION}</div>`;
+  main.appendChild(storageGroup);
+  if(navigator.storage && navigator.storage.estimate){
+    try{
+      const est = await navigator.storage.estimate();
+      storageGroup.querySelector("#storageLine").textContent = fmtBytes(est.usage || 0) + " " + t("storageUsed");
+    }catch(e){
+      storageGroup.querySelector("#storageLine").textContent = t("storageUnknown");
+    }
+  } else {
+    storageGroup.querySelector("#storageLine").textContent = t("storageUnknown");
+  }
+
+  const feedbackGroup = document.createElement("div");
+  feedbackGroup.className = "settings-group";
+  feedbackGroup.innerHTML = `<button class="btn" id="btnFeedback" style="width:100%;">${t("feedbackSend")}</button>`;
+  main.appendChild(feedbackGroup);
+  feedbackGroup.querySelector("#btnFeedback").addEventListener("click", sendFeedback);
+}
+
+/* ============================================================
+   Retour bêta-test : même logique que le digest (jamais d'envoi
+   automatique, geste volontaire) — utilise le partage natif du
+   téléphone plutôt qu'un service d'envoi centralisé.
+   ============================================================ */
+async function sendFeedback(){
+  const msg = prompt(t("feedbackPrompt"));
+  if(!msg || !msg.trim()) return;
+
+  const visits = await idbGetAll("visits");
+  let storageInfo = "n/a";
+  if(navigator.storage && navigator.storage.estimate){
+    try{ const est = await navigator.storage.estimate(); storageInfo = fmtBytes(est.usage || 0); }catch(e){}
+  }
+  const payload = {
+    message: msg.trim(),
+    horodatage: new Date().toISOString(),
+    langue: currentLang(),
+    nombreVisites: visits.length,
+    stockageUtilise: storageInfo,
+    versionApp: APP_VERSION,
+    navigateur: (navigator.userAgent || "").slice(0, 200)
+  };
+  const readableText = payload.message + "\n\n---\n" + payload.horodatage + " \u00b7 " +
+    payload.nombreVisites + " visites \u00b7 " + payload.stockageUtilise + "\nRDC39-Calepin v" + payload.versionApp + "\n" + payload.navigateur;
+  const jsonBlob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const fileName = "rdc39_retour_" + Date.now() + ".json";
+
+  if(navigator.share){
+    try{
+      const file = new File([jsonBlob], fileName, { type: "application/json" });
+      const shareData = (navigator.canShare && navigator.canShare({ files: [file] }))
+        ? { title: t("feedbackShareTitle"), text: readableText, files: [file] }
+        : { title: t("feedbackShareTitle"), text: readableText };
+      await navigator.share(shareData);
+      showToast(t("feedbackSent"));
+      return;
+    }catch(err){
+      // annul\u00e9 par l'utilisateur ou API indisponible pour ce contenu \u2014 on retombe sur le t\u00e9l\u00e9chargement
+    }
+  }
+  const url = URL.createObjectURL(jsonBlob);
+  const a = document.createElement("a");
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  showToast(t("feedbackNoShare"));
+}
+
+/* ============================================================
+   Service worker + d\u00e9marrage
+   ============================================================ */
+if("serviceWorker" in navigator){
+  window.addEventListener("load", () => { navigator.serviceWorker.register("sw.js").catch(() => {}); });
+}
+
+// Rien ne s'affiche avant le passage de la porte d'acc\u00e8s (code valid\u00e9 ou d\u00e9lai de gr\u00e2ce).
+startAccessGate();
+})();
+</script>
+</body>
+</html>

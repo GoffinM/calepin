@@ -1,0 +1,16 @@
+{
+  "name": "RDC39-Calepin",
+  "short_name": "RDC39",
+  "description": "Journal de terrain hors-ligne : dictées, photos, notes, carte du projet.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "id": "./",
+  "display": "standalone",
+  "background_color": "#171A16",
+  "theme_color": "#171A16",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "icon-192.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "icon-512.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
