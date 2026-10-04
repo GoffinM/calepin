@@ -316,6 +316,23 @@
   .map-popup .pmeta{ font-size: 11px; color:#555; }
   .map-popup .psnip{ margin: 4px 0; color:#333; }
   .map-popup a{ display:inline-block; margin-top: 4px; font-weight: 600; }
+
+  /* ---------- RDC39 : capture audio / dict\u00e9e ---------- */
+  .add-row .btn.rec-main{ flex-basis: 100%; font-size: 16px; padding: 14px; font-weight: 600; }
+  .add-row .btn.recording{ background: var(--danger); border-color: var(--danger); color: #fff; }
+  .rec-live, .dict-live{ width:100%; background: var(--surface); border:1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
+  .rec-line{ display:flex; align-items:center; gap:8px; }
+  .rec-dot{ color: var(--danger); animation: recblink 1.2s infinite; }
+  @keyframes recblink{ 50%{ opacity: 0.25; } }
+  @media (prefers-reduced-motion: reduce){ .rec-dot{ animation:none; } }
+  .level{ height: 10px; background: var(--surface-raised); border-radius: 5px; margin: 8px 0 6px 0; overflow:hidden; }
+  .level-bar{ height:100%; width:0; background: #6BAF5B; transition: width 0.1s linear; }
+  .rec-keep{ font-size: 12px; color: var(--text-dim); }
+  .dict-text{ margin-top: 8px; background: var(--paper); color: var(--ink); border-radius: 6px; padding: 8px 10px; min-height: 2.6em; font-size: 15px; line-height: 1.45; }
+  .dict-text .interim{ color: #8A8A80; font-style: italic; }
+  .dict-offline{ color: var(--warn); }
+  .audio-meta{ font-size: 12px; color: var(--text-dim); font-family: var(--mono); margin: -2px 0 8px 0; }
+  .unreviewed{ color: var(--warn); }
 </style>
 </head>
 <body>
@@ -347,18 +364,18 @@ const STRINGS = {
     appName: "RDC39-Calepin", settings: "R\u00e9glages", back: "Retour",
     filterAllCat: "Toutes cat\u00e9gories", filterAllPeriod: "Toute p\u00e9riode",
     period7: "7 derniers jours", period30: "30 derniers jours", search: "Rechercher (rep\u00e8re, contenu)",
-    emptyTitle: "Aucune visite ici.", emptyBody: "Touchez + pour cr\u00e9er la premi\u00e8re visite \u2014 dict\u00e9es, photos et notes s'y ajoutent ensuite.",
+    emptyTitle: "Aucune visite ici.", emptyBody: "Touchez + pour cr\u00e9er la premi\u00e8re visite \u2014 enregistrements, photos et notes s'y ajoutent ensuite.",
     newVisit: "Nouvelle visite", category: "Cat\u00e9gorie", newCategory: "Nouvelle",
     newCategoryPrompt: "Nom de la nouvelle cat\u00e9gorie :",
     landmark: "Rep\u00e8re (adresse, r\u00e9f\u00e9rence, nom)", landmarkPh: "Ex. Appartement rue X, Toyota RAV4...",
     date: "Date", createVisit: "Cr\u00e9er la visite", visitCreated: "Visite cr\u00e9\u00e9e",
     cat_immobilier: "Immobilier", cat_vehicule: "V\u00e9hicule", cat_technique: "Technique", cat_autre: "Autre",
     addAudio: "Enregistrer", addPhoto: "Photo", addText: "Note texte",
-    captureHint: "Parlez distinctement, une id\u00e9e \u00e0 la fois.",
+    captureHint: "\u{1F3A4} Enregistrer fonctionne sans r\u00e9seau : parlez aussi longtemps que n\u00e9cessaire. \u{1F5E3}\ufe0f Dicter (texte direct) n\u00e9cessite le r\u00e9seau.",
     entryLabelPrompt: "Nommer ce rep\u00e8re (facultatif) :",
     transcriptPh: "Transcription (\u00e0 compl\u00e9ter)...", textEntryPh: "\u00c9crivez votre observation...",
     save: "Enregistrer", cancel: "Annuler",
-    consolidate: "Consolider / Rapport", exportVisit: "Exporter cette visite", deleteVisit: "Supprimer la visite",
+    consolidate: "Rapport", exportVisit: "Exporter cette visite", deleteVisit: "Supprimer la visite",
     confirmDeleteVisit: "Supprimer d\u00e9finitivement cette visite et tous ses fichiers ?",
     deletedVisit: "Visite supprim\u00e9e", exportLaunched: "Export lanc\u00e9",
     micDenied: "Acc\u00e8s au micro refus\u00e9.", micUnavailable: "Micro non disponible sur cet appareil.",
@@ -426,11 +443,11 @@ const STRINGS = {
     documentUnsupported: "Seuls les fichiers texte (.txt) sont support\u00e9s pour l'instant.",
     synthGeneratedFormat: "format",
     exportDigest: "\u{1F9E9} Exporter (digest JSON)", digestExported: "Digest export\u00e9",
-    digestConfirm: "Exporter un digest JSON unique (photos incluses, audio exclu \u2014 transcription seule) ?",
+    digestConfirm: "Exporter un digest JSON unique (photos, audio et pi\u00e8ces jointes inclus) ?",
     addDictate: "\u{1F5E3}\ufe0f Dicter", dictateStop: "\u23F9 Arr\u00eater",
     dictateListening: "\u00c9coute en cours\u2026 parlez, puis touchez Arr\u00eater.",
     dictateEmpty: "Rien capt\u00e9 \u2014 r\u00e9essayez.", dictateSaved: "Dict\u00e9e enregistr\u00e9e",
-    dictateHint: "Texte direct, sans fichier audio \u2014 fiable sur mobile.",
+    dictateHint: "Texte direct, sans fichier audio \u2014 n\u00e9cessite le r\u00e9seau.",
     editPosition: "\u{1F4CD} Position", editPositionPrompt: "Coordonn\u00e9es GPS (latitude, longitude) :", editPositionInvalid: "Format invalide \u2014 attendu : latitude, longitude (ex. -1.9536, 30.0605)",
     editPositionCleared: "Position effac\u00e9e", editPositionSaved: "Position enregistr\u00e9e",
     exifGpsFound: "Position reprise depuis la photo (GPS int\u00e9gr\u00e9)",
@@ -441,7 +458,7 @@ const STRINGS = {
     settingsAnthropicKey: "Cl\u00e9 API Anthropic", settingsOpenRouterKey: "Cl\u00e9 API OpenRouter", settingsModelLabel: "Mod\u00e8le (optionnel)", settingsModelSub: "Laisser vide = mod\u00e8le par d\u00e9faut (indiqu\u00e9 en gris). \u00c0 changer si un mod\u00e8le est retir\u00e9 par le fournisseur.",
     feedbackSend: "\u{1F4EC} Envoyer un retour", feedbackPrompt: "Votre remarque, bug ou suggestion :",
     feedbackSent: "Retour pr\u00eat \u00e0 envoyer", feedbackShareTitle: "Retour RDC39-Calepin", feedbackNoShare: "Partage non support\u00e9 sur cet appareil \u2014 fichier t\u00e9l\u00e9charg\u00e9 \u00e0 la place.",
-    hintConsolidate: "Regrouper toutes les entr\u00e9es en un rapport lisible, avec synth\u00e8se IA optionnelle",
+    hintConsolidate: "Regrouper toutes les entr\u00e9es en un rapport lisible",
     hintExport: "T\u00e9l\u00e9charger les fichiers d'origine s\u00e9par\u00e9ment (usage personnel)",
     hintExportDigest: "Un seul fichier JSON, pens\u00e9 pour \u00eatre lu par une autre application",
     hintTranscribeAllExport: "Transcrit les audios manquants puis exporte un texte complet unique",
@@ -490,7 +507,24 @@ const STRINGS = {
     mapOpenVisit: "Ouvrir le relev\u00e9",
     mapDrag: "D\u00e9placer",
     mapMe: "Vous \u00eates ici",
-    mapNoFix: "Position GPS pas encore disponible\u2026"
+    mapNoFix: "Position GPS pas encore disponible\u2026",
+    recStop: "Arr\u00eater",
+    recSavedBytes: "sauvegard\u00e9s",
+    recKeepOpen: "\u00c9cran maintenu allum\u00e9 \u2014 restez dans l'app pendant l'enregistrement.",
+    recSaved: "Enregistrement sauvegard\u00e9",
+    recEmpty: "Aucun son enregistr\u00e9.",
+    recSilentWarning: "Aucun son n'a \u00e9t\u00e9 capt\u00e9 pendant cet enregistrement (micro bouch\u00e9, coup\u00e9 ou refus\u00e9 ?). R\u00e9\u00e9coutez-le avant de continuer.",
+    recBackgroundWarn: "Vous avez quitt\u00e9 l'app pendant l'enregistrement : r\u00e9\u00e9coutez-le, le t\u00e9l\u00e9phone a pu couper le micro.",
+    recBackgroundToast: "Enregistrement toujours en cours \u2014 restez dans l'app.",
+    recRecoveredLabel: "Enregistrement r\u00e9cup\u00e9r\u00e9",
+    recRecoveredToast: "enregistrement(s) interrompu(s) r\u00e9cup\u00e9r\u00e9(s)",
+    recDuration: "Dur\u00e9e",
+    audioNotePh: "Note sur cet enregistrement (facultatif)\u2026",
+    dictateOfflineBlocked: "Dicter n\u00e9cessite une connexion r\u00e9seau. Hors connexion, utilisez \ud83c\udfa4 Enregistrer.",
+    dictateOfflineHint: "\ud83d\udde3\ufe0f Dicter est indisponible hors connexion \u2014 utilisez \ud83c\udfa4 Enregistrer, qui marche partout.",
+    dictateNetLost: "R\u00e9seau perdu \u2014 dict\u00e9e arr\u00eat\u00e9e, le texte d\u00e9j\u00e0 dict\u00e9 est conserv\u00e9.",
+    dictateNetLostEmpty: "R\u00e9seau perdu \u2014 dict\u00e9e arr\u00eat\u00e9e. Utilisez \ud83c\udfa4 Enregistrer.",
+    dictateUnreviewed: "dict\u00e9e, non relue"
   },
   en: {
     appName: "RDC39-Calepin", settings: "Settings", back: "Back",
@@ -503,7 +537,7 @@ const STRINGS = {
     date: "Date", createVisit: "Create visit", visitCreated: "Visit created",
     cat_immobilier: "Real estate", cat_vehicule: "Vehicle", cat_technique: "Technical", cat_autre: "Other",
     addAudio: "Record", addPhoto: "Photo", addText: "Text note",
-    captureHint: "Speak clearly, one idea at a time.",
+    captureHint: "\u{1F3A4} Record works without network: speak as long as needed. \u{1F5E3}\ufe0f Dictate (direct text) needs the network.",
     entryLabelPrompt: "Name this landmark (optional):",
     transcriptPh: "Transcript (to complete)...", textEntryPh: "Write your observation...",
     save: "Save", cancel: "Cancel",
@@ -633,7 +667,24 @@ const STRINGS = {
     mapOpenVisit: "Open record",
     mapDrag: "Move",
     mapMe: "You are here",
-    mapNoFix: "GPS position not available yet\u2026"
+    mapNoFix: "GPS position not available yet\u2026",
+    recStop: "Stop",
+    recSavedBytes: "saved",
+    recKeepOpen: "Screen kept on \u2014 stay in the app while recording.",
+    recSaved: "Recording saved",
+    recEmpty: "No sound recorded.",
+    recSilentWarning: "No sound was captured during this recording (microphone blocked, muted or denied?). Listen to it before going on.",
+    recBackgroundWarn: "You left the app during the recording: listen to it, the phone may have cut the microphone.",
+    recBackgroundToast: "Still recording \u2014 stay in the app.",
+    recRecoveredLabel: "Recovered recording",
+    recRecoveredToast: "interrupted recording(s) recovered",
+    recDuration: "Duration",
+    audioNotePh: "Note about this recording (optional)\u2026",
+    dictateOfflineBlocked: "Dictation needs a network connection. Offline, use \ud83c\udfa4 Record.",
+    dictateOfflineHint: "\ud83d\udde3\ufe0f Dictation is unavailable offline \u2014 use \ud83c\udfa4 Record, which works everywhere.",
+    dictateNetLost: "Network lost \u2014 dictation stopped, the text already dictated is kept.",
+    dictateNetLostEmpty: "Network lost \u2014 dictation stopped. Use \ud83c\udfa4 Record.",
+    dictateUnreviewed: "dictated, not reviewed"
   },
   sw: {
     appName: "RDC39-Calepin", settings: "Mipangilio", back: "Rudi",
@@ -737,7 +788,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "rdc39-2026-10-02.1";
+const APP_VERSION = "rdc39-2026-10-04.1";
 function currentLang(){ return localStorage.getItem("rdc39_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("rdc39_lang", l); }
 function t(key){
@@ -748,24 +799,9 @@ function t(key){
 /* ============================================================
    Cat\u00e9gories — 4 par d\u00e9faut (traduites) + personnalis\u00e9es (libres)
    ============================================================ */
-const DEFAULT_CATEGORY_IDS = ["immobilier", "vehicule", "technique", "autre"];
-const DEFAULT_GLYPHS = { immobilier: "\u{1F3E0}", vehicule: "\u{1F697}", technique: "\u{1F527}", autre: "\u{1F4CC}" };
-function loadCategories(){
-  const custom = JSON.parse(localStorage.getItem("rdc39_categories_custom") || "[]");
-  const defaults = DEFAULT_CATEGORY_IDS.map(id => ({ id, label: t("cat_" + id), glyph: DEFAULT_GLYPHS[id], custom: false }));
-  return defaults.concat(custom.map(c => ({ ...c, custom: true })));
-}
-function addCustomCategory(label){
-  const id = "c_" + Date.now();
-  const custom = JSON.parse(localStorage.getItem("rdc39_categories_custom") || "[]");
-  custom.push({ id, label, glyph: "\u{1F4CB}" });
-  localStorage.setItem("rdc39_categories_custom", JSON.stringify(custom));
-  return id;
-}
-function catById(id){
-  const found = loadCategories().find(c => c.id === id);
-  return found || { id: "autre", label: t("cat_autre"), glyph: DEFAULT_GLYPHS.autre };
-}
+/* RDC39 : pas de cat\u00e9gories (immobilier, v\u00e9hicule...) — une visite de terrain est un format libre :
+   un rep\u00e8re, une date, des entr\u00e9es. */
+const VISIT_GLYPH = "\u{1F4CD}";
 
 /* ============================================================
    Dossiers (2 niveaux : pays/client -> projet) et tags libres
@@ -855,20 +891,8 @@ function speechRecogLangTag(){
   const map = { fr: "fr-FR", en: "en-US", sw: "sw-KE" };
   return map[currentLang()] || "fr-FR";
 }
-/* RDC39 : AUCUNE cl\u00e9 API c\u00f4t\u00e9 t\u00e9l\u00e9phone. Les cl\u00e9s vivent uniquement comme variables
-   secr\u00e8tes du relais Cloudflare d\u00e9di\u00e9 (relais/relais-rdc39-worker.js), qui les ajoute
-   lui-m\u00eame \u00e0 la requ\u00eate. Chaque appel au relais porte le code d'acc\u00e8s (en-t\u00eate
-   X-Access-Code) : une URL de relais d\u00e9couverte par hasard ne suffit pas \u00e0 consommer le budget IA. */
-function currentSynthProvider(){ return localStorage.getItem("rdc39_synth_provider") || "anthropic"; }
-function setSynthProvider(p){ localStorage.setItem("rdc39_synth_provider", p); }
-/* Mod\u00e8le utilis\u00e9 pour la synth\u00e8se, par fournisseur. R\u00e9glable dans R\u00e9glages : les mod\u00e8les sont
-   retir\u00e9s r\u00e9guli\u00e8rement par les fournisseurs, donc changer de mod\u00e8le ne doit jamais exiger de
-   red\u00e9ployer l'app. */
-const DEFAULT_SYNTH_MODELS = { openai: "gpt-4o-mini", anthropic: "claude-haiku-4-5-20251001", openrouter: "anthropic/claude-haiku-4.5" };
-function storedSynthModel(provider){ return (localStorage.getItem("rdc39_synth_model_" + provider) || "").trim(); }
-function currentSynthModel(provider){ return storedSynthModel(provider) || DEFAULT_SYNTH_MODELS[provider] || DEFAULT_SYNTH_MODELS.openai; }
-function setSynthModel(provider, m){ localStorage.setItem("rdc39_synth_model_" + provider, (m || "").trim()); }
-
+/* RDC39 : AUCUNE IA sur le t\u00e9l\u00e9phone (ni cl\u00e9, ni appel). Le relais sert uniquement \u00e0 valider le
+   code d'acc\u00e8s et \u00e0 recevoir les relev\u00e9s ; Michel transcrit et synth\u00e9tise de son c\u00f4t\u00e9. */
 /* URL du relais Cloudflare RDC39 : \u00e0 renseigner ici une fois le Worker d\u00e9ploy\u00e9 (cf. README).
    Tant qu'elle est vide, l'\u00e9cran de code d'acc\u00e8s propose un champ pour la saisir (utile pour tester). */
 const RELAY_URL = "https://terrain-relais.michel-goffin.workers.dev";
@@ -876,129 +900,15 @@ function currentRelayUrl(){
   return (RELAY_URL || localStorage.getItem("rdc39_relay_url") || "").trim().replace(/\/$/, "");
 }
 function setRelayUrl(u){ localStorage.setItem("rdc39_relay_url", (u || "").trim().replace(/\/$/, "")); }
-function bumpAICallCount(){
-  const n = Number(sessionStorage.getItem("rdc39_ai_calls") || "0") + 1;
-  sessionStorage.setItem("rdc39_ai_calls", String(n));
-  return n;
-}
 /* En-t\u00eates communs \u00e0 tout appel au relais (code d'acc\u00e8s + identifiant d'appareil anonyme). */
 function relayHeaders(extra){
   return Object.assign({ "X-Access-Code": currentAccessCode(), "X-Device-Id": deviceId() }, extra || {});
 }
-function synthEndpoint(provider){
-  const relay = currentRelayUrl();
-  if(provider === "anthropic") return relay + "/anthropic-chat";
-  if(provider === "openrouter") return relay + "/openrouter-chat";
-  return relay + "/chat";
-}
-const SYNTH_LEVEL_INSTRUCTIONS = {
-  complet: "Reformule INTÉGRALEMENT le texte fourni, sans rien couper ni résumer — uniquement une mise au propre " +
-    "(orthographe, grammaire, phrases claires). La longueur finale doit rester proche de l'original, quelle que soit sa longueur.",
-  synthese: "Condense le texte fourni en gardant TOUS les faits importants (observations, anomalies, mesures, actions à mener), " +
-    "en supprimant seulement les répétitions et détails secondaires. Vise une réduction significative de la longueur " +
-    "(par exemple environ moitié moins de mots que l'original), sans perdre d'information opérationnellement utile.",
-  succinct: "Résume le texte fourni de façon TRÈS COURTE (quelques phrases ou une courte liste à puces, l'équivalent " +
-    "d'un paragraphe maximum, peu importe la longueur de la source). Ne garde que l'essentiel : problèmes constatés, " +
-    "urgences, décisions ou actions à prendre. Sacrifie le détail au profit de la brièveté, mais ne déforme jamais un fait."
-};
-/* Rep\u00e8res reconnus par convention (texte libre, jamais valid\u00e9 techniquement — cf. note
-   de connexion Calepin/pompage : m\u00eame principe de discipline de nommage plut\u00f4t que de
-   contrainte impos\u00e9e) pour signaler un ordre du jour ou un compte-rendu oral de r\u00e9union. */
-function isAgendaLabel(label){ return /ordre du jour|agenda/i.test(label || ""); }
-function isDebriefLabel(label){ return /compte.?rendu|d\u00e9briefing|debrief|r\u00e9sum\u00e9 r\u00e9union/i.test(label || ""); }
-
-const SYNTH_FORMAT_INSTRUCTIONS = {
-  notes: "Pr\u00e9sente le r\u00e9sultat sous forme de notes structur\u00e9es (par rep\u00e8re ou dans l'ordre fourni), sans forcer un format de compte-rendu formel.",
-  pv: "Pr\u00e9sente le r\u00e9sultat sous la forme d'un PROC\u00c8S-VERBAL DE R\u00c9UNION, avec exactement ces sections, dans cet ordre : " +
-    "\"Pr\u00e9sents\", \"Points abord\u00e9s\", \"D\u00e9cisions\", \"Actions\" (qui / quoi / \u00e9ch\u00e9ance, si mentionn\u00e9), \"Prochaine r\u00e9union\". " +
-    "IMPORTANT : si une section n'a AUCUNE information dans les notes fournies, \u00e9cris explicitement \"Non mentionn\u00e9 dans les notes\" " +
-    "pour cette section — ne devine jamais qui \u00e9tait pr\u00e9sent, quelle d\u00e9cision a \u00e9t\u00e9 prise, ou qui fait quoi, si ce n'est pas dit clairement."
-};
-
-async function callChatSynthesis(rawText, level, format, agendaText, provider){
-  provider = provider || "openai";
-  const lengthInstruction = SYNTH_LEVEL_INSTRUCTIONS[level] || SYNTH_LEVEL_INSTRUCTIONS.complet;
-  const formatInstruction = SYNTH_FORMAT_INSTRUCTIONS[format] || SYNTH_FORMAT_INSTRUCTIONS.notes;
-  let systemPrompt = "Tu reformules des notes de terrain en un texte clair et bien r\u00e9dig\u00e9, en fran\u00e7ais. " +
-    "R\u00e8gle absolue : n'ajoute, ne suppose et n'invente AUCUN fait absent du texte fourni. " +
-    "Ne fais aucune interpr\u00e9tation technique. " +
-    "Si une information est ambigu\u00eb ou manquante, dis-le explicitement plut\u00f4t que de combler.\n\n" +
-    formatInstruction + "\n\n" + lengthInstruction;
-  if(agendaText){
-    systemPrompt += "\n\nUn ordre du jour a \u00e9t\u00e9 fourni s\u00e9par\u00e9ment (ci-dessous). Utilise-le UNIQUEMENT pour structurer " +
-      "l'ordre des points dans \"Points abord\u00e9s\" si les notes le permettent — ne l'impose pas artificiellement si les " +
-      "notes couvrent des sujets diff\u00e9rents, et ne le recopie pas tel quel s'il n'a pas \u00e9t\u00e9 effectivement abord\u00e9.\n\n" +
-      "ORDRE DU JOUR PR\u00c9VU :\n" + agendaText;
-  } else {
-    systemPrompt += "\n\nConserve l'ordre chronologique ou par rep\u00e8re fourni dans les notes.";
-  }
-
-  if(provider === "anthropic"){
-    const resp = await fetch(synthEndpoint(provider), {
-      method: "POST",
-      headers: relayHeaders({ "anthropic-version": "2023-06-01", "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        model: currentSynthModel("anthropic"),
-        max_tokens: 3000,
-        system: systemPrompt,
-        messages: [ { role: "user", content: rawText } ]
-      })
-    });
-    if(!resp.ok){
-      const errText = await resp.text().catch(() => "");
-      throw new Error("HTTP " + resp.status + (errText ? " " + errText.slice(0,120) : ""));
-    }
-    const data = await resp.json();
-    return (data.content && data.content[0] && data.content[0].text) || "";
-  }
-
-  if(provider === "openrouter"){
-    const resp = await fetch(synthEndpoint(provider), {
-      method: "POST",
-      headers: relayHeaders({ "Content-Type": "application/json" }),
-      body: JSON.stringify({
-        model: currentSynthModel("openrouter"),
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: rawText }
-        ],
-        temperature: 0.2
-      })
-    });
-    if(!resp.ok){
-      const errText = await resp.text().catch(() => "");
-      throw new Error("HTTP " + resp.status + (errText ? " " + errText.slice(0,120) : ""));
-    }
-    const data = await resp.json();
-    return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || "";
-  }
-
-  // provider === "openai"
-  const resp = await fetch(synthEndpoint(provider), {
-    method: "POST",
-    headers: relayHeaders({ "Content-Type": "application/json" }),
-    body: JSON.stringify({
-      model: currentSynthModel("openai"),
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: rawText }
-      ],
-      temperature: 0.2
-    })
-  });
-  if(!resp.ok){
-    const errText = await resp.text().catch(() => "");
-    throw new Error("HTTP " + resp.status + (errText ? " " + errText.slice(0,120) : ""));
-  }
-  const data = await resp.json();
-  return (data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content) || "";
-}
-
 /* ============================================================
    IndexedDB — visits (m\u00e9tadonn\u00e9es) + entries (audio/photo/texte)
    ============================================================ */
 const DB_NAME = "rdc39-calepin"; // distinct du Calepin personnel (même origine github.io => sinon base PARTAGÉE)
-const DB_VERSION = 2;
+const DB_VERSION = 3; // v3 : morceaux d'enregistrement audio (recordings + audioChunks)
 let dbPromise = null;
 
 function openDB(){
@@ -1015,6 +925,13 @@ function openDB(){
       if(!db.objectStoreNames.contains("folders")){
         const store = db.createObjectStore("folders", { keyPath: "id" });
         store.createIndex("parentId", "parentId", { unique: false });
+      }
+      // Enregistrement en cours : m\u00e9tadonn\u00e9es + morceaux \u00e9crits au fil de l'eau (ArrayBuffer,
+      // jamais Blob — bug WebKit), pour ne rien perdre si l'app est tu\u00e9e en cours de route.
+      if(!db.objectStoreNames.contains("recordings")) db.createObjectStore("recordings", { keyPath: "recId" });
+      if(!db.objectStoreNames.contains("audioChunks")){
+        const store = db.createObjectStore("audioChunks", { keyPath: "id" });
+        store.createIndex("recId", "recId", { unique: false });
       }
     };
     req.onsuccess = (e) => resolve(e.target.result);
@@ -1038,19 +955,25 @@ function idbDeleteRaw(storeName, key){
    envoy\u00e9e est encore la derni\u00e8re (une modification pendant l'envoi reste donc en attente).
    La r\u00e9vision repart TOUJOURS de la valeur en base, jamais de l'objet en m\u00e9moire (qui peut
    \u00eatre une copie plus ancienne tenue par un \u00e9cran ouvert). */
+/* RDC39 — synchro PAR ENTR\u00c9E : chaque entr\u00e9e et chaque visite (son "manifeste") portent
+   syncState "pending" | "sent" et un compteur de r\u00e9vision syncRev. Toute modification repasse
+   l'objet en attente ; la synchro ne le marque "envoy\u00e9" que si la r\u00e9vision envoy\u00e9e est encore
+   la derni\u00e8re. La r\u00e9vision repart TOUJOURS de la valeur en base (l'objet en m\u00e9moire peut \u00eatre
+   une copie plus ancienne tenue par un \u00e9cran ouvert). */
 async function idbPut(storeName, value){
-  if(storeName === "visits" && value && value.uid){
-    const current = await idbGet("visits", value.uid);
+  if((storeName === "visits" && value && value.uid) || (storeName === "entries" && value && value.id)){
+    const key = storeName === "visits" ? value.uid : value.id;
+    const current = await idbGet(storeName, key);
     value.syncRev = Math.max((current && current.syncRev) || 0, value.syncRev || 0) + 1;
     value.syncState = "pending";
-    value.updatedAt = new Date().toISOString();
-    await idbPutRaw("visits", value);
+    if(storeName === "visits") value.updatedAt = new Date().toISOString();
+    await idbPutRaw(storeName, value);
+    // Nouvelle entr\u00e9e : la liste des entr\u00e9es de la visite (manifeste) change aussi.
+    if(storeName === "entries" && !current && value.visitUid) await markVisitPending(value.visitUid);
     scheduleSync();
     return value;
   }
-  await idbPutRaw(storeName, value);
-  if(storeName === "entries" && value && value.visitUid) await markVisitPending(value.visitUid);
-  return value;
+  return idbPutRaw(storeName, value);
 }
 async function idbDelete(storeName, key){
   let visitUid = null;
@@ -1085,61 +1008,72 @@ function uid(){
   return "u_" + Date.now() + "_" + Math.random().toString(16).slice(2);
 }
 
-/* Digest JSON d'une visite : m\u00eame format que l'export manuel de Calepin (photos et pi\u00e8ces
-   jointes en base64, audio exclu), enrichi de quelques champs utiles au suivi d'\u00e9quipe
-   (dossier, tags, corbeille, appareil). Sert \u00e0 la fois \u00e0 l'export manuel et \u00e0 la synchro. */
-async function buildDigest(v){
-  const entries = (await idbGetByIndex("entries", "visitUid", v.uid)).sort((a,b) => a.timestamp - b.timestamp);
-  const digestEntries = [];
-  for(const e of entries){
-    const base = {
-      type: e.kind,
-      horodatage: new Date(e.timestamp).toISOString(),
-      repere: e.label || null,
-      position: e.location || null
-    };
-    if(e.kind === "photo" || e.kind === "fichier"){
-      try{
-        // Encodage direct depuis l'ArrayBuffer stock\u00e9 — jamais via un Blob relu depuis
-        // IndexedDB (c'est exactement ce chemin qui d\u00e9clenchait le bug WebKit corrig\u00e9 ici).
-        let arrayBuf = e.data;
-        let mime = getEntryMime(e);
-        if(!arrayBuf && e.blob){ arrayBuf = await e.blob.arrayBuffer(); mime = e.blob.type || mime; } // legacy
-        if(!arrayBuf) throw new Error("aucune donn\u00e9e disponible");
-        const base64 = arrayBufferToBase64(arrayBuf);
-        const fileField = e.kind === "fichier"
-          ? { fichier: { nom: e.fileName || null, mime: mime || "application/octet-stream", base64 } }
-          : { image: { mime: mime || "image/jpeg", base64 } };
-        digestEntries.push({ ...base, ...fileField });
-      }catch(err){
-        // Un fichier illisible ne doit jamais faire \u00e9chouer tout le digest — on le
-        // signale explicitement plut\u00f4t que de le faire dispara\u00eetre silencieusement.
-        const emptyField = e.kind === "fichier" ? { fichier: null } : { image: null };
-        digestEntries.push({ ...base, ...emptyField, erreur: (e.kind === "fichier" ? "fichier" : "photo") + " illisible : " + err.message });
-      }
-    } else {
-      // texte (note, dict\u00e9e, document import\u00e9)
-      digestEntries.push({ ...base, texte: e.text || null });
+/* ============================================================
+   Format d'envoi / d'export — schemaVersion 2 (RDC39)
+   ------------------------------------------------------------
+   Diff\u00e9rences avec le digest v1 de Calepin (que l'outil pompage consomme : le Calepin
+   personnel n'est PAS modifi\u00e9) :
+   - audio INCLUS : entr\u00e9e { type:"audio", audio:{ mime, base64, duree } } ;
+   - chaque entr\u00e9e porte son id et, pour une dict\u00e9e, source:"dictee" (texte non relu) ;
+   - plus de category ni de syntheseIA ; ajout de dossier, tags, corbeille, appareil.
+   Pour la synchro, une visite est envoy\u00e9e en morceaux : un manifeste (m\u00e9tadonn\u00e9es + liste
+   des entr\u00e9es) et un objet par entr\u00e9e. Le digest complet (manifeste + entries) est
+   r\u00e9assembl\u00e9 par la page d'administration, ou produit directement par l'export manuel.
+   ============================================================ */
+const SCHEMA_VERSION = 2;
+async function entryToDigest(e){
+  const out = {
+    id: e.id,
+    type: e.kind,
+    horodatage: new Date(e.timestamp).toISOString(),
+    repere: e.label || null,
+    position: e.location || null,
+    texte: e.text || null
+  };
+  if(e.source) out.source = e.source;
+  if(e.recovered) out.recupere = true;
+  if(e.kind === "photo" || e.kind === "fichier" || e.kind === "audio"){
+    try{
+      // Encodage direct depuis l'ArrayBuffer stock\u00e9 — jamais via un Blob relu depuis IndexedDB.
+      let arrayBuf = e.data;
+      let mime = getEntryMime(e);
+      if(!arrayBuf && e.blob){ arrayBuf = await e.blob.arrayBuffer(); mime = e.blob.type || mime; } // legacy
+      if(!arrayBuf) throw new Error("aucune donn\u00e9e disponible");
+      const base64 = arrayBufferToBase64(arrayBuf);
+      if(e.kind === "fichier") out.fichier = { nom: e.fileName || null, mime: mime || "application/octet-stream", base64 };
+      else if(e.kind === "audio") out.audio = { mime: mime || "audio/webm", base64, duree: e.duration || null };
+      else out.image = { mime: mime || "image/jpeg", base64 };
+    }catch(err){
+      // Un fichier illisible ne doit jamais faire \u00e9chouer tout l'envoi : on le signale.
+      out[e.kind === "fichier" ? "fichier" : e.kind === "audio" ? "audio" : "image"] = null;
+      out.erreur = e.kind + " illisible : " + err.message;
     }
   }
-
-  const digest = {
-    schemaVersion: 1,
+  return out;
+}
+async function buildManifest(v, entries){
+  return {
+    schemaVersion: SCHEMA_VERSION,
     uid: v.uid,
-    category: catById(v.category).label,
     tag: v.tag,
     date: v.date,
-    syntheseBrute: buildReportText(v, entries, "landmark"),
-    syntheseIA: v.aiSynthesis || null,
     dossier: v.folderId ? await folderPathLabel(v.folderId) : null,
     tags: v.tags || [],
     corbeille: v.trashedAt ? new Date(v.trashedAt).toISOString() : null,
     appareil: deviceId(),
     versionApp: APP_VERSION,
     genereLe: new Date().toISOString(),
-    entries: digestEntries
+    entrees: entries.map(e => ({ id: e.id, type: e.kind, horodatage: new Date(e.timestamp).toISOString() }))
   };
-  return digest;
+}
+/* Digest complet d'une visite (export manuel de secours). */
+async function buildDigest(v){
+  const entries = (await idbGetByIndex("entries", "visitUid", v.uid)).sort((a,b) => a.timestamp - b.timestamp);
+  const manifest = await buildManifest(v, entries);
+  delete manifest.entrees;
+  const digestEntries = [];
+  for(const e of entries) digestEntries.push(await entryToDigest(e));
+  return Object.assign(manifest, { syntheseBrute: buildReportText(v, entries, "landmark"), entries: digestEntries });
 }
 
 /* ============================================================
@@ -1334,7 +1268,9 @@ function compressImage(file, maxDim, quality){
   });
 }
 function bestAudioMime(){
-  const candidates = ["audio/mp4", "audio/webm;codecs=opus", "audio/webm", "audio/ogg"];
+  // webm/opus d'abord (Android/Chrome) : il livre l'audio au fil de l'eau, alors que le mp4 de
+  // Chrome garde un morceau de retard (perdu si l'app est tu\u00e9e). iOS n'a que mp4 : il le prend.
+  const candidates = ["audio/webm;codecs=opus", "audio/webm", "audio/mp4", "audio/ogg"];
   for(const c of candidates){
     if(window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(c)) return c;
   }
@@ -1423,7 +1359,13 @@ function unlockApp(){
   const gate = document.getElementById("gate");
   if(gate) gate.remove();
   document.body.classList.remove("locked");
-  if(!wasUnlocked){ route(); syncPending(); }
+  if(!wasUnlocked){
+    route();
+    recoverOrphanRecordings().then(n => {
+      if(n){ showToast(n + " " + t("recRecoveredToast")); route(); }
+      syncPending();
+    });
+  }
 }
 function showGate(reasonKey){
   document.body.classList.add("locked");
@@ -1525,7 +1467,7 @@ async function startAccessGate(){
    ------------------------------------------------------------
    Chaque visite porte syncState "pending" | "sent". Dès qu'une connexion est
    disponible (ouverture, retour du réseau, retour au premier plan, ou ~2 min après
-   une modification), les visites en attente sont envoyées au relais (/upload-digest),
+   une modification), les entrées puis le manifeste de chaque visite en attente sont envoyés au relais,
    qui les range dans Cloudflare KV (une clé par visite, écrasée à chaque envoi).
    Pas de synchro app fermée (niveau 3, impossible sur iOS).
    ============================================================ */
@@ -1536,58 +1478,93 @@ function scheduleSync(){
   clearTimeout(syncTimer);
   syncTimer = setTimeout(() => syncPending(), SYNC_DEBOUNCE_MS);
 }
+function visitIsSent(v, entries){
+  return v.syncState === "sent" && entries.every(e => e.syncState === "sent");
+}
 async function syncStatus(){
   const visits = await idbGetAll("visits");
-  return { total: visits.length, pending: visits.filter(v => v.syncState !== "sent").length };
+  const entries = await idbGetAll("entries");
+  const byVisit = {};
+  entries.forEach(e => { (byVisit[e.visitUid] = byVisit[e.visitUid] || []).push(e); });
+  const pendingVisits = visits.filter(v => !visitIsSent(v, byVisit[v.uid] || []));
+  return {
+    total: visits.length,
+    pending: pendingVisits.length,
+    pendingEntries: entries.filter(e => e.syncState !== "sent" && visits.some(v => v.uid === e.visitUid)).length
+  };
 }
 function syncPending(opts){
   if(syncInFlight) return syncInFlight;
   syncInFlight = doSyncPending(opts || {}).finally(() => { syncInFlight = null; refreshSyncBadge(); });
   return syncInFlight;
 }
+class AccessRevoked extends Error {}
+async function postToRelay(path, payload){
+  const resp = await fetchWithTimeout(currentRelayUrl() + path, {
+    method: "POST",
+    headers: relayHeaders({ "Content-Type": "application/json" }),
+    body: JSON.stringify(payload)
+  }, 180000);
+  if(resp.status === 401 || resp.status === 403) throw new AccessRevoked("revoked");
+  if(!resp.ok){
+    const txt = await resp.text().catch(() => "");
+    throw new Error("HTTP " + resp.status + (txt ? " " + txt.slice(0, 120) : ""));
+  }
+}
+/* Envoi en morceaux : d'abord chaque entr\u00e9e en attente (un objet KV par entr\u00e9e — un envoi
+   coup\u00e9 sur r\u00e9seau faible ne fait perdre que l'entr\u00e9e en cours), puis le manifeste. */
 async function doSyncPending(opts){
   if(!appUnlocked) return { skipped: true };
-  const relay = currentRelayUrl();
-  const code = currentAccessCode();
-  if(!relay || !code) return { error: t("relayMissing") };
+  if(!currentRelayUrl() || !currentAccessCode()) return { error: t("relayMissing") };
   if(!navigator.onLine) return { error: t("syncOffline") };
-  const visits = (await idbGetAll("visits")).filter(v => v.syncState !== "sent");
+  const visits = await idbGetAll("visits");
   let sent = 0, lastError = null;
-  for(const v of visits){
-    const rev = v.syncRev || 0;
-    try{
-      const digest = await buildDigest(v);
-      const resp = await fetchWithTimeout(relay + "/upload-digest", {
-        method: "POST",
-        headers: relayHeaders({ "Content-Type": "application/json" }),
-        body: JSON.stringify(digest)
-      }, 120000);
-      if(resp.status === 401 || resp.status === 403){
-        localStorage.removeItem("rdc39_access_code");
-        localStorage.removeItem("rdc39_access_validated_at");
-        lockApp("gateRevoked");
-        return { error: t("gateRevoked") };
+  try{
+    for(const v of visits){
+      const entries = (await idbGetByIndex("entries", "visitUid", v.uid)).sort((a,b) => a.timestamp - b.timestamp);
+      if(visitIsSent(v, entries)) continue;
+      for(const e of entries){
+        if(e.syncState === "sent") continue;
+        const rev = e.syncRev || 0;
+        try{
+          await postToRelay("/upload-entry", { visitUid: v.uid, entry: await entryToDigest(e) });
+          const fresh = await idbGet("entries", e.id);
+          if(fresh && (fresh.syncRev || 0) === rev){ fresh.syncState = "sent"; fresh.syncError = null; await idbPutRaw("entries", fresh); }
+          sent++;
+        }catch(err){
+          if(err instanceof AccessRevoked) throw err;
+          lastError = err.name === "AbortError" ? "timeout" : err.message;
+          const fresh = await idbGet("entries", e.id);
+          if(fresh){ fresh.syncError = lastError; await idbPutRaw("entries", fresh); }
+        }
       }
-      if(!resp.ok){
-        const txt = await resp.text().catch(() => "");
-        throw new Error("HTTP " + resp.status + (txt ? " " + txt.slice(0, 120) : ""));
+      if(v.syncState !== "sent"){
+        const rev = v.syncRev || 0;
+        try{
+          const current = (await idbGetByIndex("entries", "visitUid", v.uid)).sort((a,b) => a.timestamp - b.timestamp);
+          await postToRelay("/upload-manifest", await buildManifest(v, current));
+          const fresh = await idbGet("visits", v.uid);
+          if(fresh && (fresh.syncRev || 0) === rev){
+            fresh.syncState = "sent"; fresh.syncedAt = new Date().toISOString(); fresh.syncError = null;
+            await idbPutRaw("visits", fresh);
+          }
+          sent++;
+        }catch(err){
+          if(err instanceof AccessRevoked) throw err;
+          lastError = err.name === "AbortError" ? "timeout" : err.message;
+        }
       }
-      // Marquée "envoyée" seulement si personne ne l'a modifiée pendant l'envoi.
-      const fresh = await idbGet("visits", v.uid);
-      if(fresh && (fresh.syncRev || 0) === rev){
-        fresh.syncState = "sent";
-        fresh.syncedAt = new Date().toISOString();
-        fresh.syncError = null;
-        await idbPutRaw("visits", fresh);
-      }
-      sent++;
-    }catch(err){
-      lastError = err.name === "AbortError" ? "timeout" : err.message;
-      const fresh = await idbGet("visits", v.uid);
-      if(fresh){ fresh.syncError = lastError; await idbPutRaw("visits", fresh); }
     }
+  }catch(err){
+    if(err instanceof AccessRevoked){
+      localStorage.removeItem("rdc39_access_code");
+      localStorage.removeItem("rdc39_access_validated_at");
+      lockApp("gateRevoked");
+      return { error: t("gateRevoked") };
+    }
+    throw err;
   }
-  if(sent > 0 || visits.length === 0) localStorage.setItem("rdc39_last_sync", String(Date.now()));
+  if(!lastError) localStorage.setItem("rdc39_last_sync", String(Date.now()));
   return lastError ? { sent, error: lastError } : { sent };
 }
 /* Petit indicateur dans la barre du haut : ⏳ + nombre de visites en attente. */
@@ -1605,6 +1582,64 @@ window.addEventListener("online", () => { revalidateInBackground(true); syncPend
 document.addEventListener("visibilitychange", () => {
   if(document.visibilityState === "visible"){ revalidateInBackground(false); syncPending(); }
 });
+
+/* ============================================================
+   RDC39 — Enregistrements audio : assemblage des morceaux et r\u00e9cup\u00e9ration
+   ============================================================ */
+const REC_TIMESLICE_MS = 2000;       // un morceau \u00e9crit sur l'appareil toutes les 2 s
+const REC_BITRATE = 32000;           // ~32 kbit/s : environ 2,4 Mo pour 10 minutes
+// Niveau RMS max (0-1) sous lequel on consid\u00e8re que rien n'a \u00e9t\u00e9 capt\u00e9. Micro coup\u00e9/bouch\u00e9 \u2248 0,
+// parole \u2248 0,02-0,3. \u00c0 calibrer sur t\u00e9l\u00e9phone r\u00e9el (cf. README).
+const REC_SILENCE_THRESHOLD = 0.008;
+const activeRecIds = new Set();      // enregistrements en cours dans CETTE page (jamais "orphelins")
+function fmtDuration(sec){
+  sec = Math.max(0, Math.round(sec || 0));
+  const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s2 = sec % 60;
+  return (h ? h + ":" + String(m).padStart(2, "0") : String(m).padStart(2, "0")) + ":" + String(s2).padStart(2, "0");
+}
+/* Assemble les morceaux d'un enregistrement en UNE entr\u00e9e audio, puis efface les morceaux.
+   Renvoie l'entr\u00e9e cr\u00e9\u00e9e, ou null s'il n'y avait aucun son. */
+async function finalizeRecording(recId, durationSec, recovered){
+  const meta = await idbGet("recordings", recId);
+  const chunks = (await idbGetByIndex("audioChunks", "recId", recId)).sort((a, b) => a.seq - b.seq);
+  let entry = null;
+  if(meta && chunks.length){
+    const total = chunks.reduce((n, c) => n + c.data.byteLength, 0);
+    const out = new Uint8Array(total);
+    let off = 0;
+    for(const c of chunks){ out.set(new Uint8Array(c.data), off); off += c.data.byteLength; }
+    let visit = await idbGet("visits", meta.visitUid);
+    if(!visit){
+      // Visite supprim\u00e9e entre-temps : on ne jette jamais un enregistrement, on recr\u00e9e une visite.
+      visit = { uid: meta.visitUid, tag: t("recRecoveredLabel"), date: new Date(meta.startedAt).toISOString(),
+        folderId: null, tags: [], trashedAt: null, createdAt: new Date().toISOString() };
+      await idbPut("visits", visit);
+    }
+    entry = {
+      id: uid(), visitUid: meta.visitUid, kind: "audio", data: out.buffer, mime: meta.mime || "audio/webm",
+      text: "", label: recovered ? t("recRecoveredLabel") : "", location: meta.location || null,
+      timestamp: meta.startedAt,
+      duration: durationSec != null ? durationSec : Math.round(chunks.length * REC_TIMESLICE_MS / 1000),
+      recovered: !!recovered
+    };
+    await idbPut("entries", entry);
+  }
+  for(const c of chunks) await idbDeleteRaw("audioChunks", c.id);
+  if(meta) await idbDeleteRaw("recordings", recId);
+  return entry;
+}
+/* Au lancement : enregistrements interrompus (app tu\u00e9e, batterie, appel entrant...). */
+async function recoverOrphanRecordings(){
+  let n = 0;
+  try{
+    const metas = await idbGetAll("recordings");
+    for(const m of metas){
+      if(activeRecIds.has(m.recId)) continue;
+      if(await finalizeRecording(m.recId, null, true)) n++;
+    }
+  }catch(e){ /* ne bloque jamais l'ouverture */ }
+  return n;
+}
 
 /* ============================================================
    RDC39 — Écran Carte : navigation et consultation UNIQUEMENT
@@ -1839,7 +1874,7 @@ async function renderMap(){
     });
     marker.bindPopup(`
       <div class="map-popup">
-        <strong>${escapeHtml(v.tag) || catById(v.category).label}</strong><br>
+        <strong>${escapeHtml(v.tag) || "\u2014"}</strong><br>
         <span class="pmeta">${glyph} ${fmtDate(v.date)} ${fmtTime(e.timestamp)}${e.label ? " · " + escapeHtml(e.label) : ""}</span>
         ${snippet ? `<div class="psnip">${snippet}</div>` : ""}
         <a href="#visit/${encodeURIComponent(v.uid)}">${t("mapOpenVisit")} ›</a>
@@ -2031,7 +2066,7 @@ function route(){
 /* ============================================================
    Vue : accueil
    ============================================================ */
-let filterState = { category: "", search: "", period: "", folder: null };
+let filterState = { search: "", period: "", folder: null };
 let selectMode = false;
 let selectedIds = new Set();
 
@@ -2064,12 +2099,7 @@ async function renderHome(){
 
   const filters = document.createElement("div");
   filters.className = "filters";
-  const cats = loadCategories();
   filters.innerHTML = `
-    <select id="fCat">
-      <option value="">${t("filterAllCat")}</option>
-      ${cats.map(c => `<option value="${c.id}">${c.glyph} ${escapeHtml(c.label)}</option>`).join("")}
-    </select>
     <select id="fPeriod">
       <option value="">${t("filterAllPeriod")}</option>
       <option value="7">${t("period7")}</option>
@@ -2129,10 +2159,8 @@ async function renderHome(){
   }
   renderSelectBar();
 
-  filters.querySelector("#fCat").value = filterState.category;
   filters.querySelector("#fPeriod").value = filterState.period;
   filters.querySelector("#fSearch").value = filterState.search;
-  filters.querySelector("#fCat").addEventListener("change", e => { filterState.category = e.target.value; refreshList(); });
   filters.querySelector("#fPeriod").addEventListener("change", e => { filterState.period = e.target.value; refreshList(); });
   filters.querySelector("#fSearch").addEventListener("input", e => { filterState.search = e.target.value; refreshList(); });
 
@@ -2140,7 +2168,6 @@ async function renderHome(){
     let visits = await idbGetAll("visits");
     visits = visits.filter(v => !v.trashedAt);
     visits.sort((a,b) => new Date(b.date) - new Date(a.date));
-    if(filterState.category) visits = visits.filter(v => v.category === filterState.category);
     if(filterState.folder === "unfiled") visits = visits.filter(v => !v.folderId);
     else if(filterState.folder) visits = visits.filter(v => v.folderId === filterState.folder);
     if(filterState.period){
@@ -2166,20 +2193,21 @@ async function renderHome(){
     }
     listEl.innerHTML = "";
     for(const v of visits){
-      const cat = catById(v.category);
       const entries = entriesByVisit[v.uid] || await idbGetByIndex("entries", "visitUid", v.uid);
+      const nAudio = entries.filter(e => e.kind === "audio").length;
       const nPhoto = entries.filter(e => e.kind === "photo").length;
       const nText = entries.filter(e => e.kind === "texte").length;
       const isSelected = selectedIds.has(v.uid);
       const card = document.createElement("button");
       card.className = "visit-card" + (isSelected ? " selected" : "");
       card.innerHTML = `
-        ${selectMode ? `<div class="check">${isSelected ? "\u2713" : ""}</div>` : `<div class="glyph">${cat.glyph}</div>`}
+        ${selectMode ? `<div class="check">${isSelected ? "\u2713" : ""}</div>` : `<div class="glyph">${VISIT_GLYPH}</div>`}
         <div class="info">
-          <div class="tag">${escapeHtml(v.tag) || cat.label}</div>
-          <div class="meta">${fmtDate(v.date)}${v.syncState === "sent" ? " \u00b7 \u2713" : " \u00b7 \u23F3"}</div>
+          <div class="tag">${escapeHtml(v.tag) || "\u2014"}</div>
+          <div class="meta">${fmtDate(v.date)}${visitIsSent(v, entries) ? " \u00b7 \u2713" : " \u00b7 \u23F3"}</div>
         </div>
         <div class="counts">
+          ${nAudio ? `<span>\u{1F3A4} ${nAudio}</span>` : ""}
           ${nPhoto ? `<span>\u{1F4F7} ${nPhoto}</span>` : ""}
           ${nText ? `<span>\u{1F4DD} ${nText}</span>` : ""}
         </div>
@@ -2205,13 +2233,11 @@ async function renderHome(){
    ============================================================ */
 function renderNewVisit(){
   main.innerHTML = "";
-  let selectedCat = loadCategories()[0].id;
   const now = new Date();
   const dateVal = now.toISOString().slice(0,10);
 
   const form = document.createElement("div");
   form.innerHTML = `
-    <div class="field"><label>${t("category")}</label><div class="cat-grid" id="catGrid"></div></div>
     <div class="field"><label for="fTag">${t("landmark")}</label>
       <input type="text" id="fTag" list="tagOptions" placeholder="${t("landmarkPh")}" autocomplete="off">
       <datalist id="tagOptions"></datalist>
@@ -2227,29 +2253,11 @@ function renderNewVisit(){
     form.querySelector("#tagOptions").innerHTML = tags.map(tg => `<option value="${escapeHtml(tg)}"></option>`).join("");
   });
 
-  function renderCatGrid(){
-    const grid = form.querySelector("#catGrid");
-    const cats = loadCategories();
-    grid.innerHTML = cats.map(c => `
-      <button type="button" class="cat-btn ${c.id === selectedCat ? "selected" : ""}" data-id="${c.id}">
-        <span class="glyph">${c.glyph}</span>${escapeHtml(c.label)}
-      </button>
-    `).join("") + `<button type="button" class="cat-btn add-new" id="btnAddCat"><span class="glyph">+</span>${t("newCategory")}</button>`;
-    grid.querySelectorAll(".cat-btn[data-id]").forEach(btn => {
-      btn.addEventListener("click", () => { selectedCat = btn.dataset.id; renderCatGrid(); });
-    });
-    grid.querySelector("#btnAddCat").addEventListener("click", () => {
-      const label = prompt(t("newCategoryPrompt"));
-      if(label && label.trim()){ selectedCat = addCustomCategory(label.trim()); renderCatGrid(); }
-    });
-  }
-  renderCatGrid();
-
   form.querySelector("#btnCreate").addEventListener("click", async () => {
     const tag = form.querySelector("#fTag").value.trim();
     const dateStr = form.querySelector("#fDate").value || dateVal;
     const visit = {
-      uid: uid(), category: selectedCat, tag,
+      uid: uid(), tag,
       date: new Date(dateStr + "T" + now.toTimeString().slice(0,8)).toISOString(),
       folderId: null, tags: [], trashedAt: null,
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
@@ -2269,13 +2277,10 @@ const WEIGHT_WARN = 30 * 1024 * 1024, WEIGHT_DANGER = 80 * 1024 * 1024;
 async function renderVisitDetail(uidVal){
   const visit = await idbGet("visits", uidVal);
   if(!visit){ window.location.hash = "#home"; return; }
-  const cat = catById(visit.category);
-
   main.innerHTML = "";
   const head = document.createElement("div");
   head.className = "detail-head";
   head.innerHTML = `
-    <div class="cat-line">${cat.glyph} ${escapeHtml(cat.label)}</div>
     <h2>${escapeHtml(visit.tag) || "\u2014"}</h2>
     <div class="meta">${fmtDateTime(visit.date)}</div>
   `;
@@ -2337,6 +2342,7 @@ async function renderVisitDetail(uidVal){
   const addRow = document.createElement("div");
   addRow.className = "add-row";
   addRow.innerHTML = `
+    <button class="btn rec-main" id="btnRec" title="${t("addAudio")}">\u{1F3A4} ${t("addAudio")}</button>
     <button class="btn" id="btnDictate" title="${t("dictateHint")}">${t("addDictate")}</button>
     <button class="btn" id="btnAddPhoto" title="${t("addPhoto")}">\u{1F4F7} ${t("addPhoto")}</button>
     <button class="btn" id="btnAddText" title="${t("addText")}">\u{1F4DD} ${t("addText")}</button>
@@ -2352,6 +2358,12 @@ async function renderVisitDetail(uidVal){
   recStatus.className = "rec-status";
   recStatus.id = "recStatus";
   main.appendChild(recStatus);
+
+  const offHint = document.createElement("p");
+  offHint.className = "capture-hint dict-offline";
+  offHint.id = "dictOffline";
+  offHint.hidden = true;
+  main.appendChild(offHint);
 
   const hint = document.createElement("p");
   hint.className = "capture-hint";
@@ -2398,13 +2410,15 @@ async function renderVisitDetail(uidVal){
     for(const entry of entries){
       const card = document.createElement("div");
       card.className = "entry-card";
-      const glyph = entry.kind === "audio" ? "\u{1F3A4}" : entry.kind === "photo" ? "\u{1F4F7}" : entry.kind === "fichier" ? fileGlyph(entry.fileName) : "\u{1F4DD}";
+      const glyph = entry.kind === "audio" ? "\u{1F3A4}" : entry.kind === "photo" ? "\u{1F4F7}" : entry.kind === "fichier" ? fileGlyph(entry.fileName) : entry.source === "dictee" ? "\u{1F5E3}\ufe0f" : "\u{1F4DD}";
       const gpsStr = entry.location ? entry.location.lat.toFixed(5) + ", " + entry.location.lng.toFixed(5) : "";
       card.innerHTML = `
         <div class="entry-head">
           <span class="entry-meta">${glyph} ${fmtTime(entry.timestamp)}
             ${entry.label ? " \u00b7 " + escapeHtml(entry.label) : ""}
             ${gpsStr ? " \u00b7 \u{1F4CD} " + gpsStr : ""}
+            ${entry.source === "dictee" ? ` \u00b7 <span class="unreviewed">${t("dictateUnreviewed")}</span>` : ""}
+            ${entry.syncState === "sent" ? "" : " \u00b7 \u23F3"}
           </span>
           <button class="del" aria-label="Delete">\u2715</button>
         </div>
@@ -2413,7 +2427,20 @@ async function renderVisitDetail(uidVal){
         <button class="label-btn" data-act="position" style="margin-left:14px;">${entry.location ? "\u270f\ufe0f " : "+ "}${t("editPosition")}</button>
       `;
       const body = card.querySelector(".entry-body");
-      if(entry.kind === "photo"){      } else if(entry.kind === "photo"){
+      if(entry.kind === "audio"){
+        const entryBlob = getEntryBlob(entry);
+        const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
+        body.innerHTML = `
+          <audio controls preload="metadata" src="${url}"></audio>
+          <div class="audio-meta">${entry.duration ? t("recDuration") + " " + fmtDuration(entry.duration) + " \u00b7 " : ""}${fmtBytes(getEntrySize(entry))}${entry.recovered ? " \u00b7 " + t("recRecoveredLabel") : ""}</div>
+          <textarea placeholder="${t("audioNotePh")}">${escapeHtml(entry.text || "")}</textarea>
+        `;
+        let tTimer = null;
+        body.querySelector("textarea").addEventListener("input", (e) => {
+          clearTimeout(tTimer);
+          tTimer = setTimeout(async () => { entry.text = e.target.value; await idbPut("entries", entry); }, 500);
+        });
+      } else if(entry.kind === "photo"){
         const entryBlob = getEntryBlob(entry);
         const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
         body.innerHTML = `<img src="${url}" alt="">`;
@@ -2509,7 +2536,8 @@ async function renderVisitDetail(uidVal){
     else if(added) showToast(t("photosAdded"));
   });
 
-  addRow.querySelector("#btnDictate").addEventListener("click", () => toggleDictation(visit.uid));
+  addRow.querySelector("#btnRec").addEventListener("click", () => toggleRecording());
+  addRow.querySelector("#btnDictate").addEventListener("click", () => toggleDictation());
 
   addRow.querySelector("#btnImportDoc").addEventListener("click", () => main.querySelector("#docInput").click());
   main.querySelector("#docInput").addEventListener("change", async (e) => {
@@ -2543,70 +2571,282 @@ async function renderVisitDetail(uidVal){
     showToast(t("fileImported"));
   });
 
-  /* ---------- Dict\u00e9e directe : texte uniquement, AUCUN fichier audio, jamais de
-     lecture/enregistrement simultan\u00e9. Contrairement au palier "l\u00e9ger" (qui rejoue un
-     audio d\u00e9j\u00e0 enregistr\u00e9 pendant que la reconnaissance \u00e9coute — conflit mat\u00e9riel
-     confirm\u00e9 sur Android ET iOS, pour deux raisons diff\u00e9rentes mais toutes deux
-     insurmontables en JS), ici la reconnaissance est SEULE consommatrice du micro,
-     exactement comme Siri ou le clavier — fiable sur mobile, confirm\u00e9 en test r\u00e9el. ---------- */
-  let dictationRec = null;
-  async function toggleDictation(visitUid){
-    const btn = addRow.querySelector("#btnDictate");
-    if(dictationRec){ dictationRec.stop(); return; }
-    const SpeechRecCtor = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if(!SpeechRecCtor){ showToast(t("transcribeUnsupported")); return; }
+  /* ============================================================
+     🎤 Enregistrer — capture principale, fonctionne SANS réseau.
+     - MediaRecorder.start(timeslice) : un morceau toutes les REC_TIMESLICE_MS, écrit
+       aussitôt dans IndexedDB (ArrayBuffer, jamais Blob — bug WebKit). Si l'app est tuée
+       (batterie, appel, iOS), les morceaux déjà écrits sont récupérés au lancement suivant.
+     - Niveau sonore en direct (AnalyserNode sur le même flux), durée + taille sauvegardée,
+       alerte à l'arrêt si rien n'a été capté, écran maintenu allumé (Wake Lock),
+       avertissement si l'utilisateur a quitté l'app pendant la capture.
+     - Jamais en même temps que Dicter (conflit micro).
+     ============================================================ */
+  let rec = null;
+  async function toggleRecording(){
+    if(rec){ stopRecording(); return; }
+    if(dict) return;
+    const btn = addRow.querySelector("#btnRec");
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder){ showToast(t("micUnavailable")); return; }
+    // AudioContext créé dans le geste utilisateur, avant tout await (exigence iOS).
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+    try{ audioCtx = Ctx ? new Ctx() : null; }catch(e){ audioCtx = null; }
+    let stream;
+    try{ stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
+    catch(err){ if(audioCtx) audioCtx.close().catch(() => {}); showToast(t("micDenied")); return; }
+    const mime = bestAudioMime();
+    let mr;
+    try{ mr = new MediaRecorder(stream, Object.assign({ audioBitsPerSecond: REC_BITRATE }, mime ? { mimeType: mime } : {})); }
+    catch(e){ mr = new MediaRecorder(stream); }
+    const recId = uid();
+    const meta = { recId, visitUid: visit.uid, mime: mr.mimeType || mime || "audio/webm", startedAt: Date.now(), location: null };
+    await idbPutRaw("recordings", meta);
+    tryGetPosition().then(loc => { if(loc){ meta.location = loc; idbPutRaw("recordings", meta).catch(() => {}); } });
 
-    let finalText = "", interimText = "", errorShown = false, weStoppedIt = false;
-    dictationRec = new SpeechRecCtor();
-    dictationRec.lang = speechRecogLangTag();
-    dictationRec.continuous = true;
-    dictationRec.interimResults = true;
-    dictationRec.onresult = (e) => {
-      let f = "", i2 = "";
-      for(let i = 0; i < e.results.length; i++){
-        if(e.results[i].isFinal) f += e.results[i][0].transcript + " ";
-        else i2 += e.results[i][0].transcript + " ";
-      }
-      if(f) finalText = f.trim();
-      interimText = i2.trim();
+    const r = rec = { mr, stream, recId, seq: 0, bytes: 0, startedAt: Date.now(), audioCtx, peak: 0, writes: [], wakeLock: null, leftApp: false, stopping: false };
+    activeRecIds.add(recId);
+    mr.ondataavailable = (e) => {
+      if(!e.data || e.data.size === 0) return;
+      const seq = r.seq++;
+      const size = e.data.size;
+      r.writes.push(e.data.arrayBuffer()
+        .then(buf => idbPutRaw("audioChunks", { id: recId + ":" + String(seq).padStart(6, "0"), recId, seq, data: buf }))
+        .then(() => { r.bytes += size; })
+        .catch(() => {}));
     };
-    dictationRec.onerror = (e) => {
-      // M\u00eame comportement b\u00e9nin observ\u00e9 et corrig\u00e9 pour le palier "l\u00e9ger" : un "aborted"
-      // caus\u00e9 par notre propre arr\u00eat, sans rien avoir capt\u00e9, n'est pas une vraie erreur.
-      if(e.error === "aborted" && weStoppedIt) return;
-      if(!errorShown){ errorShown = true; showToast(t("dictationErrorPrefix") + " : " + dictationErrorLabel(e.error)); }
-    };
-    dictationRec.onend = async () => {
-      dictationRec = null;
-      clearInterval(recordTimerInterval);
-      recStatus.innerHTML = "";
-      btn.textContent = t("addDictate");
-      const text = (finalText || interimText).trim();
-      if(text){
-        const location = await tryGetPosition();
-        await idbPut("entries", { id: uid(), visitUid, kind: "texte", text, label: "", location, timestamp: Date.now() });
-        refreshEntries(); refreshWeight();
-        showToast(t("dictateSaved"));
-      } else if(!errorShown){
-        showToast(t("dictateEmpty"));
-      }
-    };
+    mr.onstop = () => finishRecording(r);
+    mr.onerror = () => { try{ if(mr.state !== "inactive") mr.stop(); else finishRecording(r); }catch(e){ finishRecording(r); } };
+    mr.start(REC_TIMESLICE_MS);
 
-    try{ dictationRec.start(); }
-    catch(err){ dictationRec = null; showToast(t("dictationErrorPrefix") + " : " + t("dictationErrorOther")); return; }
-    btn.textContent = t("dictateStop");
-    recordStart = Date.now();
-    recStatus.innerHTML = `<span class="rec-timer" id="recTimer">${t("dictateListening")} 00:00</span>`;
+    // Niveau sonore
+    if(audioCtx){
+      try{
+        const src = audioCtx.createMediaStreamSource(stream);
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 1024;
+        src.connect(analyser); // pas de connexion vers les haut-parleurs : aucune lecture
+        if(audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+        const buf = new Uint8Array(analyser.fftSize);
+        r.levelTimer = setInterval(() => {
+          analyser.getByteTimeDomainData(buf);
+          let sum = 0;
+          for(let i = 0; i < buf.length; i++){ const v = (buf[i] - 128) / 128; sum += v * v; }
+          const rms = Math.sqrt(sum / buf.length);
+          if(rms > r.peak) r.peak = rms;
+          const bar = document.getElementById("levelBar");
+          // \u00e9chelle racine : une voix normale remplit visiblement la barre, le silence la laisse vide
+          if(bar) bar.style.width = Math.min(100, Math.round(Math.sqrt(rms) * 160)) + "%";
+        }, 100);
+      }catch(e){ r.peak = -1; } // pas de mesure possible : on ne déclenchera pas l'alerte "silence"
+    } else r.peak = -1;
+
+    // Écran maintenu allumé
+    requestWakeLock(r);
+
+    btn.textContent = "⏹ " + t("recStop");
+    btn.classList.add("recording");
+    addRow.querySelector("#btnDictate").disabled = true;
+    recStatus.innerHTML = `
+      <div class="rec-live">
+        <div class="rec-line"><span class="rec-dot">●</span><span class="rec-timer" id="recTimer">00:00</span></div>
+        <div class="level"><div class="level-bar" id="levelBar"></div></div>
+        <div class="rec-keep">${t("recKeepOpen")}</div>
+      </div>`;
     recordTimerInterval = setInterval(() => {
-      const s = Math.floor((Date.now() - recordStart) / 1000);
       const el = document.getElementById("recTimer");
-      if(el) el.textContent = t("dictateListening") + " " + String(Math.floor(s/60)).padStart(2,"0") + ":" + String(s%60).padStart(2,"0");
+      if(el) el.textContent = fmtDuration((Date.now() - r.startedAt) / 1000) + " · " + fmtBytes(r.bytes) + " " + t("recSavedBytes");
     }, 250);
+  }
+  function stopRecording(){
+    const r = rec;
+    if(!r || r.stopping) return;
+    r.stopping = true;
+    try{ if(r.mr.state !== "inactive") r.mr.stop(); else finishRecording(r); }catch(e){ finishRecording(r); }
+  }
+  async function finishRecording(r){
+    if(r.finished) return;
+    r.finished = true;
+    if(rec === r) rec = null;
+    const durationSec = Math.round((Date.now() - r.startedAt) / 1000);
+    clearInterval(recordTimerInterval);
+    clearInterval(r.levelTimer);
+    r.stream.getTracks().forEach(tr => tr.stop());
+    if(r.audioCtx) r.audioCtx.close().catch(() => {});
+    if(r.wakeLock) r.wakeLock.release().catch(() => {});
+    recStatus.innerHTML = "";
+    const btn = addRow.querySelector("#btnRec");
+    btn.textContent = "\u{1F3A4} " + t("addAudio");
+    btn.classList.remove("recording");
+    updateDictateAvailability();
+    await Promise.all(r.writes);
+    const entry = await finalizeRecording(r.recId, durationSec, false);
+    activeRecIds.delete(r.recId);
+    if(!main.isConnected) return;
+    refreshEntries(); refreshWeight();
+    if(!entry){ showToast(t("recEmpty")); return; }
+    showToast(t("recSaved") + " (" + fmtDuration(durationSec) + ")");
+    if(r.peak >= 0 && r.peak < REC_SILENCE_THRESHOLD) alert(t("recSilentWarning"));
+    else if(r.leftApp) alert(t("recBackgroundWarn"));
+  }
+  function requestWakeLock(r){
+    if(!("wakeLock" in navigator)) return;
+    navigator.wakeLock.request("screen").then(l => { r.wakeLock = l; }).catch(() => {});
+  }
+  function onVisibility(){
+    const r = rec;
+    if(!r) return;
+    if(document.visibilityState === "hidden") r.leftApp = true;
+    else {
+      requestWakeLock(r);
+      // iOS peut avoir coupé le micro en arrière-plan : si l'enregistreur s'est arrêté seul, on sauvegarde.
+      if(r.mr.state === "inactive") finishRecording(r);
+      else showToast(t("recBackgroundToast"));
+    }
+  }
+  function onBeforeUnload(e){ if(rec || dict){ e.preventDefault(); e.returnValue = ""; } }
+  document.addEventListener("visibilitychange", onVisibility);
+  window.addEventListener("beforeunload", onBeforeUnload);
 
-    // Point d'arr\u00eat r\u00e9utilis\u00e9 par le bouton (toggle) : marque qu'on a nous-m\u00eames demand\u00e9
-    // l'arr\u00eat, pour appliquer le m\u00eame traitement b\u00e9nin du code "aborted" que ci-dessus.
-    const origStop = dictationRec.stop.bind(dictationRec);
-    dictationRec.stop = () => { weStoppedIt = true; origStop(); };
+  /* ============================================================
+     🗣️ Dicter — secondaire, exige le réseau (bloqué hors connexion).
+     Correctif des doublons/troncatures observés en mode continu : une session de
+     reconnaissance PAR ÉNONCÉ (continuous = false), relancée automatiquement tant que
+     l'utilisateur n'a pas touché Arrêter ; un seul résultat final par session, ajouté
+     (jamais écrasé) avec anti-doublon ; brouillon sauvegardé au fil de l'eau ; texte
+     marqué source:"dictee" (non relu). Affichage en direct : validé en noir, provisoire en gris.
+     ============================================================ */
+  let dict = null;
+  const DICT_MAX_MS = 10 * 60 * 1000;
+  function speechCtor(){ return window.SpeechRecognition || window.webkitSpeechRecognition; }
+  function updateDictateAvailability(){
+    const btn = addRow.querySelector("#btnDictate");
+    const offHint = main.querySelector("#dictOffline");
+    if(!btn) return;
+    const offline = !navigator.onLine;
+    btn.disabled = !!rec || (!dict && (offline || !speechCtor()));
+    if(offHint){
+      offHint.hidden = !(offline || !speechCtor()) || !!dict;
+      offHint.textContent = speechCtor() ? t("dictateOfflineHint") : t("transcribeUnsupported");
+    }
+  }
+  function onNetChange(){
+    updateDictateAvailability();
+    if(dict && !navigator.onLine){ dict.netLost = true; dict.stopRequested = true; try{ dict.rec && dict.rec.stop(); }catch(e){} }
+  }
+  window.addEventListener("online", onNetChange);
+  window.addEventListener("offline", onNetChange);
+
+  function normalizeSpeech(s){ return (s || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim(); }
+  function commitDictation(d, text){
+    text = (text || "").trim();
+    const n = normalizeSpeech(text);
+    if(!n) return;
+    const c = normalizeSpeech(d.committed);
+    if(c === n || c.endsWith(" " + n)) return; // anti-doublon : déjà validé
+    d.committed = d.committed ? d.committed + " " + text : text;
+    if(!d.entry){
+      d.entry = { id: uid(), visitUid: visit.uid, kind: "texte", source: "dictee", text: d.committed, label: "", location: d.location, timestamp: d.startedAt };
+    } else {
+      d.entry.text = d.committed;
+      if(!d.entry.location && d.location) d.entry.location = d.location;
+    }
+    const snapshot = d.entry;
+    d.saving = d.saving.then(() => idbPut("entries", snapshot)).catch(() => {});
+  }
+  function renderDictation(d){
+    const f = document.getElementById("dictFinal");
+    const i = document.getElementById("dictInterim");
+    if(f) f.textContent = d.committed;
+    if(i) i.textContent = d.interim ? (d.committed ? " " : "") + d.interim : "";
+  }
+  function toggleDictation(){
+    if(dict){ dict.stopRequested = true; try{ dict.rec && dict.rec.stop(); }catch(e){ finishDictation(dict); } return; }
+    if(rec) return;
+    if(!speechCtor()){ showToast(t("transcribeUnsupported")); return; }
+    if(!navigator.onLine){ showToast(t("dictateOfflineBlocked")); return; }
+    const d = dict = { committed: "", interim: "", stopRequested: false, entry: null, errorShown: false, rec: null,
+      startedAt: Date.now(), location: null, saving: Promise.resolve(), errCount: 0 };
+    tryGetPosition().then(l => { d.location = l; });
+    const btn = addRow.querySelector("#btnDictate");
+    btn.textContent = t("dictateStop");
+    addRow.querySelector("#btnRec").disabled = true;
+    updateDictateAvailability();
+    recStatus.innerHTML = `
+      <div class="dict-live">
+        <div class="rec-line"><span class="rec-dot">●</span><span class="rec-timer" id="recTimer">${t("dictateListening")}</span></div>
+        <div class="dict-text"><span class="final" id="dictFinal"></span><span class="interim" id="dictInterim"></span></div>
+      </div>`;
+    recordTimerInterval = setInterval(() => {
+      const el = document.getElementById("recTimer");
+      if(el) el.textContent = t("dictateListening") + " " + fmtDuration((Date.now() - d.startedAt) / 1000);
+      if(Date.now() - d.startedAt > DICT_MAX_MS){ d.stopRequested = true; try{ d.rec && d.rec.stop(); }catch(e){} }
+    }, 250);
+    startDictationSession(d);
+  }
+  function startDictationSession(d){
+    const r = new (speechCtor())();
+    d.rec = r;
+    r.lang = speechRecogLangTag();
+    r.continuous = false;
+    r.interimResults = true;
+    r.maxAlternatives = 1;
+    let sessionFinal = "", sessionInterim = "";
+    r.onresult = (e) => {
+      let fin = "", inter = "";
+      for(let i = 0; i < e.results.length; i++){
+        const tr = e.results[i][0].transcript;
+        if(e.results[i].isFinal) fin = tr; // un seul final par session : le dernier fait foi
+        else inter += tr;
+      }
+      if(fin) sessionFinal = fin;
+      sessionInterim = inter;
+      d.interim = (sessionFinal ? sessionFinal + " " : "") + inter;
+      renderDictation(d);
+    };
+    r.onerror = (e) => {
+      if(e.error === "aborted" && d.stopRequested) return;
+      if(e.error === "no-speech" || e.error === "aborted") return; // silence : la session suivante prend le relais
+      if(e.error === "network"){ d.netLost = true; d.stopRequested = true; }
+      else if(e.error === "not-allowed" || e.error === "service-not-allowed" || e.error === "audio-capture"){ d.stopRequested = true; }
+      else if(++d.errCount > 3) d.stopRequested = true;
+      if(d.stopRequested && !d.errorShown && !d.netLost){
+        d.errorShown = true;
+        showToast(t("dictationErrorPrefix") + " : " + dictationErrorLabel(e.error));
+      }
+    };
+    r.onend = () => {
+      // Si le moteur s'arrête sans résultat final, on garde le provisoire plutôt que de le perdre.
+      commitDictation(d, sessionFinal || sessionInterim);
+      d.interim = "";
+      renderDictation(d);
+      if(!d.stopRequested && dict === d && navigator.onLine){
+        setTimeout(() => {
+          if(d.stopRequested || dict !== d){ finishDictation(d); return; }
+          try{ startDictationSession(d); }catch(err){ finishDictation(d); }
+        }, 120);
+      } else {
+        finishDictation(d);
+      }
+    };
+    try{ r.start(); }
+    catch(err){ d.stopRequested = true; finishDictation(d); }
+  }
+  async function finishDictation(d){
+    if(d.finished) return;
+    d.finished = true;
+    if(dict === d) dict = null;
+    clearInterval(recordTimerInterval);
+    recStatus.innerHTML = "";
+    const btn = addRow.querySelector("#btnDictate");
+    btn.textContent = t("addDictate");
+    addRow.querySelector("#btnRec").disabled = false;
+    updateDictateAvailability();
+    await d.saving;
+    if(!main.isConnected) return;
+    refreshEntries(); refreshWeight();
+    if(d.netLost) showToast(d.entry ? t("dictateNetLost") : t("dictateNetLostEmpty"));
+    else if(d.entry) showToast(t("dictateSaved"));
+    else if(!d.errorShown) showToast(t("dictateEmpty"));
   }
 
   function dictationErrorLabel(code){
@@ -2616,6 +2856,17 @@ async function renderVisitDetail(uidVal){
     return t("dictationErrorOther") + " (" + code + ")";
   }
 
+  // Quitter l'écran arrête proprement une capture en cours (elle est sauvegardée) et retire les écouteurs.
+  currentViewCleanup = () => {
+    if(rec) stopRecording();
+    if(dict){ dict.stopRequested = true; try{ dict.rec && dict.rec.stop(); }catch(e){} }
+    document.removeEventListener("visibilitychange", onVisibility);
+    window.removeEventListener("beforeunload", onBeforeUnload);
+    window.removeEventListener("online", onNetChange);
+    window.removeEventListener("offline", onNetChange);
+  };
+  updateDictateAvailability();
+
   async function exportVisit(v){
     const entries = await idbGetByIndex("entries", "visitUid", v.uid);
     entries.sort((a,b) => a.timestamp - b.timestamp);
@@ -2624,7 +2875,7 @@ async function renderVisitDetail(uidVal){
     const reportText = buildReportText(v, entries, "chrono");
     downloadBlob(new Blob([reportText], { type: "text/plain;charset=utf-8" }), safeFileName(v.tag || v.uid) + "_rapport.txt");
     const manifest = {
-      uid: v.uid, category: catById(v.category).label, tag: v.tag, date: v.date,
+      uid: v.uid, tag: v.tag, date: v.date,
       entries: entries.map((e,i) => ({
         type: e.kind, horodatage: new Date(e.timestamp).toISOString(), repere: e.label || null,
         position: e.location || null, texte: e.text || null,
@@ -2650,7 +2901,7 @@ async function renderVisitDetail(uidVal){
   async function exportDigest(v){
     const entriesForWeight = await idbGetByIndex("entries", "visitUid", v.uid);
     const nonCompressible = entriesForWeight.filter(e => e.kind === "fichier").length;
-    const estBytes = entriesForWeight.reduce((s,e) => s + (e.kind !== "audio" ? getEntrySize(e) * 1.33 : 0), 0);
+    const estBytes = entriesForWeight.reduce((s,e) => s + getEntrySize(e) * 1.33, 0);
     let confirmMsg = t("digestConfirm") + " (~" + fmtBytes(estBytes) + " " + t("exportWeightEstimate") + ")";
     if(nonCompressible > 0) confirmMsg += " \u2014 " + t("exportWeightWarn");
     if(!confirm(confirmMsg)) return;
@@ -2691,12 +2942,13 @@ async function renderVisitDetail(uidVal){
    Assemblage d\u00e9terministe du rapport (texte, pas de mise en page)
    ============================================================ */
 function buildReportText(visit, entries, groupBy){
-  const cat = catById(visit.category);
-  let out = (visit.tag || cat.label) + "\n" + fmtDate(visit.date) + " \u00b7 " + cat.label + "\n" + "=".repeat(40) + "\n\n";
+  let out = (visit.tag || "\u2014") + "\n" + fmtDate(visit.date) + "\n" + "=".repeat(40) + "\n\n";
   const lineFor = (e) => {
     const time = fmtTime(e.timestamp);
     const gps = e.location ? " [" + e.location.lat.toFixed(5) + ", " + e.location.lng.toFixed(5) + "]" : "";
     if(e.kind === "photo") return "- " + time + gps + " \u2014 [photo]" + (e.text ? " " + e.text : "");
+    if(e.kind === "audio") return "- " + time + gps + " \u2014 [audio " + fmtDuration(e.duration) + "]" + (e.text && e.text.trim() ? " " + e.text.trim() : "");
+    if(e.kind === "fichier") return "- " + time + gps + " \u2014 [fichier " + (e.fileName || "") + "]";
     const content = e.text && e.text.trim() ? e.text.trim() : "(" + t("transcriptPh") + ")";
     return "- " + time + gps + " \u2014 " + content;
   };
@@ -2723,108 +2975,18 @@ function buildReportText(visit, entries, groupBy){
 async function renderReport(uidVal){
   const visit = await idbGet("visits", uidVal);
   if(!visit){ window.location.hash = "#home"; return; }
-  const cat = catById(visit.category);
   let groupBy = "chrono";
 
   main.innerHTML = "";
   const head = document.createElement("div");
   head.className = "detail-head";
-  head.innerHTML = `<div class="cat-line">${cat.glyph} ${escapeHtml(cat.label)}</div><h2>${escapeHtml(visit.tag) || "\u2014"}</h2><div class="meta">${fmtDate(visit.date)}</div>`;
+  head.innerHTML = `<h2>${escapeHtml(visit.tag) || "\u2014"}</h2><div class="meta">${fmtDate(visit.date)}</div>`;
   main.appendChild(head);
 
   const toggle = document.createElement("div");
   toggle.className = "group-toggle";
   toggle.innerHTML = `<button data-g="chrono" class="active">${t("groupChrono")}</button><button data-g="landmark">${t("groupLandmark")}</button>`;
   main.appendChild(toggle);
-
-  const synthSection = document.createElement("div");
-  synthSection.className = "section";
-  synthSection.innerHTML = `
-    <p class="capture-hint" style="margin-top:0;">${t("synthFormat")}</p>
-    <div class="group-toggle" id="synthFormatToggle">
-      <button data-fmt="notes" title="${t("synthFormatNotesSub")}">${t("synthFormatNotes")}</button>
-      <button data-fmt="pv" title="${t("synthFormatPVSub")}">${t("synthFormatPV")}</button>
-    </div>
-    <p class="capture-hint">${t("synthLevel")}</p>
-    <div class="group-toggle" id="synthLevelToggle">
-      <button data-lvl="complet" title="${t("synthLevelCompletSub")}">${t("synthLevelComplet")}</button>
-      <button data-lvl="synthese" title="${t("synthLevelSyntheseSub")}">${t("synthLevelSynthese")}</button>
-      <button data-lvl="succinct" title="${t("synthLevelSuccinctSub")}">${t("synthLevelSuccinct")}</button>
-    </div>
-    <button class="btn" id="btnAISynth" style="width:100%;">${t("reportAISynth")}</button>
-    <p class="transcribe-status" id="synthStatus" hidden></p>
-    <div id="synthBlock" ${visit.aiSynthesis ? "" : "hidden"}>
-      <h3 style="font-size:14px; color: var(--accent); margin: 14px 0 6px 0;">
-        ${t("reportAISynthTitle")}
-        ${visit.aiSynthesisLevel ? `<span class="storage-line" style="display:inline; font-weight:400;">(${synthMetaLabel(visit.aiSynthesisFormat, visit.aiSynthesisLevel)})</span>` : ""}
-      </h3>
-      <p class="capture-hint" style="margin-top:0;">${t("reportAISynthNote")}</p>
-      <textarea id="synthText" style="width:100%; min-height:120px; background: var(--surface); color: var(--text); border:1px solid var(--line); border-radius:8px; padding:10px; font-size:14px; line-height:1.5;">${escapeHtml(visit.aiSynthesis || "")}</textarea>
-    </div>
-  `;
-  main.appendChild(synthSection);
-
-  function synthMetaLabel(format, level){
-    const fmtLabel = format === "pv" ? t("synthFormatPV") : t("synthFormatNotes");
-    const lvlLabel = t("synthLevel" + level.charAt(0).toUpperCase() + level.slice(1));
-    return fmtLabel + " \u00b7 " + lvlLabel;
-  }
-
-  let synthLevel = visit.aiSynthesisLevel || localStorage.getItem("rdc39_synth_level") || "complet";
-  let synthFormat = visit.aiSynthesisFormat || localStorage.getItem("rdc39_synth_format") || "notes";
-  function renderSynthToggles(){
-    synthSection.querySelectorAll("#synthLevelToggle button").forEach(b => b.classList.toggle("active", b.dataset.lvl === synthLevel));
-    synthSection.querySelectorAll("#synthFormatToggle button").forEach(b => b.classList.toggle("active", b.dataset.fmt === synthFormat));
-  }
-  renderSynthToggles();
-  synthSection.querySelectorAll("#synthLevelToggle button").forEach(b => {
-    b.addEventListener("click", () => { synthLevel = b.dataset.lvl; localStorage.setItem("rdc39_synth_level", synthLevel); renderSynthToggles(); });
-  });
-  synthSection.querySelectorAll("#synthFormatToggle button").forEach(b => {
-    b.addEventListener("click", () => { synthFormat = b.dataset.fmt; localStorage.setItem("rdc39_synth_format", synthFormat); renderSynthToggles(); });
-  });
-
-  let synthTimer = null;
-  synthSection.querySelector("#synthText").addEventListener("input", (e) => {
-    clearTimeout(synthTimer);
-    synthTimer = setTimeout(async () => { visit.aiSynthesis = e.target.value; await idbPut("visits", visit); }, 500);
-  });
-  synthSection.querySelector("#btnAISynth").addEventListener("click", async () => {
-    const provider = currentSynthProvider();
-    if(!currentRelayUrl() || !currentAccessCode()){ showToast(t("relayMissing")); return; }
-    if(!navigator.onLine){ showToast(t("synthOffline")); return; }
-    const entries = (await idbGetByIndex("entries", "visitUid", visit.uid)).sort((a,b) => a.timestamp - b.timestamp);
-    if(entries.length === 0){ showToast(t("noEntries")); return; }
-
-    // D\u00e9tection des rep\u00e8res "ordre du jour" : extraits et pass\u00e9s s\u00e9par\u00e9ment au mod\u00e8le,
-    // le reste (y compris un \u00e9ventuel compte-rendu oral) suit le flux normal des notes.
-    const agendaEntries = entries.filter(e => isAgendaLabel(e.label));
-    const agendaText = agendaEntries.map(e => e.text || "").filter(Boolean).join("\n") || null;
-    const contentEntries = agendaText ? entries.filter(e => !isAgendaLabel(e.label)) : entries;
-    const rawText = buildReportText(visit, contentEntries, groupBy);
-
-    if(!confirm(t("reportAISynthConfirm") + " (~" + rawText.length + " caract\u00e8res, " + synthMetaLabel(synthFormat, synthLevel) + ")")) return;
-    const btn = synthSection.querySelector("#btnAISynth");
-    const statusEl = synthSection.querySelector("#synthStatus");
-    btn.disabled = true; statusEl.hidden = false; statusEl.textContent = t("reportAISynthRunning");
-    try{
-      const result = await callChatSynthesis(rawText, synthLevel, synthFormat, agendaText, provider);
-      bumpAICallCount();
-      visit.aiSynthesis = result;
-      visit.aiSynthesisLevel = synthLevel;
-      visit.aiSynthesisFormat = synthFormat;
-      await idbPut("visits", visit);
-      synthSection.querySelector("#synthBlock").hidden = false;
-      synthSection.querySelector("#synthText").value = result;
-      const titleEl = synthSection.querySelector("#synthBlock h3");
-      titleEl.innerHTML = `${t("reportAISynthTitle")} <span class="storage-line" style="display:inline; font-weight:400;">(${synthMetaLabel(synthFormat, synthLevel)})</span>`;
-      showToast(t("reportAISynthDone"));
-    }catch(err){
-      showToast(t("reportAISynthError") + " : " + err.message);
-    }finally{
-      btn.disabled = false; statusEl.hidden = true;
-    }
-  });
 
   const body = document.createElement("div");
   main.appendChild(body);
@@ -2850,6 +3012,11 @@ async function renderReport(uidVal){
         const entryBlob = getEntryBlob(e);
         const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
         inner += `<img src="${url}" alt="">`;
+      } else if(e.kind === "audio"){
+        const entryBlob = getEntryBlob(e);
+        const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
+        inner += `<audio controls preload="metadata" src="${url}" style="width:100%; height:32px;"></audio>` +
+          (e.text && e.text.trim() ? `<div>${escapeHtml(e.text.trim())}</div>` : "");
       } else {
         inner += escapeHtml(e.text && e.text.trim() ? e.text.trim() : "(" + t("transcriptPh") + ")");
       }
@@ -2887,10 +3054,7 @@ async function renderReport(uidVal){
 
   exportBtn.addEventListener("click", async () => {
     const entries = (await idbGetByIndex("entries", "visitUid", visit.uid)).sort((a,b) => a.timestamp - b.timestamp);
-    let txt = buildReportText(visit, entries, groupBy);
-    if(visit.aiSynthesis){
-      txt = t("reportAISynthTitle").toUpperCase() + " (" + t("reportAISynthNote") + ")\n" + "=".repeat(40) + "\n\n" + visit.aiSynthesis + "\n\n" + "=".repeat(40) + "\n\n" + txt;
-    }
+    const txt = buildReportText(visit, entries, groupBy);
     const url = URL.createObjectURL(new Blob([txt], { type: "text/plain;charset=utf-8" }));
     const a = document.createElement("a");
     a.href = url; a.download = (visit.tag || "rapport").replace(/[^a-zA-Z0-9-_]+/g, "_").slice(0,40) + "_rapport.txt";
@@ -3109,14 +3273,13 @@ async function renderTrash(){
     emptyBtn.hidden = false;
     listEl.innerHTML = "";
     for(const v of visits){
-      const cat = catById(v.category);
       const row = document.createElement("div");
       row.className = "visit-card";
       row.style.cursor = "default";
       row.innerHTML = `
-        <div class="glyph">${cat.glyph}</div>
+        <div class="glyph">${VISIT_GLYPH}</div>
         <div class="info">
-          <div class="tag">${escapeHtml(v.tag) || cat.label}</div>
+          <div class="tag">${escapeHtml(v.tag) || "\u2014"}</div>
           <div class="meta">${fmtDate(v.date)}</div>
         </div>
         <div class="folder-actions">
@@ -3186,42 +3349,6 @@ async function renderSettings(){
     });
   }
   renderQualGrid();
-
-  const aiGroup = document.createElement("div");
-  aiGroup.className = "settings-group";
-  aiGroup.innerHTML = `
-    <h3>${t("settingsAI")}</h3>
-    <p class="capture-hint" style="margin-top:0;">${t("settingsAISubRdc")}</p>
-    <p class="capture-hint" style="margin-top:16px;">${t("settingsSynthProvider")}</p>
-    <div class="group-toggle" id="synthProviderToggle">
-      <button data-p="anthropic">${t("providerAnthropic")}</button>
-      <button data-p="openai">OpenAI</button>
-      <button data-p="openrouter">${t("providerOpenRouter")}</button>
-    </div>
-    <div class="field" style="margin: 10px 0 8px 0;">
-      <label for="fSynthModel">${t("settingsModelLabel")}</label>
-      <input type="text" id="fSynthModel" autocomplete="off" autocapitalize="off" spellcheck="false">
-    </div>
-    <p class="capture-hint">${t("settingsModelSub")}</p>
-    <p class="storage-line" style="margin-top:10px;">${t("settingsAICallsLabel")} : ${Number(sessionStorage.getItem("rdc39_ai_calls") || "0")}</p>
-  `;
-  main.appendChild(aiGroup);
-  function renderSynthProviderToggle(){
-    const provider = currentSynthProvider();
-    aiGroup.querySelectorAll("#synthProviderToggle button").forEach(b => b.classList.toggle("active", b.dataset.p === provider));
-    const modelInput = aiGroup.querySelector("#fSynthModel");
-    modelInput.placeholder = DEFAULT_SYNTH_MODELS[provider];
-    modelInput.value = storedSynthModel(provider);
-  }
-  let modelTimer = null;
-  aiGroup.querySelector("#fSynthModel").addEventListener("input", (e) => {
-    clearTimeout(modelTimer);
-    modelTimer = setTimeout(() => setSynthModel(currentSynthProvider(), e.target.value), 400);
-  });
-  renderSynthProviderToggle();
-  aiGroup.querySelectorAll("#synthProviderToggle button").forEach(b => {
-    b.addEventListener("click", () => { setSynthProvider(b.dataset.p); renderSynthProviderToggle(); });
-  });
 
   /* Synchronisation : \u00e9tat seulement (l'envoi est automatique d\u00e8s qu'une connexion existe),
      plus un bouton de repli silencieux pour forcer une tentative imm\u00e9diate. */
