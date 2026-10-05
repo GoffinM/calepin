@@ -12,6 +12,8 @@ Il est hébergé dans le sous-dossier `rdc39/` du dépôt Calepin, à l'adresse 
 | **🎤 Enregistrer** (capture principale) | Fonctionne sans réseau, pour des prises de plusieurs minutes. L'audio est écrit sur l'appareil toutes les 2 s. Un enregistrement interrompu (app tuée, batterie, appel) est récupéré au lancement suivant, avec la mention « Enregistrement récupéré ». Pendant la capture s'affichent un niveau sonore en direct, la durée et la taille déjà sauvegardée ; l'écran reste allumé. À l'arrêt, une alerte apparaît si rien n'a été capté, ou si l'utilisateur a quitté l'app pendant la capture. Débit d'environ 32 kbit/s, soit à peu près 2,4 Mo pour 10 minutes. |
 | **🗣️ Dicter** (secondaire) | Bouton bloqué hors connexion, avec une explication. Une session de reconnaissance par énoncé, relancée automatiquement jusqu'à « Arrêter ». Le texte est ajouté au fur et à mesure (anti-doublon), jamais écrasé, et le brouillon est sauvegardé en continu. Le texte validé s'affiche en noir, le texte provisoire en gris. L'entrée est marquée « dictée, non relue » (`source: "dictee"`). Sous Chrome, l'audio dicté transite par les serveurs de Google : à mentionner dans le briefing. |
 | **📍 Point** | Enregistre la position actuelle comme entrée à part entière (repère de crue, pile de pont, départ de ravine…), avec un nom facultatif. L'app écoute le GPS jusqu'à ± 5 m, ou 30 s au plus, garde la meilleure mesure et note sa précision (« ± 4 m »). On peut valider plus tôt. Utilisable pendant un enregistrement. Sur la carte, les points ont un marqueur cerclé de blanc. |
+| **Position** | Le statut de localisation est toujours visible : pastille 📍 dans la barre du haut, et ligne en tête de chaque visite (OK ± x m / recherche / indisponible / refusée). Toucher le statut ouvre une explication et un bouton « Réessayer ». Au premier lancement, une fenêtre demande explicitement l'autorisation. Le délai d'attente du GPS passe de 6 s à 20 s, mais une capture n'attend jamais : la dernière mesure de moins d'une minute est réutilisée, sinon l'entrée est enregistrée tout de suite et sa position y est rattachée dès qu'une mesure arrive (pendant 2 minutes au plus). Toute entrée sans position affiche **⚠ sans position**, qui ouvre directement la saisie de position, préremplie avec la position actuelle si elle est connue. |
+| **EXIF GPS à l'export** | Chaque JPEG exporté (synchro et digest, export standard, fichiers de la page admin) reçoit un segment EXIF : latitude, longitude, références N/S et E/W, DateTimeOriginal (heure locale) et OffsetTimeOriginal, plus l'altitude et la précision quand elles sont connues. Ces valeurs viennent de la position et de l'horodatage **actuels** de l'entrée ; une correction manuelle de position est donc prise en compte. Tout segment Exif existant est remplacé, y compris le segment vide produit par le canvas de Safari. Une entrée sans position garde sa photo inchangée. Le code est dans `index.html`, entre les marqueurs `EXIF-WRITER-BEGIN` et `EXIF-WRITER-END`. |
 | **Autres captures** | 📷 Photo (GPS EXIF repris), 📝 Note texte, 📄 Importer document (.txt), 📎 Joindre un fichier. « Importer audio » est retiré (à confirmer). |
 | **IA** | Aucune : pas de clé, pas d'appel, pas de synthèse. Le traitement de l'audio se fait côté Michel, à partir des données récupérées. |
 | **Code d'accès** | Validé par le relais à chaque ouverture quand il y a du réseau. Hors ligne, l'app reste utilisable 14 jours après la dernière validation. Un code révoqué verrouille l'app au prochain contact avec le relais ; les données restent sur l'appareil. |
@@ -91,6 +93,16 @@ L'export manuel « Exporter (digest JSON) », dans chaque visite, produit le mê
 - Photo affichée. Ce test a révélé un bug de la version précédente, corrigé ici : les photos ne s'affichaient pas dans la fiche de visite.
 - **Synchronisation** entrée par entrée vers KV, puis page admin : liste des visites, digest v2 réassemblé avec l'audio en base64.
 - Carte, couches, tuiles et mode hors ligne : inchangés, revérifiés.
+- **EXIF GPS** : `python3 rdc39/tests/test_exif_gps.py` (nécessite Pillow, piexif et node). 20 cas, relus avec Pillow :
+  - JPEG d'entrée : sans EXIF, EXIF big-endian (Pillow, piexif), segment Exif vide façon Safari, EXIF little-endian ;
+  - sorties en big-endian et en little-endian, hémisphères N/E et S/W, fuseaux + et − ;
+  - vérifications : position à 1e-6° près, références, DateTimeOriginal et décalage, altitude et précision, un seul segment Exif, ancien EXIF retiré, pixels identiques ;
+  - sans position, le fichier reste identique ; un fichier non JPEG n'est pas modifié.
+- **Position**, testée de bout en bout dans le navigateur :
+  - position refusée : fenêtre au premier lancement, statut « refusée », « ⚠ sans position » cliquable, photo exportée sans EXIF ;
+  - position accordée : statut « OK ± 7 m », EXIF présent dans le digest, l'export standard et la synchro ;
+  - position corrigée à la main : elle est reprise dans l'EXIF ;
+  - signal GPS arrivé après la capture : la position est rattachée automatiquement.
 
 ## À tester sur téléphones réels
 
