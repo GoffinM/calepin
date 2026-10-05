@@ -496,7 +496,7 @@ const STRINGS = {
     mapFit: "Vue du projet",
     mapOffline: "Fond de carte hors-ligne",
     mapDownload: "T\u00e9l\u00e9charger pour le terrain",
-    mapDownloadConfirm: "T\u00e9l\u00e9charger le fond de carte de la zone du projet ({n} tuiles, environ 25 Mo) ? \u00c0 faire avant le d\u00e9part, avec une bonne connexion (Wi-Fi de pr\u00e9f\u00e9rence).",
+    mapDownloadConfirm: "T\u00e9l\u00e9charger le fond de carte de la zone du projet ({n} tuiles, environ 30 Mo) ? \u00c0 faire avant le d\u00e9part, avec une bonne connexion (Wi-Fi de pr\u00e9f\u00e9rence).",
     mapDownloading: "T\u00e9l\u00e9chargement\u2026",
     mapDownloadDone: "Fond de carte disponible hors-ligne",
     mapTilesCached: "tuiles disponibles hors-ligne",
@@ -656,7 +656,7 @@ const STRINGS = {
     mapFit: "Project view",
     mapOffline: "Offline base map",
     mapDownload: "Download for the field",
-    mapDownloadConfirm: "Download the base map for the project area ({n} tiles, about 25 MB)? Do this before leaving, with a good connection (Wi-Fi preferably).",
+    mapDownloadConfirm: "Download the base map for the project area ({n} tiles, about 30 MB)? Do this before leaving, with a good connection (Wi-Fi preferably).",
     mapDownloading: "Downloading\u2026",
     mapDownloadDone: "Base map available offline",
     mapTilesCached: "tiles available offline",
@@ -788,7 +788,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "rdc39-2026-10-04.1";
+const APP_VERSION = "rdc39-2026-10-05.1";
 function currentLang(){ return localStorage.getItem("rdc39_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("rdc39_lang", l); }
 function t(key){
@@ -1658,7 +1658,7 @@ const OSM_TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const TILE_CACHE = "rdc39-tiles-v1";
 const TILE_MIN_ZOOM = 12, TILE_MAX_ZOOM = 17;
 /* Emprise du projet (union des couches, + petite marge) — sert au téléchargement hors-ligne. */
-const PROJECT_BOUNDS = { south: 1.4886, west: 30.2770, north: 1.5666, east: 30.3503 };
+const PROJECT_BOUNDS = { south: 1.4886, west: 30.2630, north: 1.5666, east: 30.3503 }; // ouest \u00e9largi : conduite
 const LAYER_DEFS = [
   { id: "bvbig",                     label: "Bassin versant (global)",              color: "#2b6cb0", kind: "polygon" },
   { id: "bv-dam-site-1",             label: "Bassin versant — Nyamukau site 1", color: "#38a169", kind: "polygon" },
@@ -1669,7 +1669,8 @@ const LAYER_DEFS = [
   { id: "max-possible-site-3",       label: "Cuvette max — Nyamukau site 3",    color: "#9c4221", kind: "polygon" },
   { id: "riviere",                   label: "Rivière",                          color: "#1a365d", kind: "line" },
   { id: "contours-0-5mfrom-barrage", label: "Courbes de niveau (0,5 m, simplifiées)", color: "#718096", kind: "line" },
-  { id: "points-sites",              label: "Points de site",                        color: "#e53e3e", kind: "point" }
+  { id: "points-sites",              label: "Points de site",                        color: "#e53e3e", kind: "point" },
+  { id: "conduite",                  label: "Conduite",                              color: "#805ad5", kind: "line" }
 ];
 const TEAM_LAYER_ID = "releves";
 const TEAM_LAYER_COLOR = "#C9A227";
@@ -1845,10 +1846,12 @@ async function renderMap(){
         });
       } else if(def.kind === "line"){
         layer = L.geoJSON(data, {
-          style: { color: def.color, weight: def.id === "riviere" ? 2.5 : 1.2 },
+          style: { color: def.color, weight: def.id === "conduite" ? 3.5 : def.id === "riviere" ? 2.5 : 1.2 },
           onEachFeature: (f, l) => {
-            const c = f.properties && f.properties.Contour;
-            if(c !== undefined && c !== null) l.bindPopup(escapeHtml(String(c)) + " m");
+            const p = f.properties || {};
+            if(p.Contour !== undefined && p.Contour !== null) l.bindPopup(escapeHtml(String(p.Contour)) + " m");
+            else if(def.id === "conduite") l.bindPopup(escapeHtml(def.label) + (p.Nom ? " \u2014 " + escapeHtml(p.Nom) : "") +
+              (p.Longueur_m ? "<br>" + Math.round(p.Longueur_m).toLocaleString("fr-FR") + " m" : ""));
           }
         });
       } else {
