@@ -251,6 +251,7 @@
     opacity:0; pointer-events:none; transition: opacity 0.2s ease;
   }
   .toast.show{ opacity:1; }
+  .toast.error{ background: #F3D9CF; color: #5A1A0C; border: 1px solid var(--danger); }
   .sr-only{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
   @media (prefers-reduced-motion: reduce){ .toast{ transition: none; } }
 
@@ -356,6 +357,7 @@
   .geo-denied-box strong{ color:#E6A18C; }
   .geo-denied-box p{ margin: 6px 0; line-height: 1.5; }
   .geo-steps{ background: var(--surface); border-radius: 6px; padding: 8px 10px; }
+  .report-entry audio{ width:100%; height:32px; display:block; margin-top:4px; }
 </style>
 </head>
 <body>
@@ -557,7 +559,7 @@ const STRINGS = {
     pointSaveNow: "Enregistrer maintenant",
     pointNamePrompt: "Nom du point (facultatif) :",
     pointSaved: "Point enregistr\u00e9",
-    pointNoFix: "Position GPS introuvable \u2014 \u00e0 d\u00e9couvert, r\u00e9essayez.",
+    pointNoFix: "Point enregistr\u00e9 SANS position (aucun relev\u00e9 GPS frais) \u2014 corrigez-la avec \u26A0 ou refaites le point \u00e0 d\u00e9couvert",
     pointDenied: "Acc\u00e8s \u00e0 la position refus\u00e9 \u2014 autorisez-le dans les r\u00e9glages du t\u00e9l\u00e9phone.",
     pointNoGps: "GPS non disponible sur cet appareil.",
     pointNotePh: "Note sur ce point (facultatif)\u2026",
@@ -586,7 +588,23 @@ const STRINGS = {
     motif_refusee: "refus\u00e9e",
     motif_indisponible: "indisponible",
     motif_delai_depasse: "d\u00e9lai d\u00e9pass\u00e9",
-    motif_non_supportee: "non prise en charge"
+    motif_non_supportee: "non prise en charge",
+    unexpectedError: "Erreur inattendue",
+    photoErrPrefix: "Photo \u00ab {name} \u00bb ({size}) non enregistr\u00e9e :",
+    photoErrDecode: "d\u00e9codage impossible, m\u00eame en r\u00e9solution r\u00e9duite (format non pris en charge ou fichier endommag\u00e9).",
+    photoErrMemory: "m\u00e9moire insuffisante pour traiter l'image, m\u00eame en r\u00e9solution r\u00e9duite.",
+    photoErrEncode: "conversion en JPEG impossible (m\u00e9moire insuffisante ?).",
+    storageLow: "Espace de stockage faible : environ {free} libres sur cet appareil. Envoyez les relev\u00e9s puis lib\u00e9rez de la place (photos, vid\u00e9os, autres apps).",
+    storageContinue: "Continuer quand m\u00eame ?",
+    storageFreeLabel: "libres",
+    storagePersistLabel: "stockage persistant",
+    yes: "oui",
+    no: "non",
+    recWriteFailed: "L'enregistrement n'a pas pu \u00eatre \u00e9crit sur l'appareil ({err} \u2014 stockage plein ?). Les {saved} d\u00e9j\u00e0 enregistr\u00e9es sont conserv\u00e9es. Terminer l'enregistrement maintenant ?",
+    recFinalizeFailed: "L'enregistrement n'a pas pu \u00eatre finalis\u00e9 ({err}). Les morceaux d\u00e9j\u00e0 \u00e9crits sont conserv\u00e9s sur l'appareil et seront r\u00e9cup\u00e9r\u00e9s au prochain lancement de l'app. Lib\u00e9rez de la place avant de rouvrir.",
+    recPartial: "Enregistrement sauvegard\u00e9 PARTIELLEMENT : {n} morceau(x) de 2 s n'ont pas pu \u00eatre \u00e9crits (stockage plein ?).",
+    recStartFailed: "Impossible de d\u00e9marrer l'enregistrement : \u00e9criture sur l'appareil refus\u00e9e ({err}). Lib\u00e9rez de la place puis r\u00e9essayez.",
+    pointNoFixSaved: "aucune position GPS fra\u00eeche : le point sera enregistr\u00e9 sans position"
   },
   en: {
     appName: "RDC39-Calepin", settings: "Settings", back: "Back",
@@ -755,7 +773,7 @@ const STRINGS = {
     pointSaveNow: "Save now",
     pointNamePrompt: "Point name (optional):",
     pointSaved: "Point saved",
-    pointNoFix: "No GPS position \u2014 move to the open and retry.",
+    pointNoFix: "Point saved WITHOUT position (no fresh GPS fix) \u2014 fix it with \u26A0 or redo the point in the open",
     pointDenied: "Location access denied \u2014 allow it in the phone settings.",
     pointNoGps: "GPS not available on this device.",
     pointNotePh: "Note about this point (optional)\u2026",
@@ -784,7 +802,23 @@ const STRINGS = {
     motif_refusee: "denied",
     motif_indisponible: "unavailable",
     motif_delai_depasse: "timed out",
-    motif_non_supportee: "not supported"
+    motif_non_supportee: "not supported",
+    unexpectedError: "Unexpected error",
+    photoErrPrefix: "Photo \u201c{name}\u201d ({size}) not saved:",
+    photoErrDecode: "cannot decode it, even at reduced resolution (unsupported format or damaged file).",
+    photoErrMemory: "not enough memory to process the image, even at reduced resolution.",
+    photoErrEncode: "JPEG conversion failed (not enough memory?).",
+    storageLow: "Low storage: about {free} free on this device. Send your records, then free up space (photos, videos, other apps).",
+    storageContinue: "Continue anyway?",
+    storageFreeLabel: "free",
+    storagePersistLabel: "persistent storage",
+    yes: "yes",
+    no: "no",
+    recWriteFailed: "The recording could not be written to the device ({err} \u2014 storage full?). The {saved} already recorded are kept. Stop the recording now?",
+    recFinalizeFailed: "The recording could not be finalized ({err}). The parts already written are kept on the device and will be recovered next time the app opens. Free up space before reopening.",
+    recPartial: "Recording PARTIALLY saved: {n} 2-second part(s) could not be written (storage full?).",
+    recStartFailed: "Cannot start recording: writing to the device was refused ({err}). Free up space and retry.",
+    pointNoFixSaved: "no fresh GPS position: the point will be saved without position"
   },
   sw: {
     appName: "RDC39-Calepin", settings: "Mipangilio", back: "Rudi",
@@ -888,7 +922,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "rdc39-2026-10-05.3";
+const APP_VERSION = "rdc39-2026-10-05.4";
 function currentLang(){ return localStorage.getItem("rdc39_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("rdc39_lang", l); }
 function t(key){
@@ -1421,7 +1455,13 @@ function extractExifGps(buffer){
       }
       if(gpsIFDOffset === null || gpsIFDOffset + 2 > length) return null;
       const gpsEntries = u16(gpsIFDOffset);
-      let latRef = null, lonRef = null, lat = null, lon = null;
+      let latRef = null, lonRef = null, lat = null, lon = null, gpsDate = null, gpsTime = null;
+      const readAscii = (count, valueField) => {
+        const at = count > 4 ? tiffStart + u32(valueField) : valueField;
+        let out = "";
+        for(let k = 0; k < count && at + k < length; k++){ const c = view.getUint8(at + k); if(!c) break; out += String.fromCharCode(c); }
+        return out;
+      };
       const readRational3 = (valOffset) => {
         let v = 0;
         for(let k = 0; k < 3; k++){
@@ -1441,11 +1481,44 @@ function extractExifGps(buffer){
         else if(tag === 0x0003) lonRef = String.fromCharCode(view.getUint8(valueField));
         else if(tag === 0x0002) lat = readRational3(tiffStart + u32(valueField));
         else if(tag === 0x0004) lon = readRational3(tiffStart + u32(valueField));
+        else if(tag === 0x0007){ // GPSTimeStamp : h, m, s (UTC)
+          const at = tiffStart + u32(valueField), part = (k) => { const d = u32(at + k * 8 + 4); return d ? u32(at + k * 8) / d : 0; };
+          gpsTime = [part(0), part(1), part(2)];
+        }
+        else if(tag === 0x001D) gpsDate = readAscii(u32(entryOffset + 4), valueField); // GPSDateStamp "AAAA:MM:JJ"
       }
+      // Heure de prise de vue (DateTimeOriginal + OffsetTimeOriginal si pr\u00e9sent) dans l'IFD Exif.
+      let shotTs = null;
+      try{
+        let exifIFD = null;
+        for(let i = 0; i < numEntries; i++){ const eo = ifd0 + 2 + i * 12; if(u16(eo) === 0x8769){ exifIFD = tiffStart + u32(eo + 8); break; } }
+        if(exifIFD !== null && exifIFD + 2 <= length){
+          let dto = null, off = null;
+          const n = u16(exifIFD);
+          for(let i = 0; i < n; i++){
+            const eo = exifIFD + 2 + i * 12;
+            if(eo + 12 > length) break;
+            const tg = u16(eo);
+            if(tg === 0x9003) dto = readAscii(u32(eo + 4), eo + 8);
+            else if(tg === 0x9011) off = readAscii(u32(eo + 4), eo + 8);
+          }
+          const m = dto && dto.match(/^(\d{4}):(\d{2}):(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+          if(m){
+            const om = off && off.match(/^([+-])(\d{2}):(\d{2})$/);
+            if(om){
+              const offMin = (om[1] === "-" ? -1 : 1) * (Number(om[2]) * 60 + Number(om[3]));
+              shotTs = Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]) - offMin * 60000;
+            } else shotTs = new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]).getTime(); // heure locale de l'appareil
+          }
+        }
+      }catch(e){ shotTs = null; }
+      let gpsTs = null;
+      const dm = gpsDate && gpsDate.match(/^(\d{4}):(\d{2}):(\d{2})/);
+      if(dm && gpsTime) gpsTs = Date.UTC(+dm[1], +dm[2] - 1, +dm[3], 0, 0, 0) + Math.round((gpsTime[0] * 3600 + gpsTime[1] * 60 + gpsTime[2]) * 1000);
       if(lat !== null && lon !== null && latRef && lonRef){
         if(latRef === "S") lat = -lat;
         if(lonRef === "W") lon = -lon;
-        if(isFinite(lat) && isFinite(lon)) return { lat, lng: lon };
+        if(isFinite(lat) && isFinite(lon)) return { lat, lng: lon, gpsTs, shotTs };
       }
       return null;
     }
@@ -1497,29 +1570,143 @@ function fileGlyph(fileName){
   return "\u{1F4CE}";
 }
 let toastTimer = null;
-function showToast(msg){
+function showToast(msg, ms){
   const el = document.getElementById("toast");
   el.textContent = msg; el.classList.add("show");
+  el.classList.toggle("error", String(msg).startsWith(ERR_PREFIX));
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+  toastTimer = setTimeout(() => el.classList.remove("show"), ms || 2600);
 }
+/* Toute erreur affich\u00e9e par l'app est pr\u00e9fix\u00e9e "[RDC39]" (identifiable dans une capture d'\u00e9cran
+   ou un retour de testeur), reste affich\u00e9e plus longtemps, et part aussi dans la console. */
+const ERR_PREFIX = "[RDC39] ";
+function errText(msg){ msg = String(msg == null ? "" : msg); return msg.startsWith(ERR_PREFIX) ? msg : ERR_PREFIX + msg; }
+function showError(msg){ const m = errText(msg); try{ console.error(m); }catch(e){} showToast(m, 6000); }
+function alertError(msg){ const m = errText(msg); try{ console.error(m); }catch(e){} alert(m); }
+window.addEventListener("error", (e) => { if(e && e.message) showError(t("unexpectedError") + " : " + e.message); });
+window.addEventListener("unhandledrejection", (e) => {
+  const r = e && e.reason;
+  showError(t("unexpectedError") + " : " + (r && r.message ? r.message : String(r)));
+});
 
+/* Dimensions (et orientation EXIF) d'une image SANS la d\u00e9coder : en-t\u00eate JPEG (SOFn) ou PNG (IHDR). */
+function imageHeaderInfo(buf){
+  try{
+    const v = new DataView(buf);
+    if(v.byteLength > 24 && v.getUint32(0) === 0x89504E47) return { width: v.getUint32(16), height: v.getUint32(20), orientation: 1 };
+    if(v.getUint16(0) !== 0xFFD8) return null;
+    let o = 2, orientation = 1;
+    while(o + 4 <= v.byteLength){
+      const marker = v.getUint16(o);
+      if((marker & 0xFF00) !== 0xFF00) return null;
+      const len = v.getUint16(o + 2);
+      if(marker === 0xFFE1 && v.getUint32(o + 4) === 0x45786966){ // orientation dans IFD0
+        const ts = o + 10, little = v.getUint16(ts) === 0x4949;
+        const ifd = ts + v.getUint32(ts + 4, little), n = v.getUint16(ifd, little);
+        for(let k = 0; k < n; k++){ const e = ifd + 2 + k * 12; if(v.getUint16(e, little) === 0x0112){ orientation = v.getUint16(e + 8, little); break; } }
+      }
+      if(marker >= 0xFFC0 && marker <= 0xFFCF && marker !== 0xFFC4 && marker !== 0xFFC8 && marker !== 0xFFCC){
+        return { height: v.getUint16(o + 5), width: v.getUint16(o + 7), orientation };
+      }
+      if(marker === 0xFFDA) return null;
+      o += 2 + len;
+    }
+  }catch(e){}
+  return null;
+}
+/* \u00c9l\u00e9ments m\u00e9dias (photo, audio, pi\u00e8ce jointe) d'un \u00e9cran : chaque m\u00e9dia est construit UNE fois
+   (URL d'objet + \u00e9l\u00e9ment) puis r\u00e9utilis\u00e9 d'un affichage \u00e0 l'autre ; \u00e0 chaque nouvel affichage, les
+   URL des m\u00e9dias qui ne sont plus affich\u00e9s (entr\u00e9e supprim\u00e9e, donn\u00e9es chang\u00e9es) sont lib\u00e9r\u00e9es,
+   et toutes le sont en quittant l'\u00e9cran. */
+function createMediaCache(){
+  const cache = new Map(); // id -> { key, url, el, used }
+  return {
+    begin(){ cache.forEach(c => { c.used = false; }); },
+    get(entry, build){
+      const key = getEntrySize(entry) + "|" + (getEntryMime(entry) || "") + "|" + (entry.fileName || "");
+      let c = cache.get(entry.id);
+      if(c && c.key !== key){ URL.revokeObjectURL(c.url); cache.delete(entry.id); c = null; }
+      if(!c){
+        const blob = getEntryBlob(entry);
+        const url = blob ? URL.createObjectURL(blob) : "";
+        c = { key, url, el: build(url) };
+        cache.set(entry.id, c);
+      }
+      c.used = true;
+      return c.el;
+    },
+    end(){ cache.forEach((c, id) => { if(!c.used){ if(c.url) URL.revokeObjectURL(c.url); cache.delete(id); } }); },
+    clear(){ cache.forEach(c => { if(c.url) URL.revokeObjectURL(c.url); }); cache.clear(); },
+    size(){ return cache.size; }
+  };
+}
+function buildAudioEl(url){ const a = document.createElement("audio"); a.controls = true; a.preload = "metadata"; a.src = url; return a; }
+function buildImgEl(url){ const i = document.createElement("img"); i.alt = ""; i.src = url; return i; }
+function releaseCanvas(canvas){ if(canvas){ canvas.width = 0; canvas.height = 0; } }
+function canvasToJpeg(canvas, quality){
+  return new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error(t("photoErrEncode"))), "image/jpeg", quality));
+}
+/* M\u00e9thode 1 : d\u00e9codage DIRECT \u00e0 la taille cible (createImageBitmap + redimensionnement) \u2014 l'image pleine
+   r\u00e9solution n'est jamais d\u00e9cod\u00e9e en m\u00e9moire. Le r\u00e9sultat est contr\u00f4l\u00e9 (dimensions attendues,
+   orientation EXIF appliqu\u00e9e) ; sinon on passe \u00e0 la m\u00e9thode 2. */
+async function compressViaBitmap(file, info, maxDim, quality){
+  if(!window.createImageBitmap || !info || !info.width || !info.height) throw new Error("bitmap-indisponible");
+  const swap = info.orientation >= 5 && info.orientation <= 8;
+  const ow = swap ? info.height : info.width, oh = swap ? info.width : info.height;
+  const scale = Math.min(1, maxDim / Math.max(ow, oh));
+  const tw = Math.max(1, Math.round(ow * scale)), th = Math.max(1, Math.round(oh * scale));
+  let bmp = null, canvas = null;
+  try{
+    bmp = await createImageBitmap(file, { resizeWidth: tw, resizeHeight: th, resizeQuality: "high", imageOrientation: "from-image" });
+    if(bmp.width !== tw || bmp.height !== th) throw new Error("bitmap-dimensions"); // orientation/redimensionnement non conformes
+    canvas = document.createElement("canvas");
+    canvas.width = tw; canvas.height = th;
+    canvas.getContext("2d").drawImage(bmp, 0, 0);
+    return await canvasToJpeg(canvas, quality);
+  } finally {
+    if(bmp && bmp.close) bmp.close();
+    releaseCanvas(canvas);
+  }
+}
+/* M\u00e9thode 2 (repli, m\u00e9thode historique) : <img> puis canvas \u00e0 la taille cible. */
 function compressImage(file, maxDim, quality){
   return new Promise((resolve, reject) => {
     const img = new Image();
     const url = URL.createObjectURL(file);
+    const cleanup = () => { URL.revokeObjectURL(url); img.onload = img.onerror = null; img.src = ""; };
     img.onload = () => {
       let { width, height } = img;
       if(width > height && width > maxDim){ height = Math.round(height * maxDim / width); width = maxDim; }
       else if(height > maxDim){ width = Math.round(width * maxDim / height); height = maxDim; }
       const canvas = document.createElement("canvas");
       canvas.width = width; canvas.height = height;
-      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
-      canvas.toBlob(blob => { URL.revokeObjectURL(url); if(blob) resolve(blob); else reject(new Error("compress")); }, "image/jpeg", quality);
+      try{ canvas.getContext("2d").drawImage(img, 0, 0, width, height); }
+      catch(e){ cleanup(); releaseCanvas(canvas); reject(new Error(t("photoErrMemory"))); return; }
+      cleanup();
+      canvasToJpeg(canvas, quality).then(resolve, reject).finally(() => releaseCanvas(canvas));
     };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("unreadable")); };
+    img.onerror = () => { cleanup(); reject(new Error(t("photoErrDecode"))); };
     img.src = url;
   });
+}
+/* Photo compress\u00e9e : m\u00e9thode 1, sinon 2 ; en cas d'\u00e9chec, UN nouvel essai \u00e0 r\u00e9solution plus faible,
+   puis erreur pr\u00e9cise (raison, nom et taille du fichier). */
+const PHOTO_RETRY_MAX_DIM = 800;
+async function compressPhoto(file, rawBuf, maxDim, quality){
+  const info = rawBuf ? imageHeaderInfo(rawBuf) : null;
+  const attempt = async (dim) => {
+    try{ return await compressViaBitmap(file, info, dim, quality); }
+    catch(e){ return await compressImage(file, dim, quality); }
+  };
+  try{ return await attempt(maxDim); }
+  catch(first){
+    const lower = Math.min(PHOTO_RETRY_MAX_DIM, Math.round(maxDim / 2));
+    try{ return await attempt(lower); }
+    catch(second){
+      const reason = (second && second.message) || (first && first.message) || t("photoErrDecode");
+      throw new Error(t("photoErrPrefix").replace("{name}", file.name || "photo").replace("{size}", fmtBytes(file.size || 0)) + " " + reason);
+    }
+  }
 }
 function bestAudioMime(){
   // webm/opus d'abord (Android/Chrome) : il livre l'audio au fil de l'eau, alors que le mp4 de
@@ -1539,7 +1726,13 @@ function bestAudioMime(){
    enregistr\u00e9es tout de suite et la position leur est rattach\u00e9e d\u00e8s qu'elle arrive.
    ============================================================ */
 const GEO_TIMEOUT_MS = 20000;   // ancien d\u00e9lai : 6 s (trop court \u00e0 froid, sous couvert v\u00e9g\u00e9tal)
-const GEO_FRESH_MS = 60000;     // une mesure de moins d'une minute est r\u00e9utilis\u00e9e telle quelle
+/* Position FRA\u00ceCHE : relev\u00e9 GPS (horodatage du relev\u00e9 lui-m\u00eame, pos.timestamp \u2192 fixTs) de moins de
+   FIX_MAX_AGE_MS, jamais d\u00e9j\u00e0 attribu\u00e9 \u00e0 une autre entr\u00e9e. Toutes les demandes se font avec
+   maximumAge: 0 (le navigateur ne doit pas resservir une position en cache). Observ\u00e9 avant ce
+   correctif : un point aux coordonn\u00e9es de l'entr\u00e9e pr\u00e9c\u00e9dente (cache navigateur, ou GPS EXIF
+   d'une photo g\u00e9otagu\u00e9e avec la derni\u00e8re position connue du t\u00e9l\u00e9phone). */
+const FIX_MAX_AGE_MS = 10000;
+const GEO_FRESH_MS = FIX_MAX_AGE_MS; // (nom historique, utilis\u00e9 par le statut)
 let geoState = "unknown";
 let lastFix = null;             // { lat, lng, accuracy, altitude?, at }
 const geoListeners = new Set();
@@ -1550,14 +1743,33 @@ function setGeoState(st){
 }
 function fixFromPosition(pos){
   const c = pos.coords;
-  const fix = { lat: c.latitude, lng: c.longitude, accuracy: Math.round(c.accuracy || 0) };
+  // Heure du relev\u00e9 GPS (et non de r\u00e9ception) ; born\u00e9e \u00e0 "maintenant" si l'horloge du relev\u00e9 est en avance.
+  const ts = Math.min(isFinite(pos.timestamp) && pos.timestamp > 0 ? pos.timestamp : Date.now(), Date.now());
+  const fix = { lat: c.latitude, lng: c.longitude, accuracy: Math.round(c.accuracy || 0), fixTs: new Date(ts).toISOString() };
   if(c.altitude !== null && c.altitude !== undefined) fix.altitude = Math.round(c.altitude);
   return fix;
 }
 function recordFix(pos){
-  lastFix = Object.assign(fixFromPosition(pos), { at: Date.now() });
+  const f = fixFromPosition(pos);
+  lastFix = Object.assign(f, { at: Date.parse(f.fixTs) });
   setGeoState("ok");
   return lastFix;
+}
+/* Mesures d\u00e9j\u00e0 attribu\u00e9es \u00e0 une entr\u00e9e : jamais r\u00e9utilis\u00e9es pour une autre (pas de position "copi\u00e9e"). */
+const usedFixTs = new Set();
+function fixIsFresh(fix, notBefore){
+  if(!fix || !fix.fixTs) return false;
+  const t0 = Date.parse(fix.fixTs);
+  if(!isFinite(t0) || Date.now() - t0 > FIX_MAX_AGE_MS) return false;
+  if(notBefore && t0 < notBefore) return false;
+  return !usedFixTs.has(fix.fixTs);
+}
+function claimFix(fix){
+  if(!fix) return null;
+  const f = { lat: fix.lat, lng: fix.lng, accuracy: fix.accuracy, fixTs: fix.fixTs };
+  if(fix.altitude !== undefined) f.altitude = fix.altitude;
+  usedFixTs.add(fix.fixTs);
+  return f;
 }
 /* Motif d'absence de position, enregistr\u00e9 dans l'entr\u00e9e (champ positionMotif) et export\u00e9 tel quel.
    Valeurs EXACTES : "refusee" | "indisponible" | "delai_depasse" | "non_supportee". */
@@ -1575,26 +1787,46 @@ function recordGeoError(err){
   if(err && err.code === 1){ setGeoState("denied"); showDeniedHelpOnce(); }
   else if(!lastFix || Date.now() - lastFix.at > GEO_FRESH_MS) setGeoState("unavailable");
 }
-function freshFix(){
-  if(!lastFix || Date.now() - lastFix.at > GEO_FRESH_MS) return null;
-  const f = { lat: lastFix.lat, lng: lastFix.lng, accuracy: lastFix.accuracy };
-  if(lastFix.altitude !== undefined) f.altitude = lastFix.altitude;
-  return f;
+/* Derni\u00e8re mesure si elle est FRA\u00ceCHE et pas encore attribu\u00e9e ; la r\u00e9serve pour l'appelant. */
+function freshFix(notBefore){
+  return fixIsFresh(lastFix, notBefore) ? claimFix(lastFix) : null;
+}
+/* Pour l'affichage seulement (pr\u00e9remplissage, statut) : ne r\u00e9serve rien. */
+function peekFreshFix(){
+  return lastFix && lastFix.fixTs && Date.now() - Date.parse(lastFix.fixTs) <= FIX_MAX_AGE_MS ? lastFix : null;
+}
+/* Sonde la position pour le STATUT uniquement (ne r\u00e9serve aucune mesure pour une entr\u00e9e). */
+function probePosition(){
+  return new Promise(resolve => {
+    if(!navigator.geolocation){ lastGeoMotif = "non_supportee"; setGeoState("unavailable"); resolve(null); return; }
+    if(geoState !== "denied") setGeoState(lastFix ? geoState : "searching");
+    let done = false;
+    const finish = (v) => { if(!done){ done = true; resolve(v); } };
+    navigator.geolocation.getCurrentPosition(pos => finish(recordFix(pos)), err => { recordGeoError(err); finish(null); },
+      { enableHighAccuracy: true, timeout: GEO_TIMEOUT_MS, maximumAge: 0 });
+    setTimeout(() => { if(!done){ recordGeoError({ timeout: true }); finish(null); } }, GEO_TIMEOUT_MS + 1000);
+  });
 }
 /* Une tentative de position : { loc } ou { loc: null, motif }. Ne rejette jamais. */
-function getPositionResult(timeoutMs){
+function getPositionResult(timeoutMs, opts){
   timeoutMs = timeoutMs || GEO_TIMEOUT_MS;
   return new Promise(resolve => {
-    const f = freshFix();
+    const notBefore = opts && opts.notBefore;
+    const f = freshFix(notBefore);
     if(f){ resolve({ loc: f }); return; }
     if(!navigator.geolocation){ lastGeoMotif = "non_supportee"; setGeoState("unavailable"); resolve({ loc: null, motif: "non_supportee" }); return; }
     let done = false;
     const finish = (v) => { if(!done){ done = true; resolve(v); } };
     if(geoState !== "denied") setGeoState(lastFix ? geoState : "searching");
     navigator.geolocation.getCurrentPosition(
-      pos => { recordFix(pos); finish({ loc: freshFix() }); },
+      pos => {
+        const fix = recordFix(pos);
+        // Une position servie depuis un cache (relev\u00e9 ancien) ou d\u00e9j\u00e0 attribu\u00e9e n'est pas utilis\u00e9e.
+        if(fixIsFresh(fix, notBefore)) finish({ loc: claimFix(fix) });
+        else { lastGeoMotif = "delai_depasse"; finish({ loc: null, motif: "delai_depasse", stale: true }); }
+      },
       err => { recordGeoError(err); finish({ loc: null, motif: motifFromError(err) }); },
-      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 30000 }
+      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 0 }
     );
     setTimeout(() => { if(!done){ recordGeoError({ timeout: true }); finish({ loc: null, motif: "delai_depasse" }); } }, timeoutMs + 1000);
   });
@@ -1612,7 +1844,7 @@ function startGeoWatch(){
   if(!navigator.geolocation) { setGeoState("unavailable"); return () => {}; }
   if(!lastFix && geoState !== "denied") setGeoState("searching");
   const id = navigator.geolocation.watchPosition(recordFix, recordGeoError,
-    { enableHighAccuracy: true, timeout: GEO_TIMEOUT_MS, maximumAge: 10000 });
+    { enableHighAccuracy: true, timeout: GEO_TIMEOUT_MS, maximumAge: 0 });
   return () => navigator.geolocation.clearWatch(id);
 }
 /* \u00c9tat initial et changements d'autorisation (API Permissions, si disponible). */
@@ -1666,8 +1898,8 @@ function showGeoSheet(firstRun){
   overlay.querySelector("#geoAsk").addEventListener("click", async () => {
     close();
     lastFix = null; // nouvelle mesure demand\u00e9e explicitement
-    const f = await tryGetPosition();
-    showToast(f ? t("geoOk") + " (\u00b1 " + f.accuracy + " m)" : (geoState === "denied" ? t("geoDenied") : t("geoUnavailable")));
+    const f = await probePosition();
+    if(f) showToast(t("geoOk") + " (\u00b1 " + f.accuracy + " m)"); else showError(geoState === "denied" ? t("geoDenied") : t("geoUnavailable"));
   });
 }
 function devicePlatform(){
@@ -1679,7 +1911,7 @@ function devicePlatform(){
 function deniedHelpHtml(){
   const pf = devicePlatform();
   const steps = pf === "ios" ? t("geoDeniedIos") : pf === "android" ? t("geoDeniedAndroid") : t("geoDeniedOther");
-  return `<div class="geo-denied-box"><strong>${t("geoDeniedTitle")}</strong><p>${t("geoDeniedWhy")}</p><p class="geo-steps">${steps}</p><p>${t("geoDeniedThen")}</p></div>`;
+  return `<div class="geo-denied-box"><strong>${escapeHtml(errText(t("geoDeniedTitle")))}</strong><p>${t("geoDeniedWhy")}</p><p class="geo-steps">${steps}</p><p>${t("geoDeniedThen")}</p></div>`;
 }
 /* Un refus est silencieux ensuite (le t\u00e9l\u00e9phone ne redemande plus) : on l'explique clairement,
    une fois par session, d\u00e8s qu'il est constat\u00e9. Le statut rouge reste ensuite cliquable. */
@@ -1691,7 +1923,7 @@ function showDeniedHelpOnce(){
 }
 async function geoFirstRun(){
   const perm = await initGeoPermission();
-  if(perm === "granted"){ tryGetPosition(); return; }
+  if(perm === "granted"){ probePosition(); return; }
   if(!localStorage.getItem("rdc39_geo_intro_done") && perm !== "unsupported") showGeoSheet(true);
 }
 
@@ -1765,6 +1997,7 @@ function unlockApp(){
   document.body.classList.remove("locked");
   if(!wasUnlocked){
     route();
+    checkStorageAtLaunch();
     refreshGeoBadge();
     geoFirstRun();
     recoverOrphanRecordings().then(n => {
@@ -1785,7 +2018,7 @@ function showGate(reasonKey){
       <div class="gate-logo">\u{1F4D3}</div>
       <h2>${t("appName")}</h2>
       <p class="gate-sub">${t("gateIntro")}</p>
-      ${reasonKey ? `<p class="gate-msg warn">${t(reasonKey)}</p>` : ""}
+      ${reasonKey ? `<p class="gate-msg warn">${escapeHtml(errText(t(reasonKey)))}</p>` : ""}
       <div class="field">
         <label for="gateCode">${t("gateCodeLabel")}</label>
         <input type="password" id="gateCode" autocomplete="off" autocapitalize="off" spellcheck="false" value="">
@@ -1808,7 +2041,7 @@ function showGate(reasonKey){
     if(!code) return;
     const relayInput = gate.querySelector("#gateRelay");
     if(relayInput) setRelayUrl(relayInput.value);
-    if(!currentRelayUrl()){ msg.hidden = false; msg.textContent = t("relayMissing"); return; }
+    if(!currentRelayUrl()){ msg.hidden = false; msg.textContent = errText(t("relayMissing")); return; }
     btn.disabled = true; msg.hidden = false; msg.textContent = t("gateChecking");
     const res = await validateCodeOnline(code);
     btn.disabled = false;
@@ -1816,9 +2049,9 @@ function showGate(reasonKey){
       localStorage.setItem("rdc39_access_code", code);
       unlockApp();
     } else if(res === "refused"){
-      msg.textContent = t("gateRefused");
+      msg.textContent = errText(t("gateRefused"));
     } else {
-      msg.textContent = t("gateUnreachable");
+      msg.textContent = errText(t("gateUnreachable"));
     }
   }
   btn.addEventListener("click", submit);
@@ -1990,6 +2223,55 @@ document.addEventListener("visibilitychange", () => {
 });
 
 /* ============================================================
+   RDC39 — Espace de stockage : estimation, alerte sous 200 Mo, stockage persistant
+   ------------------------------------------------------------
+   Estim\u00e9 au lancement, avant chaque photo / enregistrement, puis toutes les minutes. Le
+   stockage persistant est demand\u00e9 au lancement (\u00e9vite que le navigateur efface les relev\u00e9s
+   pour lib\u00e9rer de la place). L'estimation est approximative selon le navigateur.
+   ============================================================ */
+const STORAGE_WARN_BYTES = 200 * 1024 * 1024;
+let storageFree = null;       // octets libres estim\u00e9s (null = inconnu)
+let storagePersisted = null;  // true / false / null (inconnu)
+async function refreshStorageEstimate(){
+  try{
+    if(navigator.storage && navigator.storage.estimate){
+      const est = await navigator.storage.estimate();
+      if(est && est.quota) storageFree = Math.max(0, est.quota - (est.usage || 0));
+    }
+  }catch(e){}
+  return storageFree;
+}
+async function requestPersistentStorage(){
+  try{
+    if(navigator.storage && navigator.storage.persist){
+      storagePersisted = navigator.storage.persisted ? await navigator.storage.persisted() : false;
+      if(!storagePersisted) storagePersisted = await navigator.storage.persist();
+    }
+  }catch(e){ storagePersisted = null; }
+  return storagePersisted;
+}
+function lowStorageText(free){ return t("storageLow").replace("{free}", fmtBytes(free)); }
+async function checkStorageAtLaunch(){
+  await requestPersistentStorage();
+  const free = await refreshStorageEstimate();
+  if(free !== null && free < STORAGE_WARN_BYTES) showError(lowStorageText(free));
+}
+/* Avant une capture : estimation \u00e0 jour ; sous le seuil, l'utilisateur d\u00e9cide de continuer ou non. */
+async function confirmStorageBeforeCapture(){
+  const free = await refreshStorageEstimate();
+  if(free !== null && free < STORAGE_WARN_BYTES) return confirm(errText(lowStorageText(free) + " " + t("storageContinue")));
+  return true;
+}
+/* Variante synchrone (derni\u00e8re estimation connue) pour les gestes qui ne peuvent pas attendre
+   (micro / AudioContext \u00e0 ouvrir dans le geste sur iPhone) ; l'estimation est rafra\u00eechie ensuite. */
+function confirmStorageSync(){
+  refreshStorageEstimate();
+  if(storageFree !== null && storageFree < STORAGE_WARN_BYTES) return confirm(errText(lowStorageText(storageFree) + " " + t("storageContinue")));
+  return true;
+}
+setInterval(refreshStorageEstimate, 60000);
+
+/* ============================================================
    RDC39 — Enregistrements audio : assemblage des morceaux et r\u00e9cup\u00e9ration
    ============================================================ */
 const REC_TIMESLICE_MS = 2000;       // un morceau \u00e9crit sur l'appareil toutes les 2 s
@@ -1998,9 +2280,9 @@ const REC_BITRATE = 32000;           // ~32 kbit/s : environ 2,4 Mo pour 10 minu
 // parole \u2248 0,02-0,3. \u00c0 calibrer sur t\u00e9l\u00e9phone r\u00e9el (cf. README).
 const REC_SILENCE_THRESHOLD = 0.008;
 const activeRecIds = new Set();      // enregistrements en cours dans CETTE page (jamais "orphelins")
+const EXIF_GPS_MAX_SKEW_MS = 2 * 60 * 1000; // GPS d'une photo : accept\u00e9 s'il date de la prise de vue (\u00b1 2 min)
 const POINT_GOOD_ACCURACY_M = 5;     // Point GPS : on s'arr\u00eate d\u00e8s \u00b1 5 m...
 const POINT_MAX_WAIT_MS = 30000;     // ...ou au bout de 30 s, avec la meilleure mesure obtenue
-const POINT_SEED_MAX_AGE_MS = 5000;  // une mesure de moins de 5 s sert de point de d\u00e9part
 function entryGlyph(e){
   if(e.kind === "audio") return "\u{1F3A4}";
   if(e.kind === "photo") return "\u{1F4F7}";
@@ -2231,7 +2513,7 @@ async function renderMap(){
 
   let L;
   try{ L = await loadLeaflet(); }
-  catch(err){ setStatus(t("mapLeafletError")); return; }
+  catch(err){ setStatus(errText(t("mapLeafletError"))); return; }
   if(window.location.hash !== "#map") return; // l'utilisateur est parti pendant le chargement
 
   const map = L.map(wrap.querySelector("#mapCanvas"), { zoomControl: true, attributionControl: true });
@@ -2395,11 +2677,11 @@ async function renderMap(){
       } else {
         meMarker.setLatLng(mapFix); meCircle.setLatLng(mapFix); meCircle.setRadius(acc);
       }
-    }, recordGeoError, { enableHighAccuracy: true, maximumAge: 5000 });
+    }, recordGeoError, { enableHighAccuracy: true, maximumAge: 0 });
   }
   wrap.querySelector("#btnLocate").addEventListener("click", () => {
     if(mapFix) map.setView(mapFix, Math.max(map.getZoom(), 16));
-    else showToast(t("mapNoFix"));
+    else showError(t("mapNoFix"));
   });
   wrap.querySelector("#btnFit").addEventListener("click", () => {
     map.fitBounds([[PROJECT_BOUNDS.south, PROJECT_BOUNDS.west], [PROJECT_BOUNDS.north, PROJECT_BOUNDS.east]]);
@@ -2417,7 +2699,7 @@ async function renderMap(){
       (doneAt ? " — " + t("mapTilesDoneAt") + " " + fmtDate(new Date(doneAt).toISOString()) : "");
   }
   btnTiles.addEventListener("click", async () => {
-    if(!navigator.onLine){ showToast(t("syncOffline")); return; }
+    if(!navigator.onLine){ showError(t("syncOffline")); return; }
     if(!confirm(t("mapDownloadConfirm").replace("{n}", totalTiles))) return;
     btnTiles.disabled = true;
     const res = await downloadProjectTiles((p) => {
@@ -2425,7 +2707,7 @@ async function renderMap(){
       tileInfo.textContent = p.finished ? "" : t("mapDownloading") + " " + p.done + " / " + p.total;
     });
     btnTiles.disabled = false;
-    if(res && res.failed) showToast(res.failed + " " + t("mapTilesFailed"));
+    if(res && res.failed) showError(res.failed + " " + t("mapTilesFailed"));
     else showToast(t("mapDownloadDone"));
     if(wrap.isConnected) refreshTileInfo();
   });
@@ -2811,8 +3093,9 @@ async function renderVisitDetail(uidVal){
      tentatives r\u00e9p\u00e9t\u00e9es pendant GEO_TIMEOUT_MS (~20 s), puis \u00e9coute du suivi continu jusqu'\u00e0
      LATE_FIX_WINDOW_MS. Si rien n'arrive dans les ~20 s, le motif est enregistr\u00e9 (positionMotif) ;
      il sera retir\u00e9 automatiquement si une position arrive ensuite dans la fen\u00eatre. */
-  function attachPositionLater(entryId){
+  function attachPositionLater(entryId, entryTs){
     const startedAt = Date.now();
+    const notBefore = (entryTs || startedAt) - FIX_MAX_AGE_MS; // jamais un relev\u00e9 ant\u00e9rieur \u00e0 l'entr\u00e9e
     const deadline = startedAt + GEO_TIMEOUT_MS;
     let done = false;
     const stop = () => { done = true; geoListeners.delete(onGeo); };
@@ -2834,12 +3117,12 @@ async function renderVisitDetail(uidVal){
     };
     const onGeo = () => {
       if(Date.now() - startedAt > LATE_FIX_WINDOW_MS){ geoListeners.delete(onGeo); return; }
-      if(geoState === "ok") attach(freshFix());
+      if(geoState === "ok") attach(freshFix(notBefore));
     };
     geoListeners.add(onGeo);
     const attempt = async () => {
       if(done) return;
-      const r = await getPositionResult(Math.max(3000, deadline - Date.now()));
+      const r = await getPositionResult(Math.max(3000, deadline - Date.now()), { notBefore });
       if(r.loc){ attach(r.loc); return; }
       if(done) return;
       if(r.motif === "refusee" || r.motif === "non_supportee" || Date.now() + RETRY_PAUSE_MS >= deadline){
@@ -2854,7 +3137,7 @@ async function renderVisitDetail(uidVal){
   async function putEntryWithPosition(entry){
     if(entry.location === undefined) entry.location = freshFix();
     await idbPut("entries", entry);
-    if(!entry.location) attachPositionLater(entry.id);
+    if(!entry.location) attachPositionLater(entry.id, entry.timestamp);
     return entry;
   }
 
@@ -2874,6 +3157,7 @@ async function renderVisitDetail(uidVal){
   hint.textContent = t("captureHint");
   main.appendChild(hint);
 
+  const media = createMediaCache();
   const entryList = document.createElement("div");
   entryList.className = "entry-list";
   main.appendChild(entryList);
@@ -2907,6 +3191,7 @@ async function renderVisitDetail(uidVal){
   async function refreshEntries(){
     const entries = await idbGetByIndex("entries", "visitUid", visit.uid);
     entries.sort((a,b) => a.timestamp - b.timestamp);
+    media.begin();
     entryList.innerHTML = "";
     if(entries.length === 0){
       entryList.innerHTML = `<p class="capture-hint">${t("noEntries")}</p>`;
@@ -2932,13 +3217,11 @@ async function renderVisitDetail(uidVal){
       `;
       const body = card.querySelector(".entry-body");
       if(entry.kind === "audio"){
-        const entryBlob = getEntryBlob(entry);
-        const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
         body.innerHTML = `
-          <audio controls preload="metadata" src="${url}"></audio>
           <div class="audio-meta">${entry.duration ? t("recDuration") + " " + fmtDuration(entry.duration) + " \u00b7 " : ""}${fmtBytes(getEntrySize(entry))}${entry.recovered ? " \u00b7 " + t("recRecoveredLabel") : ""}</div>
           <textarea placeholder="${t("audioNotePh")}">${escapeHtml(entry.text || "")}</textarea>
         `;
+        body.insertBefore(media.get(entry, buildAudioEl), body.firstChild);
         let tTimer = null;
         body.querySelector("textarea").addEventListener("input", (e) => {
           clearTimeout(tTimer);
@@ -2955,17 +3238,15 @@ async function renderVisitDetail(uidVal){
           tTimer = setTimeout(async () => { entry.text = e.target.value; await idbPut("entries", entry); }, 500);
         });
       } else if(entry.kind === "photo"){
-        const entryBlob = getEntryBlob(entry);
-        const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
-        body.innerHTML = `<img src="${url}" alt="">`;
+        body.appendChild(media.get(entry, buildImgEl));
       } else if(entry.kind === "fichier"){
-        const entryBlob = getEntryBlob(entry);
-        const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
-        body.innerHTML = `
-          <a href="${url}" download="${escapeHtml(entry.fileName || "fichier")}" class="btn" style="display:block; text-align:center; text-decoration:none;">
-            ${fileGlyph(entry.fileName)} ${escapeHtml(entry.fileName || "fichier")} (${fmtBytes(getEntrySize(entry))})
-          </a>
-        `;
+        body.appendChild(media.get(entry, (url) => {
+          const a = document.createElement("a");
+          a.href = url; a.download = entry.fileName || "fichier"; a.className = "btn";
+          a.style.cssText = "display:block; text-align:center; text-decoration:none;";
+          a.textContent = fileGlyph(entry.fileName) + " " + (entry.fileName || "fichier") + " (" + fmtBytes(getEntrySize(entry)) + ")";
+          return a;
+        }));
       } else {
         body.innerHTML = `<textarea>${escapeHtml(entry.text || "")}</textarea>`;
         let tTimer = null;
@@ -2984,7 +3265,7 @@ async function renderVisitDetail(uidVal){
       });
       card.querySelectorAll('[data-act="position"]').forEach(btn => btn.addEventListener("click", async () => {
         // Sans position : on propose directement la position actuelle (si une mesure r\u00e9cente existe).
-        const nowFix = entry.location ? null : freshFix();
+        const nowFix = entry.location ? null : peekFreshFix();
         const current = entry.location ? entry.location.lat + ", " + entry.location.lng
           : nowFix ? nowFix.lat.toFixed(6) + ", " + nowFix.lng.toFixed(6) : "";
         const val = prompt(t("editPositionPrompt") + (nowFix ? "\n" + t("editPositionCurrentHint") + " (\u00b1 " + nowFix.accuracy + " m)" : ""), current);
@@ -3003,16 +3284,19 @@ async function renderVisitDetail(uidVal){
         const lat = parts.length === 2 ? Number(parts[0]) : NaN;
         const lng = parts.length === 2 ? Number(parts[1]) : NaN;
         if(!isFinite(lat) || !isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180){
-          showToast(t("editPositionInvalid"));
+          showError(t("editPositionInvalid"));
           return;
         }
-        entry.location = (nowFix && val.trim() === current) ? nowFix : { lat, lng };
+        if(entry.location && val.trim() === current){ return; } // inchang\u00e9e : on garde la position d'origine (pr\u00e9cision, fixTs...)
+        // Position actuelle accept\u00e9e telle quelle : relev\u00e9 GPS complet (si toujours frais) ; sinon saisie manuelle (sans fixTs).
+        entry.location = (nowFix && val.trim() === current && fixIsFresh(nowFix)) ? claimFix(nowFix) : { lat, lng };
         await migrateEntryIfLegacy(entry); await idbPut("entries", entry);
         showToast(t("editPositionSaved"));
         refreshEntries();
       }));
       entryList.appendChild(card);
     }
+    media.end();
   }
 
   /* ============================================================
@@ -3026,7 +3310,12 @@ async function renderVisitDetail(uidVal){
   let pointFix = null;
   function startPoint(){
     if(pointFix) return;
-    if(!navigator.geolocation){ showToast(t("pointNoGps")); return; }
+    if(!navigator.geolocation){
+      showError(t("pointNoGps"));
+      pointFix = { best: null, motif: "non_supportee", startedAt: Date.now(), watchId: null, done: false };
+      finishPoint(pointFix, true);
+      return;
+    }
     const p = pointFix = { best: null, watchId: null, startedAt: Date.now(), timer: null, done: false };
     const btn = addRow.querySelector("#btnPoint");
     btn.disabled = true;
@@ -3046,7 +3335,7 @@ async function renderVisitDetail(uidVal){
     const consider = (fix) => {
       if(p.done || !fix) return;
       if(!p.best || (fix.accuracy || 9999) < (p.best.accuracy || 9999)){
-        p.best = { lat: fix.lat, lng: fix.lng, accuracy: Math.round(fix.accuracy || 0) };
+        p.best = { lat: fix.lat, lng: fix.lng, accuracy: Math.round(fix.accuracy || 0), fixTs: fix.fixTs };
         if(fix.altitude !== null && fix.altitude !== undefined) p.best.altitude = Math.round(fix.altitude);
       }
       const msg = pointStatus.querySelector("#pointMsg");
@@ -3055,13 +3344,14 @@ async function renderVisitDetail(uidVal){
       if(save) save.disabled = false;
       if(p.best.accuracy <= POINT_GOOD_ACCURACY_M) finishPoint(p, true);
     };
-    p.onGeo = () => { if(geoState === "ok" && lastFix && lastFix.at >= p.startedAt - POINT_SEED_MAX_AGE_MS) consider(lastFix); };
+    // Seuls comptent les relev\u00e9s faits APR\u00c8S l'appui (jamais une mesure ant\u00e9rieure ou en cache).
+    p.onGeo = () => { if(geoState === "ok" && fixIsFresh(lastFix, p.startedAt)) consider(lastFix); };
     geoListeners.add(p.onGeo);
-    p.onGeo(); // mesure de moins de quelques secondes : point de d\u00e9part
     p.watchId = navigator.geolocation.watchPosition((pos) => {
-      consider(recordFix(pos));
+      const fix = recordFix(pos);
+      if(fixIsFresh(fix, p.startedAt)) consider(fix);
     }, (err) => {
-      if(err && err.code === 1){ showToast(t("pointDenied")); finishPoint(p, false); }
+      if(err && err.code === 1){ p.motif = "refusee"; showError(t("pointDenied")); finishPoint(p, true); }
     }, { enableHighAccuracy: true, maximumAge: 0, timeout: POINT_MAX_WAIT_MS });
     p.timer = setTimeout(() => finishPoint(p, true), POINT_MAX_WAIT_MS);
   }
@@ -3077,13 +3367,19 @@ async function renderVisitDetail(uidVal){
     const btn = addRow.querySelector("#btnPoint");
     if(btn) btn.disabled = false;
     if(!save) return;
-    if(!p.best){ showToast(t("pointNoFix")); return; }
     if(!main.isConnected) return;
-    const name = prompt(t("pointNamePrompt") + " (± " + p.best.accuracy + " m)", "");
-    if(name === null) return; // annulé : on n'enregistre rien
-    await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "point", text: "", label: name.trim(), location: p.best, timestamp: Date.now() });
+    // Sans relev\u00e9 frais obtenu apr\u00e8s l'appui : point enregistr\u00e9 SANS position, avec son motif
+    // (jamais une position ancienne ou reprise d'une autre entr\u00e9e).
+    const motif = p.best ? null : (p.motif || (geoState === "denied" ? "refusee" : "delai_depasse"));
+    const name = prompt(t("pointNamePrompt") + (p.best ? " (\u00b1 " + p.best.accuracy + " m)" : " \u2014 " + t("pointNoFixSaved")), "");
+    if(name === null) return; // annul\u00e9 : on n'enregistre rien
+    const entry = { id: uid(), visitUid: visit.uid, kind: "point", text: "", label: name.trim(), location: null, timestamp: p.startedAt };
+    if(p.best){ entry.location = p.best; usedFixTs.add(p.best.fixTs); }
+    else entry.positionMotif = motif;
+    await idbPut("entries", entry);
     refreshEntries(); refreshWeight();
-    showToast(t("pointSaved") + " (± " + p.best.accuracy + " m)");
+    if(p.best) showToast(t("pointSaved") + " (\u00b1 " + p.best.accuracy + " m)");
+    else showError(t("pointNoFix") + " (" + t("motif_" + motif) + ")");
   }
   addRow.querySelector("#btnPoint").addEventListener("click", startPoint);
 
@@ -3098,6 +3394,7 @@ async function renderVisitDetail(uidVal){
   addRow.querySelector("#btnAddPhoto").addEventListener("click", () => main.querySelector("#photoInput").click());
   main.querySelector("#photoInput").addEventListener("change", async (e) => {
     const files = Array.from(e.target.files || []);
+    if(files.length && !(await confirmStorageBeforeCapture())){ e.target.value = ""; return; }
     const q = QUALITY_LEVELS[currentQuality()] || QUALITY_LEVELS.std;
     let added = 0, foundExifGps = false;
     for(const file of files){
@@ -3106,20 +3403,28 @@ async function renderVisitDetail(uidVal){
         // la seule fen\u00eatre o\u00f9 un GPS d\u00e9j\u00e0 pr\u00e9sent dans la photo (prise ailleurs, import\u00e9e
         // depuis un ordinateur) est encore accessible. M\u00eame chemin pour une prise en direct
         // ou un import galerie/disque — aucune distinction faite ici.
-        let exifLocation = null;
+        const shotAt = Date.now();
+        let exifLocation = null, rawBuf = null;
         try{
-          const rawBuf = await file.arrayBuffer();
-          exifLocation = extractExifGps(rawBuf);
-        }catch(exifErr){ /* pas grave, on retombe sur le GPS live ci-dessous */ }
+          rawBuf = await file.arrayBuffer();
+          // GPS inscrit dans la photo : retenu SEULEMENT s'il est dat\u00e9 et contemporain de la prise de vue
+          // (sinon c'est souvent la derni\u00e8re position connue du t\u00e9l\u00e9phone, p\u00e9rim\u00e9e \u2014 cas observ\u00e9).
+          const ex = extractExifGps(rawBuf);
+          const shot = ex && (ex.shotTs || file.lastModified || null);
+          if(ex && ex.gpsTs && shot && Math.abs(ex.gpsTs - shot) <= EXIF_GPS_MAX_SKEW_MS){
+            exifLocation = { lat: ex.lat, lng: ex.lng, fixTs: new Date(ex.gpsTs).toISOString() };
+          }
+        }catch(exifErr){ /* pas grave : position GPS en direct ci-dessous */ }
 
-        const blob = await compressImage(file, q.maxDim, q.quality);
+        const blob = await compressPhoto(file, rawBuf, q.maxDim, q.quality);
+        rawBuf = null; // lib\u00e9r\u00e9 au plus t\u00f4t
         const data = await blob.arrayBuffer();
-        const photoEntry = { id: uid(), visitUid: visit.uid, kind: "photo", data, mime: blob.type || "image/jpeg", label: "", timestamp: Date.now() };
+        const photoEntry = { id: uid(), visitUid: visit.uid, kind: "photo", data, mime: blob.type || "image/jpeg", label: "", timestamp: shotAt };
         if(exifLocation) photoEntry.location = exifLocation;
         await putEntryWithPosition(photoEntry);
         if(exifLocation) foundExifGps = true;
         added++;
-      }catch(err){ showToast(t("photoUnreadable")); }
+      }catch(err){ showError(err && err.message ? err.message : t("photoUnreadable")); }
     }
     e.target.value = "";
     refreshEntries(); refreshWeight();
@@ -3136,7 +3441,7 @@ async function renderVisitDetail(uidVal){
     e.target.value = "";
     if(!file) return;
     const isTextLike = file.type.startsWith("text/") || /\.txt$/i.test(file.name);
-    if(!isTextLike){ showToast(t("documentUnsupported")); return; }
+    if(!isTextLike){ showError(t("documentUnsupported")); return; }
     const content = await file.text();
     const suggestedLabel = /ordre.?du.?jour|agenda/i.test(file.name) ? "Ordre du jour" : "";
     await putEntryWithPosition({ id: uid(), visitUid: visit.uid, kind: "texte", text: content, label: suggestedLabel, timestamp: Date.now() });
@@ -3149,7 +3454,7 @@ async function renderVisitDetail(uidVal){
     const file = e.target.files && e.target.files[0];
     e.target.value = "";
     if(!file) return;
-    if(file.size > 20 * 1024 * 1024){ showToast(t("fileTooBig")); return; }
+    if(file.size > 20 * 1024 * 1024){ showError(t("fileTooBig")); return; }
     const data = await file.arrayBuffer();
     await putEntryWithPosition({
       id: uid(), visitUid: visit.uid, kind: "fichier", data,
@@ -3174,25 +3479,32 @@ async function renderVisitDetail(uidVal){
   async function toggleRecording(){
     if(rec){ stopRecording(); return; }
     if(dict) return;
+    if(!confirmStorageSync()) return;
     const btn = addRow.querySelector("#btnRec");
-    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder){ showToast(t("micUnavailable")); return; }
+    if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder){ showError(t("micUnavailable")); return; }
     // AudioContext créé dans le geste utilisateur, avant tout await (exigence iOS).
     const Ctx = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null;
     try{ audioCtx = Ctx ? new Ctx() : null; }catch(e){ audioCtx = null; }
     let stream;
     try{ stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
-    catch(err){ if(audioCtx) audioCtx.close().catch(() => {}); showToast(t("micDenied")); return; }
+    catch(err){ if(audioCtx) audioCtx.close().catch(() => {}); showError(t("micDenied")); return; }
     const mime = bestAudioMime();
     let mr;
     try{ mr = new MediaRecorder(stream, Object.assign({ audioBitsPerSecond: REC_BITRATE }, mime ? { mimeType: mime } : {})); }
     catch(e){ mr = new MediaRecorder(stream); }
     const recId = uid();
     const meta = { recId, visitUid: visit.uid, mime: mr.mimeType || mime || "audio/webm", startedAt: Date.now(), location: freshFix() };
-    await idbPutRaw("recordings", meta);
+    try{ await idbPutRaw("recordings", meta); }
+    catch(err){
+      stream.getTracks().forEach(tr => tr.stop());
+      if(audioCtx) audioCtx.close().catch(() => {});
+      showError(t("recStartFailed").replace("{err}", (err && (err.name || err.message)) || "?"));
+      return;
+    }
     if(!meta.location) tryGetPosition().then(loc => { if(loc && !meta.location){ meta.location = loc; idbPutRaw("recordings", meta).catch(() => {}); } });
 
-    const r = rec = { mr, stream, recId, seq: 0, bytes: 0, startedAt: Date.now(), audioCtx, peak: 0, writes: [], wakeLock: null, leftApp: false, stopping: false };
+    const r = rec = { mr, stream, recId, seq: 0, bytes: 0, savedChunks: 0, failedChunks: 0, startedAt: Date.now(), audioCtx, peak: 0, writes: [], wakeLock: null, leftApp: false, stopping: false };
     activeRecIds.add(recId);
     mr.ondataavailable = (e) => {
       if(!e.data || e.data.size === 0) return;
@@ -3200,8 +3512,8 @@ async function renderVisitDetail(uidVal){
       const size = e.data.size;
       r.writes.push(e.data.arrayBuffer()
         .then(buf => idbPutRaw("audioChunks", { id: recId + ":" + String(seq).padStart(6, "0"), recId, seq, data: buf }))
-        .then(() => { r.bytes += size; })
-        .catch(() => {}));
+        .then(() => { r.bytes += size; r.savedChunks++; })
+        .catch((err) => onChunkWriteFailed(r, err)));
     };
     mr.onstop = () => finishRecording(r);
     mr.onerror = () => { try{ if(mr.state !== "inactive") mr.stop(); else finishRecording(r); }catch(e){ finishRecording(r); } };
@@ -3246,6 +3558,20 @@ async function renderVisitDetail(uidVal){
       if(el) el.textContent = fmtDuration((Date.now() - r.startedAt) / 1000) + " · " + fmtBytes(r.bytes) + " " + t("recSavedBytes");
     }, 250);
   }
+  /* \u00c9criture d'un morceau impossible (stockage plein, erreur IndexedDB...) : alerte IMM\u00c9DIATE, les
+     morceaux d\u00e9j\u00e0 \u00e9crits sont conserv\u00e9s, et l'utilisateur peut terminer proprement tout de suite. */
+  function onChunkWriteFailed(r, err){
+    r.failedChunks++;
+    try{ console.error(errText("audioChunk"), err); }catch(e){}
+    if(r.writeAlertShown || r.finished) return;
+    r.writeAlertShown = true;
+    const saved = fmtDuration(r.savedChunks * REC_TIMESLICE_MS / 1000);
+    const msg = t("recWriteFailed").replace("{saved}", saved).replace("{err}", (err && (err.name || err.message)) || "?");
+    setTimeout(() => { // hors du gestionnaire d'\u00e9v\u00e9nement de l'enregistreur
+      if(confirm(errText(msg))) stopRecording();
+      else r.writeAlertShown = false; // on continue : une nouvelle panne sera de nouveau signal\u00e9e
+    }, 0);
+  }
   function stopRecording(){
     const r = rec;
     if(!r || r.stopping) return;
@@ -3268,15 +3594,24 @@ async function renderVisitDetail(uidVal){
     btn.classList.remove("recording");
     updateDictateAvailability();
     await Promise.all(r.writes);
-    const entry = await finalizeRecording(r.recId, durationSec, false);
-    if(entry && !entry.location) attachPositionLater(entry.id);
+    let entry = null;
+    try{ entry = await finalizeRecording(r.recId, durationSec, false); }
+    catch(err){
+      // Assemblage impossible (souvent : stockage plein) : les morceaux restent sur l'appareil et
+      // seront r\u00e9cup\u00e9r\u00e9s au prochain lancement de l'app.
+      activeRecIds.delete(r.recId);
+      alertError(t("recFinalizeFailed").replace("{err}", (err && (err.name || err.message)) || "?"));
+      return;
+    }
+    if(entry && !entry.location) attachPositionLater(entry.id, entry.timestamp);
     activeRecIds.delete(r.recId);
     if(!main.isConnected) return;
     refreshEntries(); refreshWeight();
-    if(!entry){ showToast(t("recEmpty")); return; }
+    if(!entry){ showError(t("recEmpty")); return; }
     showToast(t("recSaved") + " (" + fmtDuration(durationSec) + ")");
-    if(r.peak >= 0 && r.peak < REC_SILENCE_THRESHOLD) alert(t("recSilentWarning"));
-    else if(r.leftApp) alert(t("recBackgroundWarn"));
+    if(r.failedChunks) alertError(t("recPartial").replace("{n}", r.failedChunks));
+    else if(r.peak >= 0 && r.peak < REC_SILENCE_THRESHOLD) alertError(t("recSilentWarning"));
+    else if(r.leftApp) alertError(t("recBackgroundWarn"));
   }
   function requestWakeLock(r){
     if(!("wakeLock" in navigator)) return;
@@ -3347,7 +3682,8 @@ async function renderVisitDetail(uidVal){
     if(d.needsLatePosition){
       d.needsLatePosition = false;
       const id = snapshot.id;
-      d.saving = d.saving.then(() => attachPositionLater(id));
+      const ts = snapshot.timestamp;
+      d.saving = d.saving.then(() => attachPositionLater(id, ts));
     }
   }
   function renderDictation(d){
@@ -3359,8 +3695,8 @@ async function renderVisitDetail(uidVal){
   function toggleDictation(){
     if(dict){ dict.stopRequested = true; try{ dict.rec && dict.rec.stop(); }catch(e){ finishDictation(dict); } return; }
     if(rec) return;
-    if(!speechCtor()){ showToast(t("transcribeUnsupported")); return; }
-    if(!navigator.onLine){ showToast(t("dictateOfflineBlocked")); return; }
+    if(!speechCtor()){ showError(t("transcribeUnsupported")); return; }
+    if(!navigator.onLine){ showError(t("dictateOfflineBlocked")); return; }
     const d = dict = { committed: "", interim: "", stopRequested: false, entry: null, errorShown: false, rec: null,
       startedAt: Date.now(), location: null, saving: Promise.resolve(), errCount: 0 };
     // Position : mesure r\u00e9cente si elle existe ; sinon elle est demand\u00e9e d\u00e8s maintenant et, si elle
@@ -3412,7 +3748,7 @@ async function renderVisitDetail(uidVal){
       else if(++d.errCount > 3) d.stopRequested = true;
       if(d.stopRequested && !d.errorShown && !d.netLost){
         d.errorShown = true;
-        showToast(t("dictationErrorPrefix") + " : " + dictationErrorLabel(e.error));
+        showError(t("dictationErrorPrefix") + " : " + dictationErrorLabel(e.error));
       }
     };
     r.onend = () => {
@@ -3445,7 +3781,7 @@ async function renderVisitDetail(uidVal){
     await d.saving;
     if(!main.isConnected) return;
     refreshEntries(); refreshWeight();
-    if(d.netLost) showToast(d.entry ? t("dictateNetLost") : t("dictateNetLostEmpty"));
+    if(d.netLost) showError(d.entry ? t("dictateNetLost") : t("dictateNetLostEmpty"));
     else if(d.entry) showToast(t("dictateSaved"));
     else if(!d.errorShown) showToast(t("dictateEmpty"));
   }
@@ -3459,6 +3795,7 @@ async function renderVisitDetail(uidVal){
 
   // Quitter l'écran arrête proprement une capture en cours (elle est sauvegardée) et retire les écouteurs.
   currentViewCleanup = () => {
+    media.clear();
     stopGeoWatch();
     geoListeners.delete(renderGeoLine);
     if(pointFix) finishPoint(pointFix, false);
@@ -3604,34 +3941,36 @@ async function renderReport(uidVal){
   exportBtn.textContent = "\u{1F4E4} " + t("exportReport");
   main.appendChild(exportBtn);
 
+  const media = createMediaCache();
+  currentViewCleanup = () => media.clear();
   async function render(){
     const entries = (await idbGetByIndex("entries", "visitUid", visit.uid)).sort((a,b) => a.timestamp - b.timestamp);
+    media.begin();
     body.innerHTML = "";
     if(entries.length === 0){
       body.innerHTML = `<p class="capture-hint">${t("noEntries")}</p>`;
+      media.end();
       return;
     }
     const renderEntry = (e) => {
       const div = document.createElement("div");
       div.className = "report-entry";
       const gps = e.location && e.kind !== "point" ? " \u00b7 \u{1F4CD} " + e.location.lat.toFixed(5) + ", " + e.location.lng.toFixed(5) : "";
+      let mediaEl = null;
       let inner = `<span class="rmeta">${fmtTime(e.timestamp)}${gps}</span>`;
       if(e.kind === "photo"){
-        const entryBlob = getEntryBlob(e);
-        const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
-        inner += `<img src="${url}" alt="">`;
+        mediaEl = media.get(e, buildImgEl);
       } else if(e.kind === "point"){
         inner += `<div>\u{1F4CD} ${escapeHtml((e.label ? e.label + " \u2014 " : "") + fmtPointDetails(e.location))}</div>` +
           (e.text && e.text.trim() ? `<div>${escapeHtml(e.text.trim())}</div>` : "");
       } else if(e.kind === "audio"){
-        const entryBlob = getEntryBlob(e);
-        const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
-        inner += `<audio controls preload="metadata" src="${url}" style="width:100%; height:32px;"></audio>` +
-          (e.text && e.text.trim() ? `<div>${escapeHtml(e.text.trim())}</div>` : "");
+        mediaEl = media.get(e, buildAudioEl);
+        inner += (e.text && e.text.trim() ? `<div>${escapeHtml(e.text.trim())}</div>` : "");
       } else {
         inner += escapeHtml(e.text && e.text.trim() ? e.text.trim() : "(" + t("transcriptPh") + ")");
       }
       div.innerHTML = inner;
+      if(mediaEl) div.insertBefore(mediaEl, div.children[1] || null);
       return div;
     };
     if(groupBy === "landmark"){
@@ -3653,6 +3992,7 @@ async function renderReport(uidVal){
       for(const e of entries) g.appendChild(renderEntry(e));
       body.appendChild(g);
     }
+    media.end();
   }
 
   toggle.querySelectorAll("button").forEach(btn => {
@@ -3988,7 +4328,7 @@ async function renderSettings(){
     const res = await syncPending({ verbose: true });
     btn.disabled = false;
     renderSyncLine();
-    if(res && res.error) showToast(t("syncError") + " : " + res.error);
+    if(res && res.error) showError(t("syncError") + " : " + res.error);
     else showToast(t("syncDone"));
   });
 
@@ -4010,7 +4350,9 @@ async function renderSettings(){
   if(navigator.storage && navigator.storage.estimate){
     try{
       const est = await navigator.storage.estimate();
-      storageGroup.querySelector("#storageLine").textContent = fmtBytes(est.usage || 0) + " " + t("storageUsed");
+      storageGroup.querySelector("#storageLine").textContent = fmtBytes(est.usage || 0) + " " + t("storageUsed") +
+        (est.quota ? " \u00b7 " + fmtBytes(Math.max(0, est.quota - (est.usage || 0))) + " " + t("storageFreeLabel") : "") +
+        " \u00b7 " + t("storagePersistLabel") + " : " + (storagePersisted === true ? t("yes") : storagePersisted === false ? t("no") : "?");
     }catch(e){
       storageGroup.querySelector("#storageLine").textContent = t("storageUnknown");
     }
