@@ -333,6 +333,10 @@
   .dict-offline{ color: var(--warn); }
   .audio-meta{ font-size: 12px; color: var(--text-dim); font-family: var(--mono); margin: -2px 0 8px 0; }
   .unreviewed{ color: var(--warn); }
+  .point-status{ margin-bottom: 14px; }
+  .point-live{ background: var(--surface); border:1px solid var(--accent); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
+  .point-live .row-actions{ display:flex; gap:8px; margin-top: 10px; }
+  .point-live .row-actions .btn{ flex:1; }
 </style>
 </head>
 <body>
@@ -524,7 +528,19 @@ const STRINGS = {
     dictateOfflineHint: "\ud83d\udde3\ufe0f Dicter est indisponible hors connexion \u2014 utilisez \ud83c\udfa4 Enregistrer, qui marche partout.",
     dictateNetLost: "R\u00e9seau perdu \u2014 dict\u00e9e arr\u00eat\u00e9e, le texte d\u00e9j\u00e0 dict\u00e9 est conserv\u00e9.",
     dictateNetLostEmpty: "R\u00e9seau perdu \u2014 dict\u00e9e arr\u00eat\u00e9e. Utilisez \ud83c\udfa4 Enregistrer.",
-    dictateUnreviewed: "dict\u00e9e, non relue"
+    dictateUnreviewed: "dict\u00e9e, non relue",
+    addPoint: "Point",
+    pointHint: "Enregistrer la position GPS actuelle comme rep\u00e8re (pr\u00e9cision mesur\u00e9e)",
+    pointSearching: "Recherche du signal GPS\u2026 restez immobile, \u00e0 d\u00e9couvert si possible.",
+    pointAccuracy: "Pr\u00e9cision",
+    pointImproving: "affinage en cours (30 s max)",
+    pointSaveNow: "Enregistrer maintenant",
+    pointNamePrompt: "Nom du point (facultatif) :",
+    pointSaved: "Point enregistr\u00e9",
+    pointNoFix: "Position GPS introuvable \u2014 \u00e0 d\u00e9couvert, r\u00e9essayez.",
+    pointDenied: "Acc\u00e8s \u00e0 la position refus\u00e9 \u2014 autorisez-le dans les r\u00e9glages du t\u00e9l\u00e9phone.",
+    pointNoGps: "GPS non disponible sur cet appareil.",
+    pointNotePh: "Note sur ce point (facultatif)\u2026"
   },
   en: {
     appName: "RDC39-Calepin", settings: "Settings", back: "Back",
@@ -684,7 +700,19 @@ const STRINGS = {
     dictateOfflineHint: "\ud83d\udde3\ufe0f Dictation is unavailable offline \u2014 use \ud83c\udfa4 Record, which works everywhere.",
     dictateNetLost: "Network lost \u2014 dictation stopped, the text already dictated is kept.",
     dictateNetLostEmpty: "Network lost \u2014 dictation stopped. Use \ud83c\udfa4 Record.",
-    dictateUnreviewed: "dictated, not reviewed"
+    dictateUnreviewed: "dictated, not reviewed",
+    addPoint: "Point",
+    pointHint: "Save the current GPS position as a landmark (accuracy measured)",
+    pointSearching: "Searching GPS signal\u2026 stand still, in the open if possible.",
+    pointAccuracy: "Accuracy",
+    pointImproving: "refining (30 s max)",
+    pointSaveNow: "Save now",
+    pointNamePrompt: "Point name (optional):",
+    pointSaved: "Point saved",
+    pointNoFix: "No GPS position \u2014 move to the open and retry.",
+    pointDenied: "Location access denied \u2014 allow it in the phone settings.",
+    pointNoGps: "GPS not available on this device.",
+    pointNotePh: "Note about this point (optional)\u2026"
   },
   sw: {
     appName: "RDC39-Calepin", settings: "Mipangilio", back: "Rudi",
@@ -788,7 +816,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "rdc39-2026-10-05.1";
+const APP_VERSION = "rdc39-2026-10-05.2";
 function currentLang(){ return localStorage.getItem("rdc39_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("rdc39_lang", l); }
 function t(key){
@@ -1592,6 +1620,22 @@ const REC_BITRATE = 32000;           // ~32 kbit/s : environ 2,4 Mo pour 10 minu
 // parole \u2248 0,02-0,3. \u00c0 calibrer sur t\u00e9l\u00e9phone r\u00e9el (cf. README).
 const REC_SILENCE_THRESHOLD = 0.008;
 const activeRecIds = new Set();      // enregistrements en cours dans CETTE page (jamais "orphelins")
+const POINT_GOOD_ACCURACY_M = 5;     // Point GPS : on s'arr\u00eate d\u00e8s \u00b1 5 m...
+const POINT_MAX_WAIT_MS = 30000;     // ...ou au bout de 30 s, avec la meilleure mesure obtenue
+function entryGlyph(e){
+  if(e.kind === "audio") return "\u{1F3A4}";
+  if(e.kind === "photo") return "\u{1F4F7}";
+  if(e.kind === "point") return "\u{1F4CD}";
+  if(e.kind === "fichier") return fileGlyph(e.fileName);
+  if(e.source === "dictee") return "\u{1F5E3}\ufe0f";
+  return "\u{1F4DD}";
+}
+function fmtPointDetails(loc){
+  if(!loc) return "";
+  return loc.lat.toFixed(6) + ", " + loc.lng.toFixed(6) +
+    (loc.accuracy ? " \u00b7 \u00b1 " + loc.accuracy + " m" : "") +
+    (loc.altitude !== undefined && loc.altitude !== null ? " \u00b7 alt. " + loc.altitude + " m (GPS)" : "");
+}
 function fmtDuration(sec){
   sec = Math.max(0, Math.round(sec || 0));
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s2 = sec % 60;
@@ -1870,11 +1914,12 @@ async function renderMap(){
   const allEntries = await idbGetAll("entries");
   allEntries.filter(e => e.location && visitById[e.visitUid]).forEach(e => {
     const v = visitById[e.visitUid];
-    const glyph = e.kind === "photo" ? "\u{1F4F7}" : e.kind === "fichier" ? fileGlyph(e.fileName) : "\u{1F4DD}";
+    const glyph = entryGlyph(e);
     const snippet = e.text ? escapeHtml(e.text.length > 140 ? e.text.slice(0, 140) + "…" : e.text) : "";
-    const marker = L.circleMarker([e.location.lat, e.location.lng], {
-      radius: 7, fillColor: TEAM_LAYER_COLOR, color: "#171A16", weight: 2, fillOpacity: 0.95
-    });
+    // Point GPS : marqueur cercl\u00e9 de blanc, plus visible ; autres entr\u00e9es : marqueur simple.
+    const marker = L.circleMarker([e.location.lat, e.location.lng], e.kind === "point"
+      ? { radius: 8, fillColor: TEAM_LAYER_COLOR, color: "#fff", weight: 3, fillOpacity: 1 }
+      : { radius: 6, fillColor: TEAM_LAYER_COLOR, color: "#171A16", weight: 2, fillOpacity: 0.95 });
     marker.bindPopup(`
       <div class="map-popup">
         <strong>${escapeHtml(v.tag) || "\u2014"}</strong><br>
@@ -2198,6 +2243,7 @@ async function renderHome(){
     for(const v of visits){
       const entries = entriesByVisit[v.uid] || await idbGetByIndex("entries", "visitUid", v.uid);
       const nAudio = entries.filter(e => e.kind === "audio").length;
+      const nPoint = entries.filter(e => e.kind === "point").length;
       const nPhoto = entries.filter(e => e.kind === "photo").length;
       const nText = entries.filter(e => e.kind === "texte").length;
       const isSelected = selectedIds.has(v.uid);
@@ -2211,6 +2257,7 @@ async function renderHome(){
         </div>
         <div class="counts">
           ${nAudio ? `<span>\u{1F3A4} ${nAudio}</span>` : ""}
+          ${nPoint ? `<span>\u{1F4CD} ${nPoint}</span>` : ""}
           ${nPhoto ? `<span>\u{1F4F7} ${nPhoto}</span>` : ""}
           ${nText ? `<span>\u{1F4DD} ${nText}</span>` : ""}
         </div>
@@ -2348,6 +2395,7 @@ async function renderVisitDetail(uidVal){
     <button class="btn rec-main" id="btnRec" title="${t("addAudio")}">\u{1F3A4} ${t("addAudio")}</button>
     <button class="btn" id="btnDictate" title="${t("dictateHint")}">${t("addDictate")}</button>
     <button class="btn" id="btnAddPhoto" title="${t("addPhoto")}">\u{1F4F7} ${t("addPhoto")}</button>
+    <button class="btn" id="btnPoint" title="${t("pointHint")}">\u{1F4CD} ${t("addPoint")}</button>
     <button class="btn" id="btnAddText" title="${t("addText")}">\u{1F4DD} ${t("addText")}</button>
     <button class="btn" id="btnImportDoc" title="${t("addDocument")}">\u{1F4C4} ${t("addDocument")}</button>
     <button class="btn" id="btnImportFile" title="${t("addFile")}">${t("addFile")}</button>
@@ -2361,6 +2409,11 @@ async function renderVisitDetail(uidVal){
   recStatus.className = "rec-status";
   recStatus.id = "recStatus";
   main.appendChild(recStatus);
+
+  const pointStatus = document.createElement("div");
+  pointStatus.className = "point-status";
+  pointStatus.hidden = true;
+  main.appendChild(pointStatus);
 
   const offHint = document.createElement("p");
   offHint.className = "capture-hint dict-offline";
@@ -2413,7 +2466,7 @@ async function renderVisitDetail(uidVal){
     for(const entry of entries){
       const card = document.createElement("div");
       card.className = "entry-card";
-      const glyph = entry.kind === "audio" ? "\u{1F3A4}" : entry.kind === "photo" ? "\u{1F4F7}" : entry.kind === "fichier" ? fileGlyph(entry.fileName) : entry.source === "dictee" ? "\u{1F5E3}\ufe0f" : "\u{1F4DD}";
+      const glyph = entryGlyph(entry);
       const gpsStr = entry.location ? entry.location.lat.toFixed(5) + ", " + entry.location.lng.toFixed(5) : "";
       card.innerHTML = `
         <div class="entry-head">
@@ -2437,6 +2490,16 @@ async function renderVisitDetail(uidVal){
           <audio controls preload="metadata" src="${url}"></audio>
           <div class="audio-meta">${entry.duration ? t("recDuration") + " " + fmtDuration(entry.duration) + " \u00b7 " : ""}${fmtBytes(getEntrySize(entry))}${entry.recovered ? " \u00b7 " + t("recRecoveredLabel") : ""}</div>
           <textarea placeholder="${t("audioNotePh")}">${escapeHtml(entry.text || "")}</textarea>
+        `;
+        let tTimer = null;
+        body.querySelector("textarea").addEventListener("input", (e) => {
+          clearTimeout(tTimer);
+          tTimer = setTimeout(async () => { entry.text = e.target.value; await idbPut("entries", entry); }, 500);
+        });
+      } else if(entry.kind === "point"){
+        body.innerHTML = `
+          <div class="audio-meta">${escapeHtml(fmtPointDetails(entry.location))}</div>
+          <textarea placeholder="${t("pointNotePh")}">${escapeHtml(entry.text || "")}</textarea>
         `;
         let tTimer = null;
         body.querySelector("textarea").addEventListener("input", (e) => {
@@ -2498,6 +2561,69 @@ async function renderVisitDetail(uidVal){
       entryList.appendChild(card);
     }
   }
+
+  /* ============================================================
+     📍 Point GPS — enregistre la position actuelle comme entrée à part entière
+     (repère de niveau d'eau, pile de pont, départ de ravine...), avec un nom facultatif.
+     Contrairement à la position "au passage" des autres entrées (6 s max, précision non
+     notée), on écoute le GPS jusqu'à POINT_GOOD_ACCURACY_M ou POINT_MAX_WAIT_MS, en gardant
+     la meilleure mesure, et on enregistre sa précision. L'utilisateur peut valider plus tôt.
+     Indépendant du micro : utilisable pendant un enregistrement.
+     ============================================================ */
+  let pointFix = null;
+  function startPoint(){
+    if(pointFix) return;
+    if(!navigator.geolocation){ showToast(t("pointNoGps")); return; }
+    const p = pointFix = { best: null, watchId: null, startedAt: Date.now(), timer: null, done: false };
+    const btn = addRow.querySelector("#btnPoint");
+    btn.disabled = true;
+    pointStatus.hidden = false;
+    pointStatus.innerHTML = `
+      <div class="point-live">
+        <div id="pointMsg">${t("pointSearching")}</div>
+        <div class="row-actions">
+          <button class="btn primary" id="btnPointSave" disabled>✓ ${t("pointSaveNow")}</button>
+          <button class="btn" id="btnPointCancel">${t("cancel")}</button>
+        </div>
+      </div>`;
+    pointStatus.querySelector("#btnPointSave").addEventListener("click", () => finishPoint(p, true));
+    pointStatus.querySelector("#btnPointCancel").addEventListener("click", () => finishPoint(p, false));
+    p.watchId = navigator.geolocation.watchPosition((pos) => {
+      const c = pos.coords;
+      if(!p.best || (c.accuracy || 9999) < (p.best.accuracy || 9999)){
+        p.best = { lat: c.latitude, lng: c.longitude, accuracy: Math.round(c.accuracy || 0) };
+        if(c.altitude !== null && c.altitude !== undefined) p.best.altitude = Math.round(c.altitude);
+      }
+      const msg = pointStatus.querySelector("#pointMsg");
+      if(msg) msg.textContent = t("pointAccuracy") + " ± " + p.best.accuracy + " m — " + t("pointImproving");
+      const save = pointStatus.querySelector("#btnPointSave");
+      if(save) save.disabled = false;
+      if(p.best.accuracy <= POINT_GOOD_ACCURACY_M) finishPoint(p, true);
+    }, (err) => {
+      if(err && err.code === 1){ showToast(t("pointDenied")); finishPoint(p, false); }
+    }, { enableHighAccuracy: true, maximumAge: 0, timeout: POINT_MAX_WAIT_MS });
+    p.timer = setTimeout(() => finishPoint(p, true), POINT_MAX_WAIT_MS);
+  }
+  async function finishPoint(p, save){
+    if(p.done) return;
+    p.done = true;
+    if(pointFix === p) pointFix = null;
+    clearTimeout(p.timer);
+    if(p.watchId !== null) navigator.geolocation.clearWatch(p.watchId);
+    pointStatus.hidden = true;
+    pointStatus.innerHTML = "";
+    const btn = addRow.querySelector("#btnPoint");
+    if(btn) btn.disabled = false;
+    if(!save) return;
+    if(!p.best){ showToast(t("pointNoFix")); return; }
+    if(!main.isConnected) return;
+    const name = prompt(t("pointNamePrompt") + " (± " + p.best.accuracy + " m)", "");
+    if(name === null) return; // annulé : on n'enregistre rien
+    await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "point", text: "", label: name.trim(), location: p.best, timestamp: Date.now() });
+    refreshEntries(); refreshWeight();
+    showToast(t("pointSaved") + " (± " + p.best.accuracy + " m)");
+  }
+  addRow.querySelector("#btnPoint").addEventListener("click", startPoint);
 
   addRow.querySelector("#btnAddText").addEventListener("click", async () => {
     const text = prompt(t("textEntryPh"));
@@ -2861,6 +2987,7 @@ async function renderVisitDetail(uidVal){
 
   // Quitter l'écran arrête proprement une capture en cours (elle est sauvegardée) et retire les écouteurs.
   currentViewCleanup = () => {
+    if(pointFix) finishPoint(pointFix, false);
     if(rec) stopRecording();
     if(dict){ dict.stopRequested = true; try{ dict.rec && dict.rec.stop(); }catch(e){} }
     document.removeEventListener("visibilitychange", onVisibility);
@@ -2950,6 +3077,7 @@ function buildReportText(visit, entries, groupBy){
     const time = fmtTime(e.timestamp);
     const gps = e.location ? " [" + e.location.lat.toFixed(5) + ", " + e.location.lng.toFixed(5) + "]" : "";
     if(e.kind === "photo") return "- " + time + gps + " \u2014 [photo]" + (e.text ? " " + e.text : "");
+    if(e.kind === "point") return "- " + time + " \u2014 [point GPS " + fmtPointDetails(e.location) + "]" + (e.label ? " " + e.label : "") + (e.text && e.text.trim() ? " \u2014 " + e.text.trim() : "");
     if(e.kind === "audio") return "- " + time + gps + " \u2014 [audio " + fmtDuration(e.duration) + "]" + (e.text && e.text.trim() ? " " + e.text.trim() : "");
     if(e.kind === "fichier") return "- " + time + gps + " \u2014 [fichier " + (e.fileName || "") + "]";
     const content = e.text && e.text.trim() ? e.text.trim() : "(" + t("transcriptPh") + ")";
@@ -3009,12 +3137,15 @@ async function renderReport(uidVal){
     const renderEntry = (e) => {
       const div = document.createElement("div");
       div.className = "report-entry";
-      const gps = e.location ? " \u00b7 \u{1F4CD} " + e.location.lat.toFixed(5) + ", " + e.location.lng.toFixed(5) : "";
+      const gps = e.location && e.kind !== "point" ? " \u00b7 \u{1F4CD} " + e.location.lat.toFixed(5) + ", " + e.location.lng.toFixed(5) : "";
       let inner = `<span class="rmeta">${fmtTime(e.timestamp)}${gps}</span>`;
       if(e.kind === "photo"){
         const entryBlob = getEntryBlob(e);
         const url = entryBlob ? URL.createObjectURL(entryBlob) : "";
         inner += `<img src="${url}" alt="">`;
+      } else if(e.kind === "point"){
+        inner += `<div>\u{1F4CD} ${escapeHtml((e.label ? e.label + " \u2014 " : "") + fmtPointDetails(e.location))}</div>` +
+          (e.text && e.text.trim() ? `<div>${escapeHtml(e.text.trim())}</div>` : "");
       } else if(e.kind === "audio"){
         const entryBlob = getEntryBlob(e);
         const url = entryBlob ? URL.createObjectURL(entryBlob) : "";

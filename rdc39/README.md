@@ -11,6 +11,7 @@ Il est hébergé dans le sous-dossier `rdc39/` du dépôt Calepin, à l'adresse 
 | **Visites** | Format libre : un repère, une date, des entrées. Il n'y a plus de catégories (immobilier, véhicule…). Dossiers, tags, corbeille, qualité photo et rapport texte restent inchangés. |
 | **🎤 Enregistrer** (capture principale) | Fonctionne sans réseau, pour des prises de plusieurs minutes. L'audio est écrit sur l'appareil toutes les 2 s. Un enregistrement interrompu (app tuée, batterie, appel) est récupéré au lancement suivant, avec la mention « Enregistrement récupéré ». Pendant la capture s'affichent un niveau sonore en direct, la durée et la taille déjà sauvegardée ; l'écran reste allumé. À l'arrêt, une alerte apparaît si rien n'a été capté, ou si l'utilisateur a quitté l'app pendant la capture. Débit d'environ 32 kbit/s, soit à peu près 2,4 Mo pour 10 minutes. |
 | **🗣️ Dicter** (secondaire) | Bouton bloqué hors connexion, avec une explication. Une session de reconnaissance par énoncé, relancée automatiquement jusqu'à « Arrêter ». Le texte est ajouté au fur et à mesure (anti-doublon), jamais écrasé, et le brouillon est sauvegardé en continu. Le texte validé s'affiche en noir, le texte provisoire en gris. L'entrée est marquée « dictée, non relue » (`source: "dictee"`). Sous Chrome, l'audio dicté transite par les serveurs de Google : à mentionner dans le briefing. |
+| **📍 Point** | Enregistre la position actuelle comme entrée à part entière (repère de crue, pile de pont, départ de ravine…), avec un nom facultatif. L'app écoute le GPS jusqu'à ± 5 m, ou 30 s au plus, garde la meilleure mesure et note sa précision (« ± 4 m »). On peut valider plus tôt. Utilisable pendant un enregistrement. Sur la carte, les points ont un marqueur cerclé de blanc. |
 | **Autres captures** | 📷 Photo (GPS EXIF repris), 📝 Note texte, 📄 Importer document (.txt), 📎 Joindre un fichier. « Importer audio » est retiré (à confirmer). |
 | **IA** | Aucune : pas de clé, pas d'appel, pas de synthèse. Le traitement de l'audio se fait côté Michel, à partir des données récupérées. |
 | **Code d'accès** | Validé par le relais à chaque ouverture quand il y a du réseau. Hors ligne, l'app reste utilisable 14 jours après la dernière validation. Un code révoqué verrouille l'app au prochain contact avec le relais ; les données restent sur l'appareil. |
@@ -47,7 +48,8 @@ Le format est dérivé du digest v1 de Calepin. Le Calepin personnel et son form
 
 ```
 { schemaVersion: 2, uid, tag, date, dossier, tags, corbeille, appareil, versionApp, genereLe,
-  entries: [ { id, type: "audio"|"photo"|"texte"|"fichier", horodatage, repere, position, texte,
+  entries: [ { id, type: "audio"|"photo"|"texte"|"fichier"|"point", horodatage, repere, position, texte,
+               // position = { lat, lng } ; pour un point : + accuracy (m) et, si fournie, altitude (m, GPS)
                source?: "dictee", recupere?: true,
                audio?:   { mime, base64, duree },   // NOUVEAU : audio inclus (webm/opus Android, mp4/aac iOS)
                image?:   { mime, base64 },
