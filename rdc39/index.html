@@ -337,6 +337,25 @@
   .point-live{ background: var(--surface); border:1px solid var(--accent); border-radius: 8px; padding: 10px 12px; font-size: 14px; }
   .point-live .row-actions{ display:flex; gap:8px; margin-top: 10px; }
   .point-live .row-actions .btn{ flex:1; }
+  /* ---------- RDC39 : statut de position ---------- */
+  .geo-badge{ position: relative; }
+  .geo-badge::after{ content:""; position:absolute; right:2px; bottom:2px; width:8px; height:8px; border-radius:50%; border:1px solid var(--bg); background: var(--text-dim); }
+  .geo-badge.ok::after{ background:#6BAF5B; }
+  .geo-badge.searching::after{ background: var(--accent); }
+  .geo-badge.unavailable::after{ background: var(--warn); }
+  .geo-badge.denied::after{ background: var(--danger); }
+  .geo-line{ display:block; width:100%; text-align:left; background: var(--surface); border:1px solid var(--line); border-radius:8px;
+    padding: 8px 12px; margin-bottom: 12px; font-size: 13px; color: var(--text); cursor:pointer; font-family: inherit; }
+  .geo-line.ok{ border-color:#4E7F43; }
+  .geo-line.searching{ border-color: var(--accent); }
+  .geo-line.unavailable{ border-color: var(--warn); color: var(--warn); }
+  .geo-line.denied{ border-color: var(--danger); color:#E6A18C; }
+  .no-pos{ background:none; border:1px solid var(--warn); color: var(--warn); border-radius: 999px; font-size: 11px; padding: 1px 8px; cursor:pointer; font-family: inherit; }
+  .label-btn.warn{ color: var(--warn); }
+  .geo-denied-box{ background: rgba(181,70,46,0.12); border:1px solid var(--danger); border-radius: 8px; padding: 10px 12px; color: var(--text); }
+  .geo-denied-box strong{ color:#E6A18C; }
+  .geo-denied-box p{ margin: 6px 0; line-height: 1.5; }
+  .geo-steps{ background: var(--surface); border-radius: 6px; padding: 8px 10px; }
 </style>
 </head>
 <body>
@@ -346,6 +365,7 @@
   <h1 id="pageTitle">RDC39-Calepin</h1>
   <div class="right">
     <span class="sync-badge" id="syncBadge" hidden></span>
+    <button class="icon-btn geo-badge unknown" id="geoBadge" aria-label="Position">&#128205;</button>
     <button class="icon-btn" id="btnMap" aria-label="Carte">&#128506;&#65039;</button>
     <button class="icon-btn" id="btnFolders" aria-label="Dossiers">&#128193;</button>
     <button class="icon-btn" id="btnSettings" aria-label="R\u00e9glages">&#9881;</button>
@@ -540,7 +560,33 @@ const STRINGS = {
     pointNoFix: "Position GPS introuvable \u2014 \u00e0 d\u00e9couvert, r\u00e9essayez.",
     pointDenied: "Acc\u00e8s \u00e0 la position refus\u00e9 \u2014 autorisez-le dans les r\u00e9glages du t\u00e9l\u00e9phone.",
     pointNoGps: "GPS non disponible sur cet appareil.",
-    pointNotePh: "Note sur ce point (facultatif)\u2026"
+    pointNotePh: "Note sur ce point (facultatif)\u2026",
+    geoOk: "Position OK",
+    geoSearching: "Recherche de la position\u2026",
+    geoUnavailable: "Position indisponible",
+    geoDenied: "Position refus\u00e9e",
+    geoUnknown: "Position non v\u00e9rifi\u00e9e",
+    geoIntroTitle: "Autoriser la position",
+    geoStatusTitle: "Position",
+    geoHelpIntro: "Chaque relev\u00e9 (enregistrement, photo, note, point) est rattach\u00e9 \u00e0 l'endroit o\u00f9 il est pris, y compris dans les fichiers export\u00e9s. Le t\u00e9l\u00e9phone va vous demander l'autorisation : r\u00e9pondez \u00ab Autoriser \u00bb.",
+    geoHelpUnavailable: "Le t\u00e9l\u00e9phone ne fournit pas de position pour l'instant : v\u00e9rifiez que la localisation est activ\u00e9e, mettez-vous \u00e0 d\u00e9couvert et r\u00e9essayez. Les entr\u00e9es restent enregistr\u00e9es ; celles sans position sont marqu\u00e9es \u26a0.",
+    geoHelpDenied: "L'acc\u00e8s \u00e0 la position a \u00e9t\u00e9 refus\u00e9. Pour le r\u00e9tablir : r\u00e9glages du t\u00e9l\u00e9phone (ou du navigateur) \u2192 Confidentialit\u00e9 / Localisation \u2192 autoriser ce site, puis touchez \u00ab R\u00e9essayer \u00bb.",
+    geoLater: "Plus tard",
+    geoRetry: "R\u00e9essayer",
+    close: "Fermer",
+    noPosition: "sans position",
+    editPositionCurrentHint: "Position actuelle propos\u00e9e",
+    geoAllow: "Activer la localisation",
+    geoDeniedTitle: "La localisation est bloqu\u00e9e pour ce site.",
+    geoDeniedWhy: "Le t\u00e9l\u00e9phone ne la redemandera plus tout seul : il faut la r\u00e9autoriser \u00e0 la main, une seule fois.",
+    geoDeniedIos: "Sur iPhone : dans Safari, touchez <b>aA</b> (\u00e0 gauche de l'adresse) &gt; <b>R\u00e9glages du site web</b> &gt; <b>Localisation</b> &gt; <b>Autoriser</b>. C'est le r\u00e9glage <i>du site</i> qui compte. Si cela ne suffit pas : R\u00e9glages &gt; Confidentialit\u00e9 et s\u00e9curit\u00e9 &gt; Service de localisation (activ\u00e9) &gt; <b>Sites web Safari</b> &gt; \u00ab Lorsque l'app est active \u00bb.",
+    geoDeniedAndroid: "Sur Android (Chrome) : touchez l'ic\u00f4ne \u00e0 gauche de l'adresse &gt; <b>Autorisations</b> (ou Param\u00e8tres du site) &gt; <b>Position</b> &gt; <b>Autoriser</b>. Si l'app est install\u00e9e sur l'\u00e9cran d'accueil : appui long sur son ic\u00f4ne &gt; Infos sur l'appli &gt; Autorisations &gt; Position &gt; Autoriser. V\u00e9rifiez aussi que la localisation du t\u00e9l\u00e9phone est activ\u00e9e.",
+    geoDeniedOther: "Dans le navigateur : ic\u00f4ne \u00e0 gauche de l'adresse &gt; Autorisations / Param\u00e8tres du site &gt; Position (Localisation) &gt; Autoriser.",
+    geoDeniedThen: "Revenez ensuite ici et touchez \u00ab R\u00e9essayer \u00bb.",
+    motif_refusee: "refus\u00e9e",
+    motif_indisponible: "indisponible",
+    motif_delai_depasse: "d\u00e9lai d\u00e9pass\u00e9",
+    motif_non_supportee: "non prise en charge"
   },
   en: {
     appName: "RDC39-Calepin", settings: "Settings", back: "Back",
@@ -712,7 +758,33 @@ const STRINGS = {
     pointNoFix: "No GPS position \u2014 move to the open and retry.",
     pointDenied: "Location access denied \u2014 allow it in the phone settings.",
     pointNoGps: "GPS not available on this device.",
-    pointNotePh: "Note about this point (optional)\u2026"
+    pointNotePh: "Note about this point (optional)\u2026",
+    geoOk: "Position OK",
+    geoSearching: "Searching for position\u2026",
+    geoUnavailable: "Position unavailable",
+    geoDenied: "Position denied",
+    geoUnknown: "Position not checked",
+    geoIntroTitle: "Allow location",
+    geoStatusTitle: "Position",
+    geoHelpIntro: "Each record (recording, photo, note, point) is tied to where it was taken, including in exported files. The phone will ask for permission: answer \u201cAllow\u201d.",
+    geoHelpUnavailable: "The phone is not providing a position right now: check that location is on, move to the open and retry. Entries are still saved; those without position are marked \u26a0.",
+    geoHelpDenied: "Location access was denied. To restore it: phone (or browser) settings \u2192 Privacy / Location \u2192 allow this site, then tap \u201cRetry\u201d.",
+    geoLater: "Later",
+    geoRetry: "Retry",
+    close: "Close",
+    noPosition: "no position",
+    editPositionCurrentHint: "Current position suggested",
+    geoAllow: "Enable location",
+    geoDeniedTitle: "Location is blocked for this site.",
+    geoDeniedWhy: "The phone will not ask again by itself: it must be re-allowed manually, once.",
+    geoDeniedIos: "On iPhone: in Safari, tap <b>aA</b> (left of the address) &gt; <b>Website Settings</b> &gt; <b>Location</b> &gt; <b>Allow</b>. The <i>website</i> setting is what matters. If that is not enough: Settings &gt; Privacy &amp; Security &gt; Location Services (on) &gt; <b>Safari Websites</b> &gt; \u201cWhile Using the App\u201d.",
+    geoDeniedAndroid: "On Android (Chrome): tap the icon left of the address &gt; <b>Permissions</b> (or Site settings) &gt; <b>Location</b> &gt; <b>Allow</b>. If the app is installed on the home screen: long-press its icon &gt; App info &gt; Permissions &gt; Location &gt; Allow. Also check that phone location is on.",
+    geoDeniedOther: "In the browser: icon left of the address &gt; Permissions / Site settings &gt; Location &gt; Allow.",
+    geoDeniedThen: "Then come back here and tap \u201cRetry\u201d.",
+    motif_refusee: "denied",
+    motif_indisponible: "unavailable",
+    motif_delai_depasse: "timed out",
+    motif_non_supportee: "not supported"
   },
   sw: {
     appName: "RDC39-Calepin", settings: "Mipangilio", back: "Rudi",
@@ -816,7 +888,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "rdc39-2026-10-05.2";
+const APP_VERSION = "rdc39-2026-10-05.3";
 function currentLang(){ return localStorage.getItem("rdc39_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("rdc39_lang", l); }
 function t(key){
@@ -992,6 +1064,14 @@ async function idbPut(storeName, value){
   if((storeName === "visits" && value && value.uid) || (storeName === "entries" && value && value.id)){
     const key = storeName === "visits" ? value.uid : value.id;
     const current = await idbGet(storeName, key);
+    if(storeName === "entries"){
+      // Une position rattach\u00e9e en arri\u00e8re-plan ne doit pas \u00eatre \u00e9cras\u00e9e par une copie plus ancienne
+      // de l'entr\u00e9e (brouillon de dict\u00e9e, carte ouverte...) ; seul un effacement explicite la retire.
+      if(value.clearLocation){ delete value.clearLocation; }
+      else if(!value.location && current && current.location){ value.location = current.location; }
+      if(value.location) delete value.positionMotif;
+      else if(!value.positionMotif && current && current.positionMotif) value.positionMotif = current.positionMotif;
+    }
     value.syncRev = Math.max((current && current.syncRev) || 0, value.syncRev || 0) + 1;
     value.syncState = "pending";
     if(storeName === "visits") value.updatedAt = new Date().toISOString();
@@ -1036,6 +1116,144 @@ function uid(){
   return "u_" + Date.now() + "_" + Math.random().toString(16).slice(2);
 }
 
+/* EXIF-WRITER-BEGIN */
+/* ============================================================
+   RDC39 — Écriture EXIF GPS dans les JPEG exportés
+   ------------------------------------------------------------
+   Le canvas de compression supprime tout EXIF (Safari en remet un segment Exif VIDE).
+   À l'export (digest/synchro et export standard), on réécrit donc dans chaque JPEG un
+   segment APP1/Exif minimal, à partir de la position et de l'horodatage ACTUELS de
+   l'entrée (donc aussi après une correction manuelle de position) :
+     IFD0 → ExifIFD : ExifVersion, DateTimeOriginal (heure locale), OffsetTimeOriginal
+          → GPS IFD : GPSVersionID, Latitude(+Ref N/S), Longitude(+Ref E/W),
+                      [Altitude(+Ref)], [GPSHPositioningError = précision en m]
+   Tout segment APP1/Exif existant est retiré (on n'en garde qu'un, le nôtre).
+   Sans position : le fichier est rendu TEL QUEL (rien n'est écrit).
+   Autonome (aucune dépendance) : extrait tel quel par les tests (Node + Pillow).
+   ============================================================ */
+function jpegWithGpsExif(buffer, location, timestamp, opts){
+  opts = opts || {};
+  if(!buffer || !location || !isFinite(location.lat) || !isFinite(location.lng)) return buffer;
+  const src = new Uint8Array(buffer);
+  if(src.length < 4 || src[0] !== 0xFF || src[1] !== 0xD8) return buffer; // pas un JPEG
+
+  // --- Découpage des segments jusqu'au début des données d'image (SOS) ---
+  const segments = []; // { marker, bytes }
+  let i = 2;
+  let rest = null;
+  while(i < src.length){
+    if(src[i] !== 0xFF) return buffer; // structure inattendue : on ne touche à rien
+    let m = i + 1;
+    while(m < src.length && src[m] === 0xFF) m++; // octets de remplissage
+    const marker = src[m];
+    if(marker === 0xDA || marker === 0xD9){ rest = src.subarray(i); break; } // SOS / EOI
+    if(marker >= 0xD0 && marker <= 0xD7){ segments.push({ marker, bytes: src.subarray(i, m + 1) }); i = m + 1; continue; }
+    if(m + 2 >= src.length) return buffer;
+    const len = (src[m + 1] << 8) | src[m + 2];
+    const end = m + 1 + len;
+    if(len < 2 || end > src.length) return buffer;
+    segments.push({ marker, bytes: src.subarray(i, end) });
+    i = end;
+  }
+  if(!rest) return buffer;
+  const isExifApp1 = (s) => s.marker === 0xE1 && s.bytes.length >= 10 &&
+    s.bytes[4] === 0x45 && s.bytes[5] === 0x78 && s.bytes[6] === 0x69 && s.bytes[7] === 0x66 && s.bytes[8] === 0 && s.bytes[9] === 0;
+  const kept = segments.filter(s => !isExifApp1(s));
+
+  // --- Construction du TIFF (en-tête + 3 IFD) ---
+  const le = !!opts.littleEndian;
+  const T = { BYTE: 1, ASCII: 2, SHORT: 3, LONG: 4, RATIONAL: 5, UNDEFINED: 7 };
+  const ascii = (str) => { const b = new Uint8Array(str.length + 1); for(let k = 0; k < str.length; k++) b[k] = str.charCodeAt(k) & 0x7F; return b; };
+  const rationals = (pairs) => {
+    const b = new Uint8Array(pairs.length * 8); const dv = new DataView(b.buffer);
+    pairs.forEach(([n, d], k) => { dv.setUint32(k * 8, n >>> 0, le); dv.setUint32(k * 8 + 4, d >>> 0, le); });
+    return b;
+  };
+  const long1 = (v) => { const b = new Uint8Array(4); new DataView(b.buffer).setUint32(0, v >>> 0, le); return b; };
+  const dms = (deg) => {
+    const units = Math.round(Math.abs(deg) * 3600 * 10000); // 1/10000 de seconde d'arc (~3 mm)
+    const d = Math.floor(units / 36000000);
+    const mnt = Math.floor((units - d * 36000000) / 600000);
+    const s = units - d * 36000000 - mnt * 600000;
+    return rationals([[d, 1], [mnt, 1], [s, 10000]]);
+  };
+  const pad2 = (n) => String(n).padStart(2, "0");
+  const date = new Date(timestamp || Date.now());
+  const offsetMin = opts.tzOffsetMinutes !== undefined ? opts.tzOffsetMinutes : -date.getTimezoneOffset();
+  const local = new Date(date.getTime() + offsetMin * 60000); // lu ensuite en UTC = heure locale
+  const dto = local.getUTCFullYear() + ":" + pad2(local.getUTCMonth() + 1) + ":" + pad2(local.getUTCDate()) + " " +
+    pad2(local.getUTCHours()) + ":" + pad2(local.getUTCMinutes()) + ":" + pad2(local.getUTCSeconds());
+  const off = (offsetMin >= 0 ? "+" : "-") + pad2(Math.floor(Math.abs(offsetMin) / 60)) + ":" + pad2(Math.abs(offsetMin) % 60);
+
+  const gps = [
+    { tag: 0x0000, type: T.BYTE, count: 4, data: new Uint8Array([2, 3, 0, 0]) },
+    { tag: 0x0001, type: T.ASCII, count: 2, data: ascii(location.lat >= 0 ? "N" : "S") },
+    { tag: 0x0002, type: T.RATIONAL, count: 3, data: dms(location.lat) },
+    { tag: 0x0003, type: T.ASCII, count: 2, data: ascii(location.lng >= 0 ? "E" : "W") },
+    { tag: 0x0004, type: T.RATIONAL, count: 3, data: dms(location.lng) }
+  ];
+  if(location.altitude !== undefined && location.altitude !== null && isFinite(location.altitude)){
+    gps.push({ tag: 0x0005, type: T.BYTE, count: 1, data: new Uint8Array([location.altitude < 0 ? 1 : 0]) });
+    gps.push({ tag: 0x0006, type: T.RATIONAL, count: 1, data: rationals([[Math.round(Math.abs(location.altitude) * 100), 100]]) });
+  }
+  if(location.accuracy && isFinite(location.accuracy) && location.accuracy > 0){
+    gps.push({ tag: 0x001F, type: T.RATIONAL, count: 1, data: rationals([[Math.round(location.accuracy * 100), 100]]) });
+  }
+  const exif = [
+    { tag: 0x9000, type: T.UNDEFINED, count: 4, data: ascii("0232").subarray(0, 4) },
+    { tag: 0x9003, type: T.ASCII, count: 20, data: ascii(dto) },
+    { tag: 0x9011, type: T.ASCII, count: 7, data: ascii(off) }
+  ];
+  const ifd0 = [
+    { tag: 0x8769, type: T.LONG, count: 1, data: null }, // ExifIFD
+    { tag: 0x8825, type: T.LONG, count: 1, data: null }  // GPS IFD
+  ];
+  const ifdSize = (entries) => 2 + entries.length * 12 + 4 +
+    entries.reduce((n, e) => n + (e.data && e.data.length > 4 ? e.data.length + (e.data.length & 1) : 0), 0);
+  const off0 = 8, offExif = off0 + ifdSize(ifd0), offGps = offExif + ifdSize(exif);
+  ifd0[0].data = long1(offExif);
+  ifd0[1].data = long1(offGps);
+  const tiff = new Uint8Array(offGps + ifdSize(gps));
+  const dv = new DataView(tiff.buffer);
+  tiff[0] = tiff[1] = le ? 0x49 : 0x4D; // "II" ou "MM"
+  dv.setUint16(2, 42, le);
+  dv.setUint32(4, off0, le);
+  const writeIfd = (start, entries) => {
+    let dataPos = start + 2 + entries.length * 12 + 4;
+    dv.setUint16(start, entries.length, le);
+    entries.forEach((e, k) => {
+      const p = start + 2 + k * 12;
+      dv.setUint16(p, e.tag, le);
+      dv.setUint16(p + 2, e.type, le);
+      dv.setUint32(p + 4, e.count, le);
+      if(e.data.length <= 4) tiff.set(e.data, p + 8);
+      else { dv.setUint32(p + 8, dataPos, le); tiff.set(e.data, dataPos); dataPos += e.data.length + (e.data.length & 1); }
+    });
+    dv.setUint32(start + 2 + entries.length * 12, 0, le); // pas d'IFD suivant
+  };
+  writeIfd(off0, ifd0);
+  writeIfd(offExif, exif);
+  writeIfd(offGps, gps);
+
+  // --- Segment APP1 = FFE1 + longueur + "Exif\0\0" + TIFF ---
+  const app1Len = 2 + 6 + tiff.length;
+  const app1 = new Uint8Array(2 + app1Len);
+  app1[0] = 0xFF; app1[1] = 0xE1; app1[2] = app1Len >> 8; app1[3] = app1Len & 0xFF;
+  app1.set([0x45, 0x78, 0x69, 0x66, 0, 0], 4);
+  app1.set(tiff, 10);
+
+  // --- Réassemblage : SOI, APP0 (JFIF) éventuels en tête, notre APP1, puis le reste ---
+  let lead = 0;
+  while(lead < kept.length && kept[lead].marker === 0xE0) lead++;
+  const parts = [new Uint8Array([0xFF, 0xD8])].concat(kept.slice(0, lead).map(s => s.bytes), [app1], kept.slice(lead).map(s => s.bytes), [rest]);
+  const total = parts.reduce((n, p) => n + p.length, 0);
+  const out = new Uint8Array(total);
+  let pos = 0;
+  for(const p of parts){ out.set(p, pos); pos += p.length; }
+  return out.buffer;
+}
+/* EXIF-WRITER-END */
+
 /* ============================================================
    Format d'envoi / d'export — schemaVersion 2 (RDC39)
    ------------------------------------------------------------
@@ -1049,6 +1267,11 @@ function uid(){
    r\u00e9assembl\u00e9 par la page d'administration, ou produit directement par l'export manuel.
    ============================================================ */
 const SCHEMA_VERSION = 2;
+function photoBufferForExport(buf, e, mime){
+  if(!e.location || (mime && !/jpe?g/i.test(mime))) return buf;
+  try{ return jpegWithGpsExif(buf, e.location, e.timestamp); }
+  catch(err){ return buf; } // jamais bloquant : au pire, la photo part sans EXIF
+}
 async function entryToDigest(e){
   const out = {
     id: e.id,
@@ -1058,6 +1281,7 @@ async function entryToDigest(e){
     position: e.location || null,
     texte: e.text || null
   };
+  if(!e.location) out.positionMotif = POSITION_MOTIFS.includes(e.positionMotif) ? e.positionMotif : "indisponible";
   if(e.source) out.source = e.source;
   if(e.recovered) out.recupere = true;
   if(e.kind === "photo" || e.kind === "fichier" || e.kind === "audio"){
@@ -1067,6 +1291,8 @@ async function entryToDigest(e){
       let mime = getEntryMime(e);
       if(!arrayBuf && e.blob){ arrayBuf = await e.blob.arrayBuffer(); mime = e.blob.type || mime; } // legacy
       if(!arrayBuf) throw new Error("aucune donn\u00e9e disponible");
+      // Photo : EXIF GPS + date r\u00e9\u00e9crits depuis la position/l'horodatage actuels de l'entr\u00e9e.
+      if(e.kind === "photo") arrayBuf = photoBufferForExport(arrayBuf, e, mime);
       const base64 = arrayBufferToBase64(arrayBuf);
       if(e.kind === "fichier") out.fichier = { nom: e.fileName || null, mime: mime || "application/octet-stream", base64 };
       else if(e.kind === "audio") out.audio = { mime: mime || "audio/webm", base64, duree: e.duration || null };
@@ -1304,19 +1530,169 @@ function bestAudioMime(){
   }
   return "";
 }
-/* Tentative de position GPS silencieuse, best-effort — n'interrompt jamais la capture */
-function tryGetPosition(){
+/* ============================================================
+   RDC39 — Position : \u00e9tat visible, derni\u00e8re mesure, d\u00e9lai allong\u00e9
+   ------------------------------------------------------------
+   geoState : "ok" (mesure r\u00e9cente) | "searching" | "unavailable" | "denied" | "unknown".
+   Affich\u00e9 dans la barre du haut et dans chaque visite. Les captures n'attendent JAMAIS le
+   GPS : elles prennent la derni\u00e8re mesure si elle est r\u00e9cente, sinon elles sont
+   enregistr\u00e9es tout de suite et la position leur est rattach\u00e9e d\u00e8s qu'elle arrive.
+   ============================================================ */
+const GEO_TIMEOUT_MS = 20000;   // ancien d\u00e9lai : 6 s (trop court \u00e0 froid, sous couvert v\u00e9g\u00e9tal)
+const GEO_FRESH_MS = 60000;     // une mesure de moins d'une minute est r\u00e9utilis\u00e9e telle quelle
+let geoState = "unknown";
+let lastFix = null;             // { lat, lng, accuracy, altitude?, at }
+const geoListeners = new Set();
+function setGeoState(st){
+  if(st === geoState) { geoListeners.forEach(fn => fn()); return; }
+  geoState = st;
+  geoListeners.forEach(fn => fn());
+}
+function fixFromPosition(pos){
+  const c = pos.coords;
+  const fix = { lat: c.latitude, lng: c.longitude, accuracy: Math.round(c.accuracy || 0) };
+  if(c.altitude !== null && c.altitude !== undefined) fix.altitude = Math.round(c.altitude);
+  return fix;
+}
+function recordFix(pos){
+  lastFix = Object.assign(fixFromPosition(pos), { at: Date.now() });
+  setGeoState("ok");
+  return lastFix;
+}
+/* Motif d'absence de position, enregistr\u00e9 dans l'entr\u00e9e (champ positionMotif) et export\u00e9 tel quel.
+   Valeurs EXACTES : "refusee" | "indisponible" | "delai_depasse" | "non_supportee". */
+const POSITION_MOTIFS = ["refusee", "indisponible", "delai_depasse", "non_supportee"];
+let lastGeoMotif = null;
+function motifFromError(err){
+  if(!navigator.geolocation) return "non_supportee";
+  if(err && err.code === 1) return "refusee";
+  if(err && err.code === 3) return "delai_depasse";
+  if(err && err.code === 2) return "indisponible";
+  return err && err.timeout ? "delai_depasse" : "indisponible";
+}
+function recordGeoError(err){
+  lastGeoMotif = motifFromError(err);
+  if(err && err.code === 1){ setGeoState("denied"); showDeniedHelpOnce(); }
+  else if(!lastFix || Date.now() - lastFix.at > GEO_FRESH_MS) setGeoState("unavailable");
+}
+function freshFix(){
+  if(!lastFix || Date.now() - lastFix.at > GEO_FRESH_MS) return null;
+  const f = { lat: lastFix.lat, lng: lastFix.lng, accuracy: lastFix.accuracy };
+  if(lastFix.altitude !== undefined) f.altitude = lastFix.altitude;
+  return f;
+}
+/* Une tentative de position : { loc } ou { loc: null, motif }. Ne rejette jamais. */
+function getPositionResult(timeoutMs){
+  timeoutMs = timeoutMs || GEO_TIMEOUT_MS;
   return new Promise(resolve => {
-    if(!navigator.geolocation){ resolve(null); return; }
+    const f = freshFix();
+    if(f){ resolve({ loc: f }); return; }
+    if(!navigator.geolocation){ lastGeoMotif = "non_supportee"; setGeoState("unavailable"); resolve({ loc: null, motif: "non_supportee" }); return; }
     let done = false;
     const finish = (v) => { if(!done){ done = true; resolve(v); } };
+    if(geoState !== "denied") setGeoState(lastFix ? geoState : "searching");
     navigator.geolocation.getCurrentPosition(
-      pos => finish({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => finish(null),
-      { enableHighAccuracy: true, timeout: 6000 }
+      pos => { recordFix(pos); finish({ loc: freshFix() }); },
+      err => { recordGeoError(err); finish({ loc: null, motif: motifFromError(err) }); },
+      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 30000 }
     );
-    setTimeout(() => finish(null), 6500);
+    setTimeout(() => { if(!done){ recordGeoError({ timeout: true }); finish({ loc: null, motif: "delai_depasse" }); } }, timeoutMs + 1000);
   });
+}
+/* Position best-effort (derni\u00e8re mesure r\u00e9cente, sinon jusqu'\u00e0 GEO_TIMEOUT_MS) : loc ou null. */
+function tryGetPosition(){ return getPositionResult().then(r => r.loc); }
+/* Motif \u00e0 retenir quand aucune position n'a pu \u00eatre associ\u00e9e. */
+function currentGeoMotif(){
+  if(!navigator.geolocation) return "non_supportee";
+  if(geoState === "denied") return "refusee";
+  return POSITION_MOTIFS.includes(lastGeoMotif) ? lastGeoMotif : "indisponible";
+}
+/* Suivi continu pendant qu'un \u00e9cran de capture est ouvert (\u00e9conomise la batterie ailleurs). */
+function startGeoWatch(){
+  if(!navigator.geolocation) { setGeoState("unavailable"); return () => {}; }
+  if(!lastFix && geoState !== "denied") setGeoState("searching");
+  const id = navigator.geolocation.watchPosition(recordFix, recordGeoError,
+    { enableHighAccuracy: true, timeout: GEO_TIMEOUT_MS, maximumAge: 10000 });
+  return () => navigator.geolocation.clearWatch(id);
+}
+/* \u00c9tat initial et changements d'autorisation (API Permissions, si disponible). */
+async function initGeoPermission(){
+  if(!navigator.geolocation){ setGeoState("unavailable"); return "unsupported"; }
+  try{
+    if(navigator.permissions && navigator.permissions.query){
+      const st = await navigator.permissions.query({ name: "geolocation" });
+      const apply = () => { if(st.state === "denied") setGeoState("denied"); else if(geoState === "denied") setGeoState("unknown"); };
+      apply();
+      st.onchange = apply;
+      return st.state;
+    }
+  }catch(e){}
+  return "unknown";
+}
+function geoStatusInfo(){
+  if(geoState === "ok") return { cls: "ok", text: t("geoOk") + (lastFix && lastFix.accuracy ? " (\u00b1 " + lastFix.accuracy + " m)" : "") };
+  if(geoState === "searching") return { cls: "searching", text: t("geoSearching") };
+  if(geoState === "denied") return { cls: "denied", text: t("geoDenied") };
+  if(geoState === "unavailable") return { cls: "unavailable", text: t("geoUnavailable") };
+  return { cls: "unknown", text: t("geoUnknown") };
+}
+function refreshGeoBadge(){
+  const b = document.getElementById("geoBadge");
+  if(!b) return;
+  const info = geoStatusInfo();
+  b.className = "geo-badge " + info.cls;
+  b.title = info.text;
+  b.setAttribute("aria-label", info.text);
+}
+geoListeners.add(refreshGeoBadge);
+/* Fen\u00eatre d'explication : au premier lancement (demande explicite) et au toucher du statut. */
+function showGeoSheet(firstRun){
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  const info = geoStatusInfo();
+  const help = geoState === "denied" ? deniedHelpHtml() : geoState === "unavailable" ? t("geoHelpUnavailable") : t("geoHelpIntro");
+  overlay.innerHTML = `
+    <div class="modal-sheet">
+      <h3>\u{1F4CD} ${firstRun ? t("geoIntroTitle") : t("geoStatusTitle")}</h3>
+      ${firstRun ? "" : `<p class="geo-line ${info.cls}">${escapeHtml(info.text)}</p>`}
+      <div class="capture-hint" style="margin:0 0 16px 0;">${help}</div>
+      <button class="btn primary" id="geoAsk" style="width:100%; margin-bottom:8px;">${firstRun || geoState !== "denied" ? t("geoAllow") : t("geoRetry")}</button>
+      <button class="btn" id="geoLater" style="width:100%;">${firstRun ? t("geoLater") : t("close")}</button>
+    </div>`;
+  document.body.appendChild(overlay);
+  const close = () => { overlay.remove(); localStorage.setItem("rdc39_geo_intro_done", "1"); };
+  overlay.addEventListener("click", (e) => { if(e.target === overlay) close(); });
+  overlay.querySelector("#geoLater").addEventListener("click", close);
+  overlay.querySelector("#geoAsk").addEventListener("click", async () => {
+    close();
+    lastFix = null; // nouvelle mesure demand\u00e9e explicitement
+    const f = await tryGetPosition();
+    showToast(f ? t("geoOk") + " (\u00b1 " + f.accuracy + " m)" : (geoState === "denied" ? t("geoDenied") : t("geoUnavailable")));
+  });
+}
+function devicePlatform(){
+  const ua = navigator.userAgent || "";
+  if(/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "ios";
+  if(/Android/i.test(ua)) return "android";
+  return "other";
+}
+function deniedHelpHtml(){
+  const pf = devicePlatform();
+  const steps = pf === "ios" ? t("geoDeniedIos") : pf === "android" ? t("geoDeniedAndroid") : t("geoDeniedOther");
+  return `<div class="geo-denied-box"><strong>${t("geoDeniedTitle")}</strong><p>${t("geoDeniedWhy")}</p><p class="geo-steps">${steps}</p><p>${t("geoDeniedThen")}</p></div>`;
+}
+/* Un refus est silencieux ensuite (le t\u00e9l\u00e9phone ne redemande plus) : on l'explique clairement,
+   une fois par session, d\u00e8s qu'il est constat\u00e9. Le statut rouge reste ensuite cliquable. */
+function showDeniedHelpOnce(){
+  if(sessionStorage.getItem("rdc39_geo_denied_shown")) return;
+  if(document.querySelector(".modal-overlay")) return; // une fen\u00eatre est d\u00e9j\u00e0 ouverte
+  sessionStorage.setItem("rdc39_geo_denied_shown", "1");
+  showGeoSheet(false);
+}
+async function geoFirstRun(){
+  const perm = await initGeoPermission();
+  if(perm === "granted"){ tryGetPosition(); return; }
+  if(!localStorage.getItem("rdc39_geo_intro_done") && perm !== "unsupported") showGeoSheet(true);
 }
 
 /* ============================================================
@@ -1389,6 +1765,8 @@ function unlockApp(){
   document.body.classList.remove("locked");
   if(!wasUnlocked){
     route();
+    refreshGeoBadge();
+    geoFirstRun();
     recoverOrphanRecordings().then(n => {
       if(n){ showToast(n + " " + t("recRecoveredToast")); route(); }
       syncPending();
@@ -1622,6 +2000,7 @@ const REC_SILENCE_THRESHOLD = 0.008;
 const activeRecIds = new Set();      // enregistrements en cours dans CETTE page (jamais "orphelins")
 const POINT_GOOD_ACCURACY_M = 5;     // Point GPS : on s'arr\u00eate d\u00e8s \u00b1 5 m...
 const POINT_MAX_WAIT_MS = 30000;     // ...ou au bout de 30 s, avec la meilleure mesure obtenue
+const POINT_SEED_MAX_AGE_MS = 5000;  // une mesure de moins de 5 s sert de point de d\u00e9part
 function entryGlyph(e){
   if(e.kind === "audio") return "\u{1F3A4}";
   if(e.kind === "photo") return "\u{1F4F7}";
@@ -1662,6 +2041,7 @@ async function finalizeRecording(recId, durationSec, recovered){
     entry = {
       id: uid(), visitUid: meta.visitUid, kind: "audio", data: out.buffer, mime: meta.mime || "audio/webm",
       text: "", label: recovered ? t("recRecoveredLabel") : "", location: meta.location || null,
+      positionMotif: meta.location ? undefined : (recovered ? "indisponible" : currentGeoMotif()),
       timestamp: meta.startedAt,
       duration: durationSec != null ? durationSec : Math.round(chunks.length * REC_TIMESLICE_MS / 1000),
       recovered: !!recovered
@@ -2002,22 +2382,23 @@ async function renderMap(){
   renderLayerList();
 
   // Position GPS en direct
-  let meMarker = null, meCircle = null, lastFix = null, watchId = null;
+  let meMarker = null, meCircle = null, mapFix = null, watchId = null;
   if(navigator.geolocation){
     watchId = navigator.geolocation.watchPosition((pos) => {
-      lastFix = [pos.coords.latitude, pos.coords.longitude];
+      recordFix(pos); // alimente aussi le statut de position global
+      mapFix = [pos.coords.latitude, pos.coords.longitude];
       const acc = pos.coords.accuracy || 0;
       if(!meMarker){
-        meCircle = L.circle(lastFix, { radius: acc, color: "#3182ce", weight: 1, fillOpacity: 0.12, interactive: false }).addTo(map);
-        meMarker = L.circleMarker(lastFix, { radius: 7, fillColor: "#3182ce", color: "#fff", weight: 3, fillOpacity: 1 }).addTo(map);
+        meCircle = L.circle(mapFix, { radius: acc, color: "#3182ce", weight: 1, fillOpacity: 0.12, interactive: false }).addTo(map);
+        meMarker = L.circleMarker(mapFix, { radius: 7, fillColor: "#3182ce", color: "#fff", weight: 3, fillOpacity: 1 }).addTo(map);
         meMarker.bindPopup(t("mapMe"));
       } else {
-        meMarker.setLatLng(lastFix); meCircle.setLatLng(lastFix); meCircle.setRadius(acc);
+        meMarker.setLatLng(mapFix); meCircle.setLatLng(mapFix); meCircle.setRadius(acc);
       }
-    }, () => {}, { enableHighAccuracy: true, maximumAge: 5000 });
+    }, recordGeoError, { enableHighAccuracy: true, maximumAge: 5000 });
   }
   wrap.querySelector("#btnLocate").addEventListener("click", () => {
-    if(lastFix) map.setView(lastFix, Math.max(map.getZoom(), 16));
+    if(mapFix) map.setView(mapFix, Math.max(map.getZoom(), 16));
     else showToast(t("mapNoFix"));
   });
   wrap.querySelector("#btnFit").addEventListener("click", () => {
@@ -2073,6 +2454,7 @@ btnBack.addEventListener("click", () => { window.location.hash = "#home"; });
 btnSettings.addEventListener("click", () => { window.location.hash = "#settings"; });
 btnFolders.addEventListener("click", () => { window.location.hash = "#folders"; });
 btnMap.addEventListener("click", () => { window.location.hash = "#map"; });
+document.getElementById("geoBadge").addEventListener("click", () => showGeoSheet(false));
 fabNew.addEventListener("click", () => { window.location.hash = "#new"; });
 
 function route(){
@@ -2410,6 +2792,72 @@ async function renderVisitDetail(uidVal){
   recStatus.id = "recStatus";
   main.appendChild(recStatus);
 
+  const geoLine = document.createElement("button");
+  geoLine.className = "geo-line";
+  geoLine.type = "button";
+  main.insertBefore(geoLine, addRow);
+  const renderGeoLine = () => { const info = geoStatusInfo(); geoLine.className = "geo-line " + info.cls; geoLine.textContent = "\u{1F4CD} " + info.text; };
+  renderGeoLine();
+  geoListeners.add(renderGeoLine);
+  geoLine.addEventListener("click", () => showGeoSheet(false));
+  const stopGeoWatch = startGeoWatch();
+
+  /* Position d'une nouvelle entr\u00e9e sans faire attendre l'utilisateur : derni\u00e8re mesure si
+     r\u00e9cente ; sinon l'entr\u00e9e est enregistr\u00e9e tout de suite et la position lui est rattach\u00e9e
+     d\u00e8s qu'elle arrive (si personne ne l'a renseign\u00e9e \u00e0 la main entre-temps). */
+  const LATE_FIX_WINDOW_MS = 2 * 60 * 1000; // au-del\u00e0, on aurait pu bouger : on n'attache plus
+  const RETRY_PAUSE_MS = 3000;
+  /* L'entr\u00e9e est d\u00e9j\u00e0 sauvegard\u00e9e ; on lui rattache la position d\u00e8s qu'elle arrive :
+     tentatives r\u00e9p\u00e9t\u00e9es pendant GEO_TIMEOUT_MS (~20 s), puis \u00e9coute du suivi continu jusqu'\u00e0
+     LATE_FIX_WINDOW_MS. Si rien n'arrive dans les ~20 s, le motif est enregistr\u00e9 (positionMotif) ;
+     il sera retir\u00e9 automatiquement si une position arrive ensuite dans la fen\u00eatre. */
+  function attachPositionLater(entryId){
+    const startedAt = Date.now();
+    const deadline = startedAt + GEO_TIMEOUT_MS;
+    let done = false;
+    const stop = () => { done = true; geoListeners.delete(onGeo); };
+    const attach = async (loc) => {
+      if(done || !loc || Date.now() - startedAt > LATE_FIX_WINDOW_MS) return;
+      stop();
+      const e = await idbGet("entries", entryId);
+      if(!e || e.location) return;
+      e.location = loc;
+      await idbPut("entries", e);
+      if(main.isConnected && entryList.isConnected) refreshEntries();
+    };
+    const recordMotif = async (motif) => {
+      const e = await idbGet("entries", entryId);
+      if(!e || e.location || e.positionMotif === motif) return;
+      e.positionMotif = POSITION_MOTIFS.includes(motif) ? motif : "indisponible";
+      await idbPut("entries", e);
+      if(main.isConnected && entryList.isConnected) refreshEntries();
+    };
+    const onGeo = () => {
+      if(Date.now() - startedAt > LATE_FIX_WINDOW_MS){ geoListeners.delete(onGeo); return; }
+      if(geoState === "ok") attach(freshFix());
+    };
+    geoListeners.add(onGeo);
+    const attempt = async () => {
+      if(done) return;
+      const r = await getPositionResult(Math.max(3000, deadline - Date.now()));
+      if(r.loc){ attach(r.loc); return; }
+      if(done) return;
+      if(r.motif === "refusee" || r.motif === "non_supportee" || Date.now() + RETRY_PAUSE_MS >= deadline){
+        await recordMotif(r.motif);
+        if(r.motif === "non_supportee") stop(); // inutile d'\u00e9couter : il n'y aura jamais de position
+        return;
+      }
+      setTimeout(attempt, RETRY_PAUSE_MS);
+    };
+    attempt();
+  }
+  async function putEntryWithPosition(entry){
+    if(entry.location === undefined) entry.location = freshFix();
+    await idbPut("entries", entry);
+    if(!entry.location) attachPositionLater(entry.id);
+    return entry;
+  }
+
   const pointStatus = document.createElement("div");
   pointStatus.className = "point-status";
   pointStatus.hidden = true;
@@ -2472,7 +2920,7 @@ async function renderVisitDetail(uidVal){
         <div class="entry-head">
           <span class="entry-meta">${glyph} ${fmtTime(entry.timestamp)}
             ${entry.label ? " \u00b7 " + escapeHtml(entry.label) : ""}
-            ${gpsStr ? " \u00b7 \u{1F4CD} " + gpsStr : ""}
+            ${gpsStr ? " \u00b7 \u{1F4CD} " + gpsStr : ` \u00b7 <button class="no-pos" data-act="position">\u26A0 ${t("noPosition")}${entry.positionMotif ? " (" + t("motif_" + entry.positionMotif) + ")" : ""}</button>`}
             ${entry.source === "dictee" ? ` \u00b7 <span class="unreviewed">${t("dictateUnreviewed")}</span>` : ""}
             ${entry.syncState === "sent" ? "" : " \u00b7 \u23F3"}
           </span>
@@ -2480,7 +2928,7 @@ async function renderVisitDetail(uidVal){
         </div>
         <div class="entry-body"></div>
         <button class="label-btn" data-act="label">${entry.label ? "\u270f\ufe0f" : "+ " + t("entryLabelPrompt").replace(" :","").replace(":","")}</button>
-        <button class="label-btn" data-act="position" style="margin-left:14px;">${entry.location ? "\u270f\ufe0f " : "+ "}${t("editPosition")}</button>
+        <button class="label-btn${entry.location ? "" : " warn"}" data-act="position" style="margin-left:14px;">${entry.location ? "\u270f\ufe0f " : "\u26A0 "}${t("editPosition")}</button>
       `;
       const body = card.querySelector(".entry-body");
       if(entry.kind === "audio"){
@@ -2534,13 +2982,18 @@ async function renderVisitDetail(uidVal){
         const val = prompt(t("entryLabelPrompt"), entry.label || "");
         if(val !== null){ entry.label = val.trim(); await migrateEntryIfLegacy(entry); await idbPut("entries", entry); refreshEntries(); }
       });
-      card.querySelector('[data-act="position"]').addEventListener("click", async () => {
-        const current = entry.location ? entry.location.lat + ", " + entry.location.lng : "";
-        const val = prompt(t("editPositionPrompt"), current);
+      card.querySelectorAll('[data-act="position"]').forEach(btn => btn.addEventListener("click", async () => {
+        // Sans position : on propose directement la position actuelle (si une mesure r\u00e9cente existe).
+        const nowFix = entry.location ? null : freshFix();
+        const current = entry.location ? entry.location.lat + ", " + entry.location.lng
+          : nowFix ? nowFix.lat.toFixed(6) + ", " + nowFix.lng.toFixed(6) : "";
+        const val = prompt(t("editPositionPrompt") + (nowFix ? "\n" + t("editPositionCurrentHint") + " (\u00b1 " + nowFix.accuracy + " m)" : ""), current);
         if(val === null) return;
         const trimmed = val.trim();
         if(trimmed === ""){
           entry.location = null;
+          entry.clearLocation = true;
+          entry.positionMotif = "indisponible";
           await migrateEntryIfLegacy(entry); await idbPut("entries", entry);
           showToast(t("editPositionCleared"));
           refreshEntries();
@@ -2553,11 +3006,11 @@ async function renderVisitDetail(uidVal){
           showToast(t("editPositionInvalid"));
           return;
         }
-        entry.location = { lat, lng };
+        entry.location = (nowFix && val.trim() === current) ? nowFix : { lat, lng };
         await migrateEntryIfLegacy(entry); await idbPut("entries", entry);
         showToast(t("editPositionSaved"));
         refreshEntries();
-      });
+      }));
       entryList.appendChild(card);
     }
   }
@@ -2588,17 +3041,25 @@ async function renderVisitDetail(uidVal){
       </div>`;
     pointStatus.querySelector("#btnPointSave").addEventListener("click", () => finishPoint(p, true));
     pointStatus.querySelector("#btnPointCancel").addEventListener("click", () => finishPoint(p, false));
-    p.watchId = navigator.geolocation.watchPosition((pos) => {
-      const c = pos.coords;
-      if(!p.best || (c.accuracy || 9999) < (p.best.accuracy || 9999)){
-        p.best = { lat: c.latitude, lng: c.longitude, accuracy: Math.round(c.accuracy || 0) };
-        if(c.altitude !== null && c.altitude !== undefined) p.best.altitude = Math.round(c.altitude);
+    // Toute mesure compte : celles de cette \u00e9coute d\u00e9di\u00e9e ET celles du suivi continu de l'\u00e9cran
+    // (certains navigateurs ne servent pas une 2e \u00e9coute tant que la position ne change pas).
+    const consider = (fix) => {
+      if(p.done || !fix) return;
+      if(!p.best || (fix.accuracy || 9999) < (p.best.accuracy || 9999)){
+        p.best = { lat: fix.lat, lng: fix.lng, accuracy: Math.round(fix.accuracy || 0) };
+        if(fix.altitude !== null && fix.altitude !== undefined) p.best.altitude = Math.round(fix.altitude);
       }
       const msg = pointStatus.querySelector("#pointMsg");
-      if(msg) msg.textContent = t("pointAccuracy") + " ± " + p.best.accuracy + " m — " + t("pointImproving");
+      if(msg) msg.textContent = t("pointAccuracy") + " \u00b1 " + p.best.accuracy + " m \u2014 " + t("pointImproving");
       const save = pointStatus.querySelector("#btnPointSave");
       if(save) save.disabled = false;
       if(p.best.accuracy <= POINT_GOOD_ACCURACY_M) finishPoint(p, true);
+    };
+    p.onGeo = () => { if(geoState === "ok" && lastFix && lastFix.at >= p.startedAt - POINT_SEED_MAX_AGE_MS) consider(lastFix); };
+    geoListeners.add(p.onGeo);
+    p.onGeo(); // mesure de moins de quelques secondes : point de d\u00e9part
+    p.watchId = navigator.geolocation.watchPosition((pos) => {
+      consider(recordFix(pos));
     }, (err) => {
       if(err && err.code === 1){ showToast(t("pointDenied")); finishPoint(p, false); }
     }, { enableHighAccuracy: true, maximumAge: 0, timeout: POINT_MAX_WAIT_MS });
@@ -2609,6 +3070,7 @@ async function renderVisitDetail(uidVal){
     p.done = true;
     if(pointFix === p) pointFix = null;
     clearTimeout(p.timer);
+    if(p.onGeo) geoListeners.delete(p.onGeo);
     if(p.watchId !== null) navigator.geolocation.clearWatch(p.watchId);
     pointStatus.hidden = true;
     pointStatus.innerHTML = "";
@@ -2628,8 +3090,7 @@ async function renderVisitDetail(uidVal){
   addRow.querySelector("#btnAddText").addEventListener("click", async () => {
     const text = prompt(t("textEntryPh"));
     if(text && text.trim()){
-      const location = await tryGetPosition();
-      await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "texte", text: text.trim(), label: "", location, timestamp: Date.now() });
+      await putEntryWithPosition({ id: uid(), visitUid: visit.uid, kind: "texte", text: text.trim(), label: "", timestamp: Date.now() });
       refreshEntries(); refreshWeight();
     }
   });
@@ -2653,8 +3114,9 @@ async function renderVisitDetail(uidVal){
 
         const blob = await compressImage(file, q.maxDim, q.quality);
         const data = await blob.arrayBuffer();
-        const location = exifLocation || await tryGetPosition();
-        await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "photo", data, mime: blob.type || "image/jpeg", label: "", location, timestamp: Date.now() });
+        const photoEntry = { id: uid(), visitUid: visit.uid, kind: "photo", data, mime: blob.type || "image/jpeg", label: "", timestamp: Date.now() };
+        if(exifLocation) photoEntry.location = exifLocation;
+        await putEntryWithPosition(photoEntry);
         if(exifLocation) foundExifGps = true;
         added++;
       }catch(err){ showToast(t("photoUnreadable")); }
@@ -2676,9 +3138,8 @@ async function renderVisitDetail(uidVal){
     const isTextLike = file.type.startsWith("text/") || /\.txt$/i.test(file.name);
     if(!isTextLike){ showToast(t("documentUnsupported")); return; }
     const content = await file.text();
-    const location = await tryGetPosition();
     const suggestedLabel = /ordre.?du.?jour|agenda/i.test(file.name) ? "Ordre du jour" : "";
-    await idbPut("entries", { id: uid(), visitUid: visit.uid, kind: "texte", text: content, label: suggestedLabel, location, timestamp: Date.now() });
+    await putEntryWithPosition({ id: uid(), visitUid: visit.uid, kind: "texte", text: content, label: suggestedLabel, timestamp: Date.now() });
     refreshEntries(); refreshWeight();
     showToast(t("documentImported"));
   });
@@ -2689,12 +3150,11 @@ async function renderVisitDetail(uidVal){
     e.target.value = "";
     if(!file) return;
     if(file.size > 20 * 1024 * 1024){ showToast(t("fileTooBig")); return; }
-    const location = await tryGetPosition();
     const data = await file.arrayBuffer();
-    await idbPut("entries", {
+    await putEntryWithPosition({
       id: uid(), visitUid: visit.uid, kind: "fichier", data,
       fileName: file.name, mime: file.type || "application/octet-stream",
-      label: "", location, timestamp: Date.now()
+      label: "", timestamp: Date.now()
     });
     refreshEntries(); refreshWeight();
     showToast(t("fileImported"));
@@ -2728,9 +3188,9 @@ async function renderVisitDetail(uidVal){
     try{ mr = new MediaRecorder(stream, Object.assign({ audioBitsPerSecond: REC_BITRATE }, mime ? { mimeType: mime } : {})); }
     catch(e){ mr = new MediaRecorder(stream); }
     const recId = uid();
-    const meta = { recId, visitUid: visit.uid, mime: mr.mimeType || mime || "audio/webm", startedAt: Date.now(), location: null };
+    const meta = { recId, visitUid: visit.uid, mime: mr.mimeType || mime || "audio/webm", startedAt: Date.now(), location: freshFix() };
     await idbPutRaw("recordings", meta);
-    tryGetPosition().then(loc => { if(loc){ meta.location = loc; idbPutRaw("recordings", meta).catch(() => {}); } });
+    if(!meta.location) tryGetPosition().then(loc => { if(loc && !meta.location){ meta.location = loc; idbPutRaw("recordings", meta).catch(() => {}); } });
 
     const r = rec = { mr, stream, recId, seq: 0, bytes: 0, startedAt: Date.now(), audioCtx, peak: 0, writes: [], wakeLock: null, leftApp: false, stopping: false };
     activeRecIds.add(recId);
@@ -2809,6 +3269,7 @@ async function renderVisitDetail(uidVal){
     updateDictateAvailability();
     await Promise.all(r.writes);
     const entry = await finalizeRecording(r.recId, durationSec, false);
+    if(entry && !entry.location) attachPositionLater(entry.id);
     activeRecIds.delete(r.recId);
     if(!main.isConnected) return;
     refreshEntries(); refreshWeight();
@@ -2874,13 +3335,20 @@ async function renderVisitDetail(uidVal){
     if(c === n || c.endsWith(" " + n)) return; // anti-doublon : déjà validé
     d.committed = d.committed ? d.committed + " " + text : text;
     if(!d.entry){
-      d.entry = { id: uid(), visitUid: visit.uid, kind: "texte", source: "dictee", text: d.committed, label: "", location: d.location, timestamp: d.startedAt };
+      d.entry = { id: uid(), visitUid: visit.uid, kind: "texte", source: "dictee", text: d.committed, label: "", location: d.location || null, timestamp: d.startedAt };
+      d.needsLatePosition = !d.entry.location;
     } else {
       d.entry.text = d.committed;
       if(!d.entry.location && d.location) d.entry.location = d.location;
     }
     const snapshot = d.entry;
     d.saving = d.saving.then(() => idbPut("entries", snapshot)).catch(() => {});
+    // Brouillon cr\u00e9\u00e9 sans position : on la lui rattachera d\u00e8s qu'elle arrive (apr\u00e8s sa 1re sauvegarde).
+    if(d.needsLatePosition){
+      d.needsLatePosition = false;
+      const id = snapshot.id;
+      d.saving = d.saving.then(() => attachPositionLater(id));
+    }
   }
   function renderDictation(d){
     const f = document.getElementById("dictFinal");
@@ -2895,7 +3363,11 @@ async function renderVisitDetail(uidVal){
     if(!navigator.onLine){ showToast(t("dictateOfflineBlocked")); return; }
     const d = dict = { committed: "", interim: "", stopRequested: false, entry: null, errorShown: false, rec: null,
       startedAt: Date.now(), location: null, saving: Promise.resolve(), errCount: 0 };
-    tryGetPosition().then(l => { d.location = l; });
+    // Position : mesure r\u00e9cente si elle existe ; sinon elle est demand\u00e9e d\u00e8s maintenant et, si elle
+    // arrive avant le premier texte, le brouillon est cr\u00e9\u00e9 AVEC elle ; si elle arrive apr\u00e8s, elle est
+    // rattach\u00e9e au brouillon (attachPositionLater), et idbPut la conserve \u00e0 chaque sauvegarde suivante.
+    d.location = freshFix();
+    if(!d.location) getPositionResult().then(r => { if(r.loc && !d.location) d.location = r.loc; });
     const btn = addRow.querySelector("#btnDictate");
     btn.textContent = t("dictateStop");
     addRow.querySelector("#btnRec").disabled = true;
@@ -2987,6 +3459,8 @@ async function renderVisitDetail(uidVal){
 
   // Quitter l'écran arrête proprement une capture en cours (elle est sauvegardée) et retire les écouteurs.
   currentViewCleanup = () => {
+    stopGeoWatch();
+    geoListeners.delete(renderGeoLine);
     if(pointFix) finishPoint(pointFix, false);
     if(rec) stopRecording();
     if(dict){ dict.stopRequested = true; try{ dict.rec && dict.rec.stop(); }catch(e){} }
@@ -3014,8 +3488,11 @@ async function renderVisitDetail(uidVal){
     };
     downloadBlob(new Blob([JSON.stringify(manifest, null, 2)], { type: "application/json" }), safeFileName(v.tag || v.uid) + "_donnees.json");
     entries.forEach((e, i) => {
-      const entryBlob = getEntryBlob(e);
+      let entryBlob = getEntryBlob(e);
       if(!entryBlob) return;
+      if(e.kind === "photo" && e.data && e.location){
+        entryBlob = new Blob([photoBufferForExport(e.data, e, getEntryMime(e))], { type: getEntryMime(e) || "image/jpeg" });
+      }
       const name = e.kind === "fichier" ? (e.fileName || ("fichier_" + (i+1))) : safeFileName(v.tag || v.uid) + "_" + (e.kind === "audio" ? "audio_" : "photo_") + (i+1) + extFor(e);
       downloadBlob(entryBlob, name);
     });
