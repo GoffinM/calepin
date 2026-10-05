@@ -45,7 +45,8 @@
     padding: 14px 18px 14px 18px; padding-top: calc(14px + env(safe-area-inset-top));
     background: var(--bg); border-bottom: 1px solid var(--line);
   }
-  .appbar h1{ font-size: 19px; margin:0; font-weight: 700; letter-spacing: 0.2px; }
+  .appbar h1{ font-size: 19px; margin:0; font-weight: 700; letter-spacing: 0.2px;
+    flex: 1; min-width: 0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .appbar button.icon-btn{
     background:none; border:none; color: var(--text); font-size: 20px;
     padding: 4px 6px; cursor:pointer; line-height:1;
@@ -182,7 +183,7 @@
   .detail-head h2{ font-size: 21px; margin: 2px 0 4px 0; }
   .detail-head .meta{ font-size:12px; font-family: var(--mono); color: var(--text-dim); }
 
-  .weight-banner{
+  .weight-banner{ white-space: nowrap; overflow: hidden; height: 34px; box-sizing: border-box;
     display:flex; justify-content:space-between; align-items:center;
     background: var(--surface); border:1px solid var(--line); border-radius:8px;
     padding: 8px 12px; font-size:12px; font-family: var(--mono); color: var(--text-dim);
@@ -192,7 +193,10 @@
   .weight-banner.danger{ border-color: var(--danger); color: #E6A18C; }
 
   .add-row{ display:flex; gap:8px; margin-bottom: 18px; flex-wrap: wrap; }
-  .add-row .btn{ flex:1; min-width: 100px; }
+  /* Boutons de capture : hauteur fixe, libell\u00e9 sur une ligne \u2014 le passage \u00e0 "Arr\u00eater" ne doit
+     jamais changer la hauteur de la rang\u00e9e. */
+  .add-row .btn{ flex:1; min-width: 100px; height: 44px; display:block; padding: 0 8px; line-height: 42px; text-align:center;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
   .rec-status{ display:flex; align-items:center; gap:10px; margin-bottom:18px; }
   .rec-timer{ font-family: var(--mono); font-size: 14px; color: var(--danger); }
@@ -319,17 +323,22 @@
   .map-popup a{ display:inline-block; margin-top: 4px; font-weight: 600; }
 
   /* ---------- RDC39 : capture audio / dict\u00e9e ---------- */
-  .add-row .btn.rec-main{ flex-basis: 100%; font-size: 16px; padding: 14px; font-weight: 600; }
+  .add-row .btn.rec-main{ flex-basis: 100%; font-size: 16px; padding: 0 14px; height: 50px; line-height: 48px; font-weight: 600; }
   .add-row .btn.recording{ background: var(--danger); border-color: var(--danger); color: #fff; }
   .rec-live, .dict-live{ width:100%; background: var(--surface); border:1px solid var(--line); border-radius: 8px; padding: 10px 12px; }
-  .rec-line{ display:flex; align-items:center; gap:8px; }
+  /* Ligne du minuteur : une seule ligne, chiffres \u00e0 largeur fixe ; l'aide est sur sa propre ligne. */
+  .rec-line{ display:flex; align-items:center; gap:8px; white-space: nowrap; overflow: hidden; height: 22px; }
+  .rec-timer{ font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .rec-help{ font-size: 12px; color: var(--text-dim); height: 18px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
   .rec-dot{ color: var(--danger); animation: recblink 1.2s infinite; }
   @keyframes recblink{ 50%{ opacity: 0.25; } }
   @media (prefers-reduced-motion: reduce){ .rec-dot{ animation:none; } }
   .level{ height: 10px; background: var(--surface-raised); border-radius: 5px; margin: 8px 0 6px 0; overflow:hidden; }
   .level-bar{ height:100%; width:0; background: #6BAF5B; transition: width 0.1s linear; }
-  .rec-keep{ font-size: 12px; color: var(--text-dim); }
-  .dict-text{ margin-top: 8px; background: var(--paper); color: var(--ink); border-radius: 6px; padding: 8px 10px; min-height: 2.6em; font-size: 15px; line-height: 1.45; }
+  .rec-keep{ font-size: 12px; color: var(--text-dim); height: 18px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Texte de la dict\u00e9e : hauteur FIXE (5 lignes), d\u00e9filement interne cal\u00e9 sur la fin. */
+  .dict-text{ margin-top: 8px; background: var(--paper); color: var(--ink); border-radius: 6px; padding: 8px 10px; box-sizing: border-box;
+    font-size: 15px; line-height: 21px; height: calc(5 * 21px + 16px); overflow-y: auto; overflow-wrap: anywhere; }
   .dict-text .interim{ color: #8A8A80; font-style: italic; }
   .dict-offline{ color: var(--warn); }
   .audio-meta{ font-size: 12px; color: var(--text-dim); font-family: var(--mono); margin: -2px 0 8px 0; }
@@ -345,8 +354,10 @@
   .geo-badge.searching::after{ background: var(--accent); }
   .geo-badge.unavailable::after{ background: var(--warn); }
   .geo-badge.denied::after{ background: var(--danger); }
-  .geo-line{ display:block; width:100%; text-align:left; background: var(--surface); border:1px solid var(--line); border-radius:8px;
-    padding: 8px 12px; margin-bottom: 12px; font-size: 13px; color: var(--text); cursor:pointer; font-family: inherit; }
+  /* Encadr\u00e9 de position : une seule ligne, hauteur fixe (ne bouge jamais, quel que soit l'\u00e9tat). */
+  .geo-line{ display:block; width:100%; text-align:left; background: var(--surface); border:1px solid var(--line); border-radius:8px; box-sizing: border-box;
+    padding: 0 12px; height: 36px; min-height: 36px; line-height: 34px; margin-bottom: 12px; font-size: 13px; color: var(--text);
+    cursor:pointer; font-family: inherit; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-variant-numeric: tabular-nums; }
   .geo-line.ok{ border-color:#4E7F43; }
   .geo-line.searching{ border-color: var(--accent); }
   .geo-line.unavailable{ border-color: var(--warn); color: var(--warn); }
@@ -604,7 +615,9 @@ const STRINGS = {
     recFinalizeFailed: "L'enregistrement n'a pas pu \u00eatre finalis\u00e9 ({err}). Les morceaux d\u00e9j\u00e0 \u00e9crits sont conserv\u00e9s sur l'appareil et seront r\u00e9cup\u00e9r\u00e9s au prochain lancement de l'app. Lib\u00e9rez de la place avant de rouvrir.",
     recPartial: "Enregistrement sauvegard\u00e9 PARTIELLEMENT : {n} morceau(x) de 2 s n'ont pas pu \u00eatre \u00e9crits (stockage plein ?).",
     recStartFailed: "Impossible de d\u00e9marrer l'enregistrement : \u00e9criture sur l'appareil refus\u00e9e ({err}). Lib\u00e9rez de la place puis r\u00e9essayez.",
-    pointNoFixSaved: "aucune position GPS fra\u00eeche : le point sera enregistr\u00e9 sans position"
+    pointNoFixSaved: "aucune position GPS fra\u00eeche : le point sera enregistr\u00e9 sans position",
+    addDocumentShort: "Document",
+    addFileShort: "\ud83d\udcce Fichier"
   },
   en: {
     appName: "RDC39-Calepin", settings: "Settings", back: "Back",
@@ -818,7 +831,9 @@ const STRINGS = {
     recFinalizeFailed: "The recording could not be finalized ({err}). The parts already written are kept on the device and will be recovered next time the app opens. Free up space before reopening.",
     recPartial: "Recording PARTIALLY saved: {n} 2-second part(s) could not be written (storage full?).",
     recStartFailed: "Cannot start recording: writing to the device was refused ({err}). Free up space and retry.",
-    pointNoFixSaved: "no fresh GPS position: the point will be saved without position"
+    pointNoFixSaved: "no fresh GPS position: the point will be saved without position",
+    addDocumentShort: "Document",
+    addFileShort: "\ud83d\udcce File"
   },
   sw: {
     appName: "RDC39-Calepin", settings: "Mipangilio", back: "Rudi",
@@ -922,7 +937,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "rdc39-2026-10-05.4";
+const APP_VERSION = "rdc39-2026-10-05.5";
 function currentLang(){ return localStorage.getItem("rdc39_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("rdc39_lang", l); }
 function t(key){
@@ -1872,9 +1887,9 @@ function refreshGeoBadge(){
   const b = document.getElementById("geoBadge");
   if(!b) return;
   const info = geoStatusInfo();
-  b.className = "geo-badge " + info.cls;
-  b.title = info.text;
-  b.setAttribute("aria-label", info.text);
+  const cls = "icon-btn geo-badge " + info.cls;
+  if(b.className !== cls) b.className = cls;
+  if(b.title !== info.text){ b.title = info.text; b.setAttribute("aria-label", info.text); }
 }
 geoListeners.add(refreshGeoBadge);
 /* Fen\u00eatre d'explication : au premier lancement (demande explicite) et au toucher du statut. */
@@ -2297,6 +2312,7 @@ function fmtPointDetails(loc){
     (loc.accuracy ? " \u00b7 \u00b1 " + loc.accuracy + " m" : "") +
     (loc.altitude !== undefined && loc.altitude !== null ? " \u00b7 alt. " + loc.altitude + " m (GPS)" : "");
 }
+function setTextIfChanged(el, txt){ if(el && el.textContent !== txt) el.textContent = txt; }
 function fmtDuration(sec){
   sec = Math.max(0, Math.round(sec || 0));
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s2 = sec % 60;
@@ -3061,8 +3077,8 @@ async function renderVisitDetail(uidVal){
     <button class="btn" id="btnAddPhoto" title="${t("addPhoto")}">\u{1F4F7} ${t("addPhoto")}</button>
     <button class="btn" id="btnPoint" title="${t("pointHint")}">\u{1F4CD} ${t("addPoint")}</button>
     <button class="btn" id="btnAddText" title="${t("addText")}">\u{1F4DD} ${t("addText")}</button>
-    <button class="btn" id="btnImportDoc" title="${t("addDocument")}">\u{1F4C4} ${t("addDocument")}</button>
-    <button class="btn" id="btnImportFile" title="${t("addFile")}">${t("addFile")}</button>
+    <button class="btn" id="btnImportDoc" title="${t("addDocument")}">\u{1F4C4} ${t("addDocumentShort")}</button>
+    <button class="btn" id="btnImportFile" title="${t("addFile")}">${t("addFileShort")}</button>
     <input type="file" id="photoInput" accept="image/*" capture="environment" multiple class="sr-only">
     <input type="file" id="docInput" accept=".txt,text/plain" class="sr-only">
     <input type="file" id="fileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" class="sr-only">
@@ -3078,7 +3094,15 @@ async function renderVisitDetail(uidVal){
   geoLine.className = "geo-line";
   geoLine.type = "button";
   main.insertBefore(geoLine, addRow);
-  const renderGeoLine = () => { const info = geoStatusInfo(); geoLine.className = "geo-line " + info.cls; geoLine.textContent = "\u{1F4CD} " + info.text; };
+  let geoLineShown = "";
+  const renderGeoLine = () => {
+    const info = geoStatusInfo();
+    const cls = "geo-line " + info.cls, txt = "\u{1F4CD} " + info.text;
+    if(cls + "|" + txt === geoLineShown) return; // rien n'a chang\u00e9 : on ne touche pas au DOM
+    geoLineShown = cls + "|" + txt;
+    if(geoLine.className !== cls) geoLine.className = cls;
+    if(geoLine.textContent !== txt) geoLine.textContent = txt;
+  };
   renderGeoLine();
   geoListeners.add(renderGeoLine);
   geoLine.addEventListener("click", () => showGeoSheet(false));
@@ -3554,8 +3578,7 @@ async function renderVisitDetail(uidVal){
         <div class="rec-keep">${t("recKeepOpen")}</div>
       </div>`;
     recordTimerInterval = setInterval(() => {
-      const el = document.getElementById("recTimer");
-      if(el) el.textContent = fmtDuration((Date.now() - r.startedAt) / 1000) + " · " + fmtBytes(r.bytes) + " " + t("recSavedBytes");
+      setTextIfChanged(document.getElementById("recTimer"), fmtDuration((Date.now() - r.startedAt) / 1000) + " · " + fmtBytes(r.bytes) + " " + t("recSavedBytes"));
     }, 250);
   }
   /* \u00c9criture d'un morceau impossible (stockage plein, erreur IndexedDB...) : alerte IMM\u00c9DIATE, les
@@ -3689,9 +3712,13 @@ async function renderVisitDetail(uidVal){
   function renderDictation(d){
     const f = document.getElementById("dictFinal");
     const i = document.getElementById("dictInterim");
-    if(f) f.textContent = d.committed;
-    if(i) i.textContent = d.interim ? (d.committed ? " " : "") + d.interim : "";
+    setTextIfChanged(f, d.committed);
+    setTextIfChanged(i, d.interim ? (d.committed ? " " : "") + d.interim : "");
+    // Hauteur fixe : on reste cal\u00e9 sur la fin du texte (d\u00e9filement interne, la page ne bouge pas).
+    const box = f && f.parentNode;
+    if(box && box.scrollHeight > box.clientHeight) box.scrollTop = box.scrollHeight;
   }
+
   function toggleDictation(){
     if(dict){ dict.stopRequested = true; try{ dict.rec && dict.rec.stop(); }catch(e){ finishDictation(dict); } return; }
     if(rec) return;
@@ -3710,12 +3737,12 @@ async function renderVisitDetail(uidVal){
     updateDictateAvailability();
     recStatus.innerHTML = `
       <div class="dict-live">
-        <div class="rec-line"><span class="rec-dot">●</span><span class="rec-timer" id="recTimer">${t("dictateListening")}</span></div>
+        <div class="rec-line"><span class="rec-dot">●</span><span class="rec-timer" id="recTimer">00:00</span></div>
+        <div class="rec-help">${t("dictateListening")}</div>
         <div class="dict-text"><span class="final" id="dictFinal"></span><span class="interim" id="dictInterim"></span></div>
       </div>`;
     recordTimerInterval = setInterval(() => {
-      const el = document.getElementById("recTimer");
-      if(el) el.textContent = t("dictateListening") + " " + fmtDuration((Date.now() - d.startedAt) / 1000);
+      setTextIfChanged(document.getElementById("recTimer"), fmtDuration((Date.now() - d.startedAt) / 1000));
       if(Date.now() - d.startedAt > DICT_MAX_MS){ d.stopRequested = true; try{ d.rec && d.rec.stop(); }catch(e){} }
     }, 250);
     startDictationSession(d);
