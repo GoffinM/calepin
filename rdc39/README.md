@@ -15,7 +15,7 @@ Il est hébergé dans le sous-dossier `rdc39/` du dépôt Calepin, à l'adresse 
 | **IA** | Aucune : pas de clé, pas d'appel, pas de synthèse. Le traitement de l'audio se fait côté Michel, à partir des données récupérées. |
 | **Code d'accès** | Validé par le relais à chaque ouverture quand il y a du réseau. Hors ligne, l'app reste utilisable 14 jours après la dernière validation. Un code révoqué verrouille l'app au prochain contact avec le relais ; les données restent sur l'appareil. |
 | **Synchronisation** | Niveau 2, **entrée par entrée** : chaque entrée et chaque visite sont marquées ⏳ ou ✓. L'envoi est automatique à l'ouverture, au retour du réseau, au retour au premier plan et environ 2 min après une modification, tant que l'app est ouverte. Un bouton « Envoyer maintenant » se trouve dans Réglages. Un envoi coupé ne fait perdre que l'entrée en cours, qui est renvoyée au prochain essai. |
-| **Carte** 🗺️ | Navigation et consultation uniquement : 10 couches du projet, points déjà relevés (un tap ouvre le relevé), position GPS en direct. Le bouton « Télécharger pour le terrain » met en cache le fond OSM de la zone (1 139 tuiles, ~25 Mo). |
+| **Carte** 🗺️ | Navigation et consultation uniquement : 11 couches du projet (dont la conduite, ajoutée le 05/10), points déjà relevés (un tap ouvre le relevé), position GPS en direct. Le bouton « Télécharger pour le terrain » met en cache le fond OSM de la zone (1 322 tuiles, ~30 Mo ; si le fond avait déjà été téléchargé, retoucher le bouton ne récupère que les tuiles manquantes). |
 
 ## Mise en service
 
