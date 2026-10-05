@@ -57,9 +57,39 @@ def make_inputs(d):
     ifd = struct.pack("<H", 1) + struct.pack("<HHII", 0x010F, 2, len(make), 8 + 2 + 12 + 4) + struct.pack("<I", 0)
     tiff = b"II\x2a\x00" + struct.pack("<I", 8) + ifd + make
     files["manual_le"] = plain[:2] + b"\xff\xe1" + struct.pack(">H", 8 + len(tiff)) + b"Exif\x00\x00" + tiff + plain[2:]
+    # Structure produite par le canvas de Safari : SOI, APP0 JFIF, APP1 Exif VIDE de 76 octets
+    # (IFD0 = seulement ExifOffset ; IFD Exif = ColorSpace, PixelXDimension, PixelYDimension),
+    # puis bloc Photoshop (APP13), puis l'image.
+    files["safari_canvas"] = safari_canvas_jpeg(plain)
     for k, v in files.items():
         open(os.path.join(d, k + ".jpg"), "wb").write(v)
     return list(files)
+
+
+def safari_canvas_jpeg(plain):
+    assert plain[2:4] == b"\xff\xe0"
+    app0_len = struct.unpack(">H", plain[4:6])[0]
+    app0 = plain[2:4 + app0_len]
+    rest = plain[4 + app0_len:]
+    ifd0 = struct.pack(">H", 1) + struct.pack(">HHII", 0x8769, 4, 1, 26) + struct.pack(">I", 0)
+    exif_ifd = (struct.pack(">H", 3) + struct.pack(">HHIHH", 0xA001, 3, 1, 1, 0)
+                + struct.pack(">HHII", 0xA002, 4, 1, 64) + struct.pack(">HHII", 0xA003, 4, 1, 48) + struct.pack(">I", 0))
+    tiff = b"MM\x00\x2a\x00\x00\x00\x08" + ifd0 + exif_ifd
+    app1 = b"\xff\xe1" + struct.pack(">H", 2 + 6 + len(tiff)) + b"Exif\x00\x00" + tiff
+    assert struct.unpack(">H", app1[2:4])[0] == 76, "le segment Exif Safari doit faire 76 octets"
+    ps = b"Photoshop 3.0\x00" + b"8BIM" + b"\x04\x04" + b"\x00\x00" + struct.pack(">I", 0)
+    app13 = b"\xff\xed" + struct.pack(">H", 2 + len(ps)) + ps
+    return b"\xff\xd8" + app0 + app1 + app13 + rest
+
+
+def segment_markers(path):
+    b = open(path, "rb").read(); out = []; i = 2
+    while i + 4 <= len(b) and b[i] == 0xFF and b[i + 1] != 0xDA:
+        L = (b[i + 2] << 8) | b[i + 3]
+        tag = b[i + 4:i + 10]
+        out.append("APP1/Exif(%d)" % L if b[i + 1] == 0xE1 and tag == b"Exif\x00\x00" else "%02X" % b[i + 1])
+        i += 2 + L
+    return out
 
 
 CASES = [
@@ -127,6 +157,17 @@ def main():
             print(f"{'OK  ' if ok else 'FAIL'} entrée {n:13s} ({(in_order or b'--').decode()}) -> sortie {order.decode()}  "
                   f"{lat:.7f} {g[1]} / {lon:.7f} {g[3]}  {e.get(0x9003)} {e.get(0x9011)}")
             fails += not ok
+        if n == "safari_canvas":
+            before = segment_markers(os.path.join(d, n + ".jpg"))
+            for suf in ("MM", "II"):
+                after = segment_markers(os.path.join(d, f"out_{n}_{suf}.jpg"))
+                im = Image.open(os.path.join(d, f"out_{n}_{suf}.jpg"))
+                ex = im.getexif()
+                ok = (before[:3] == ["E0", "APP1/Exif(76)", "ED"] and after[0] == "E0" and after[1].startswith("APP1/Exif(")
+                      and after[1] != "APP1/Exif(76)" and after.count("ED") == 1 and sum(a.startswith("APP1/Exif") for a in after) == 1
+                      and 0xA002 not in ex.get_ifd(0x8769))  # ancien IFD Exif (dimensions) bien retiré
+                print(f"{'OK  ' if ok else 'FAIL'} Safari {suf} : segments avant {before[:3]} -> après {after[:3]} (Exif vide remplacé, JFIF en tête, Photoshop conservé)")
+                fails += not ok
         same = open(os.path.join(d, n + ".jpg"), "rb").read() == open(os.path.join(d, f"out_{n}_nopos.jpg"), "rb").read()
         print(f"{'OK  ' if same else 'FAIL'} entrée {n:13s} sans position -> fichier inchangé")
         fails += not same
