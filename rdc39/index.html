@@ -352,6 +352,10 @@
   .geo-line.denied{ border-color: var(--danger); color:#E6A18C; }
   .no-pos{ background:none; border:1px solid var(--warn); color: var(--warn); border-radius: 999px; font-size: 11px; padding: 1px 8px; cursor:pointer; font-family: inherit; }
   .label-btn.warn{ color: var(--warn); }
+  .geo-denied-box{ background: rgba(181,70,46,0.12); border:1px solid var(--danger); border-radius: 8px; padding: 10px 12px; color: var(--text); }
+  .geo-denied-box strong{ color:#E6A18C; }
+  .geo-denied-box p{ margin: 6px 0; line-height: 1.5; }
+  .geo-steps{ background: var(--surface); border-radius: 6px; padding: 8px 10px; }
 </style>
 </head>
 <body>
@@ -567,12 +571,22 @@ const STRINGS = {
     geoHelpIntro: "Chaque relev\u00e9 (enregistrement, photo, note, point) est rattach\u00e9 \u00e0 l'endroit o\u00f9 il est pris, y compris dans les fichiers export\u00e9s. Le t\u00e9l\u00e9phone va vous demander l'autorisation : r\u00e9pondez \u00ab Autoriser \u00bb.",
     geoHelpUnavailable: "Le t\u00e9l\u00e9phone ne fournit pas de position pour l'instant : v\u00e9rifiez que la localisation est activ\u00e9e, mettez-vous \u00e0 d\u00e9couvert et r\u00e9essayez. Les entr\u00e9es restent enregistr\u00e9es ; celles sans position sont marqu\u00e9es \u26a0.",
     geoHelpDenied: "L'acc\u00e8s \u00e0 la position a \u00e9t\u00e9 refus\u00e9. Pour le r\u00e9tablir : r\u00e9glages du t\u00e9l\u00e9phone (ou du navigateur) \u2192 Confidentialit\u00e9 / Localisation \u2192 autoriser ce site, puis touchez \u00ab R\u00e9essayer \u00bb.",
-    geoAllow: "Autoriser la position",
     geoLater: "Plus tard",
     geoRetry: "R\u00e9essayer",
     close: "Fermer",
     noPosition: "sans position",
-    editPositionCurrentHint: "Position actuelle propos\u00e9e"
+    editPositionCurrentHint: "Position actuelle propos\u00e9e",
+    geoAllow: "Activer la localisation",
+    geoDeniedTitle: "La localisation est bloqu\u00e9e pour ce site.",
+    geoDeniedWhy: "Le t\u00e9l\u00e9phone ne la redemandera plus tout seul : il faut la r\u00e9autoriser \u00e0 la main, une seule fois.",
+    geoDeniedIos: "Sur iPhone : dans Safari, touchez <b>aA</b> (\u00e0 gauche de l'adresse) &gt; <b>R\u00e9glages du site web</b> &gt; <b>Localisation</b> &gt; <b>Autoriser</b>. C'est le r\u00e9glage <i>du site</i> qui compte. Si cela ne suffit pas : R\u00e9glages &gt; Confidentialit\u00e9 et s\u00e9curit\u00e9 &gt; Service de localisation (activ\u00e9) &gt; <b>Sites web Safari</b> &gt; \u00ab Lorsque l'app est active \u00bb.",
+    geoDeniedAndroid: "Sur Android (Chrome) : touchez l'ic\u00f4ne \u00e0 gauche de l'adresse &gt; <b>Autorisations</b> (ou Param\u00e8tres du site) &gt; <b>Position</b> &gt; <b>Autoriser</b>. Si l'app est install\u00e9e sur l'\u00e9cran d'accueil : appui long sur son ic\u00f4ne &gt; Infos sur l'appli &gt; Autorisations &gt; Position &gt; Autoriser. V\u00e9rifiez aussi que la localisation du t\u00e9l\u00e9phone est activ\u00e9e.",
+    geoDeniedOther: "Dans le navigateur : ic\u00f4ne \u00e0 gauche de l'adresse &gt; Autorisations / Param\u00e8tres du site &gt; Position (Localisation) &gt; Autoriser.",
+    geoDeniedThen: "Revenez ensuite ici et touchez \u00ab R\u00e9essayer \u00bb.",
+    motif_refusee: "refus\u00e9e",
+    motif_indisponible: "indisponible",
+    motif_delai_depasse: "d\u00e9lai d\u00e9pass\u00e9",
+    motif_non_supportee: "non prise en charge"
   },
   en: {
     appName: "RDC39-Calepin", settings: "Settings", back: "Back",
@@ -755,12 +769,22 @@ const STRINGS = {
     geoHelpIntro: "Each record (recording, photo, note, point) is tied to where it was taken, including in exported files. The phone will ask for permission: answer \u201cAllow\u201d.",
     geoHelpUnavailable: "The phone is not providing a position right now: check that location is on, move to the open and retry. Entries are still saved; those without position are marked \u26a0.",
     geoHelpDenied: "Location access was denied. To restore it: phone (or browser) settings \u2192 Privacy / Location \u2192 allow this site, then tap \u201cRetry\u201d.",
-    geoAllow: "Allow location",
     geoLater: "Later",
     geoRetry: "Retry",
     close: "Close",
     noPosition: "no position",
-    editPositionCurrentHint: "Current position suggested"
+    editPositionCurrentHint: "Current position suggested",
+    geoAllow: "Enable location",
+    geoDeniedTitle: "Location is blocked for this site.",
+    geoDeniedWhy: "The phone will not ask again by itself: it must be re-allowed manually, once.",
+    geoDeniedIos: "On iPhone: in Safari, tap <b>aA</b> (left of the address) &gt; <b>Website Settings</b> &gt; <b>Location</b> &gt; <b>Allow</b>. The <i>website</i> setting is what matters. If that is not enough: Settings &gt; Privacy &amp; Security &gt; Location Services (on) &gt; <b>Safari Websites</b> &gt; \u201cWhile Using the App\u201d.",
+    geoDeniedAndroid: "On Android (Chrome): tap the icon left of the address &gt; <b>Permissions</b> (or Site settings) &gt; <b>Location</b> &gt; <b>Allow</b>. If the app is installed on the home screen: long-press its icon &gt; App info &gt; Permissions &gt; Location &gt; Allow. Also check that phone location is on.",
+    geoDeniedOther: "In the browser: icon left of the address &gt; Permissions / Site settings &gt; Location &gt; Allow.",
+    geoDeniedThen: "Then come back here and tap \u201cRetry\u201d.",
+    motif_refusee: "denied",
+    motif_indisponible: "unavailable",
+    motif_delai_depasse: "timed out",
+    motif_non_supportee: "not supported"
   },
   sw: {
     appName: "RDC39-Calepin", settings: "Mipangilio", back: "Rudi",
@@ -1040,6 +1064,14 @@ async function idbPut(storeName, value){
   if((storeName === "visits" && value && value.uid) || (storeName === "entries" && value && value.id)){
     const key = storeName === "visits" ? value.uid : value.id;
     const current = await idbGet(storeName, key);
+    if(storeName === "entries"){
+      // Une position rattach\u00e9e en arri\u00e8re-plan ne doit pas \u00eatre \u00e9cras\u00e9e par une copie plus ancienne
+      // de l'entr\u00e9e (brouillon de dict\u00e9e, carte ouverte...) ; seul un effacement explicite la retire.
+      if(value.clearLocation){ delete value.clearLocation; }
+      else if(!value.location && current && current.location){ value.location = current.location; }
+      if(value.location) delete value.positionMotif;
+      else if(!value.positionMotif && current && current.positionMotif) value.positionMotif = current.positionMotif;
+    }
     value.syncRev = Math.max((current && current.syncRev) || 0, value.syncRev || 0) + 1;
     value.syncState = "pending";
     if(storeName === "visits") value.updatedAt = new Date().toISOString();
@@ -1249,6 +1281,7 @@ async function entryToDigest(e){
     position: e.location || null,
     texte: e.text || null
   };
+  if(!e.location) out.positionMotif = POSITION_MOTIFS.includes(e.positionMotif) ? e.positionMotif : "indisponible";
   if(e.source) out.source = e.source;
   if(e.recovered) out.recupere = true;
   if(e.kind === "photo" || e.kind === "fichier" || e.kind === "audio"){
@@ -1526,8 +1559,20 @@ function recordFix(pos){
   setGeoState("ok");
   return lastFix;
 }
+/* Motif d'absence de position, enregistr\u00e9 dans l'entr\u00e9e (champ positionMotif) et export\u00e9 tel quel.
+   Valeurs EXACTES : "refusee" | "indisponible" | "delai_depasse" | "non_supportee". */
+const POSITION_MOTIFS = ["refusee", "indisponible", "delai_depasse", "non_supportee"];
+let lastGeoMotif = null;
+function motifFromError(err){
+  if(!navigator.geolocation) return "non_supportee";
+  if(err && err.code === 1) return "refusee";
+  if(err && err.code === 3) return "delai_depasse";
+  if(err && err.code === 2) return "indisponible";
+  return err && err.timeout ? "delai_depasse" : "indisponible";
+}
 function recordGeoError(err){
-  if(err && err.code === 1) setGeoState("denied");
+  lastGeoMotif = motifFromError(err);
+  if(err && err.code === 1){ setGeoState("denied"); showDeniedHelpOnce(); }
   else if(!lastFix || Date.now() - lastFix.at > GEO_FRESH_MS) setGeoState("unavailable");
 }
 function freshFix(){
@@ -1536,23 +1581,31 @@ function freshFix(){
   if(lastFix.altitude !== undefined) f.altitude = lastFix.altitude;
   return f;
 }
-/* Position best-effort : derni\u00e8re mesure r\u00e9cente, sinon jusqu'\u00e0 GEO_TIMEOUT_MS d'attente.
-   Ne rejette jamais (null si rien). */
-function tryGetPosition(){
+/* Une tentative de position : { loc } ou { loc: null, motif }. Ne rejette jamais. */
+function getPositionResult(timeoutMs){
+  timeoutMs = timeoutMs || GEO_TIMEOUT_MS;
   return new Promise(resolve => {
     const f = freshFix();
-    if(f){ resolve(f); return; }
-    if(!navigator.geolocation){ setGeoState("unavailable"); resolve(null); return; }
+    if(f){ resolve({ loc: f }); return; }
+    if(!navigator.geolocation){ lastGeoMotif = "non_supportee"; setGeoState("unavailable"); resolve({ loc: null, motif: "non_supportee" }); return; }
     let done = false;
     const finish = (v) => { if(!done){ done = true; resolve(v); } };
     if(geoState !== "denied") setGeoState(lastFix ? geoState : "searching");
     navigator.geolocation.getCurrentPosition(
-      pos => { recordFix(pos); finish(freshFix()); },
-      err => { recordGeoError(err); finish(null); },
-      { enableHighAccuracy: true, timeout: GEO_TIMEOUT_MS, maximumAge: 30000 }
+      pos => { recordFix(pos); finish({ loc: freshFix() }); },
+      err => { recordGeoError(err); finish({ loc: null, motif: motifFromError(err) }); },
+      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 30000 }
     );
-    setTimeout(() => { if(!done){ recordGeoError(null); finish(null); } }, GEO_TIMEOUT_MS + 1000);
+    setTimeout(() => { if(!done){ recordGeoError({ timeout: true }); finish({ loc: null, motif: "delai_depasse" }); } }, timeoutMs + 1000);
   });
+}
+/* Position best-effort (derni\u00e8re mesure r\u00e9cente, sinon jusqu'\u00e0 GEO_TIMEOUT_MS) : loc ou null. */
+function tryGetPosition(){ return getPositionResult().then(r => r.loc); }
+/* Motif \u00e0 retenir quand aucune position n'a pu \u00eatre associ\u00e9e. */
+function currentGeoMotif(){
+  if(!navigator.geolocation) return "non_supportee";
+  if(geoState === "denied") return "refusee";
+  return POSITION_MOTIFS.includes(lastGeoMotif) ? lastGeoMotif : "indisponible";
 }
 /* Suivi continu pendant qu'un \u00e9cran de capture est ouvert (\u00e9conomise la batterie ailleurs). */
 function startGeoWatch(){
@@ -1597,13 +1650,13 @@ function showGeoSheet(firstRun){
   const overlay = document.createElement("div");
   overlay.className = "modal-overlay";
   const info = geoStatusInfo();
-  const help = geoState === "denied" ? t("geoHelpDenied") : geoState === "unavailable" ? t("geoHelpUnavailable") : t("geoHelpIntro");
+  const help = geoState === "denied" ? deniedHelpHtml() : geoState === "unavailable" ? t("geoHelpUnavailable") : t("geoHelpIntro");
   overlay.innerHTML = `
     <div class="modal-sheet">
       <h3>\u{1F4CD} ${firstRun ? t("geoIntroTitle") : t("geoStatusTitle")}</h3>
       ${firstRun ? "" : `<p class="geo-line ${info.cls}">${escapeHtml(info.text)}</p>`}
-      <p class="capture-hint" style="margin:0 0 16px 0;">${help}</p>
-      <button class="btn primary" id="geoAsk" style="width:100%; margin-bottom:8px;">${firstRun ? t("geoAllow") : t("geoRetry")}</button>
+      <div class="capture-hint" style="margin:0 0 16px 0;">${help}</div>
+      <button class="btn primary" id="geoAsk" style="width:100%; margin-bottom:8px;">${firstRun || geoState !== "denied" ? t("geoAllow") : t("geoRetry")}</button>
       <button class="btn" id="geoLater" style="width:100%;">${firstRun ? t("geoLater") : t("close")}</button>
     </div>`;
   document.body.appendChild(overlay);
@@ -1616,6 +1669,25 @@ function showGeoSheet(firstRun){
     const f = await tryGetPosition();
     showToast(f ? t("geoOk") + " (\u00b1 " + f.accuracy + " m)" : (geoState === "denied" ? t("geoDenied") : t("geoUnavailable")));
   });
+}
+function devicePlatform(){
+  const ua = navigator.userAgent || "";
+  if(/iPhone|iPad|iPod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) return "ios";
+  if(/Android/i.test(ua)) return "android";
+  return "other";
+}
+function deniedHelpHtml(){
+  const pf = devicePlatform();
+  const steps = pf === "ios" ? t("geoDeniedIos") : pf === "android" ? t("geoDeniedAndroid") : t("geoDeniedOther");
+  return `<div class="geo-denied-box"><strong>${t("geoDeniedTitle")}</strong><p>${t("geoDeniedWhy")}</p><p class="geo-steps">${steps}</p><p>${t("geoDeniedThen")}</p></div>`;
+}
+/* Un refus est silencieux ensuite (le t\u00e9l\u00e9phone ne redemande plus) : on l'explique clairement,
+   une fois par session, d\u00e8s qu'il est constat\u00e9. Le statut rouge reste ensuite cliquable. */
+function showDeniedHelpOnce(){
+  if(sessionStorage.getItem("rdc39_geo_denied_shown")) return;
+  if(document.querySelector(".modal-overlay")) return; // une fen\u00eatre est d\u00e9j\u00e0 ouverte
+  sessionStorage.setItem("rdc39_geo_denied_shown", "1");
+  showGeoSheet(false);
 }
 async function geoFirstRun(){
   const perm = await initGeoPermission();
@@ -1969,6 +2041,7 @@ async function finalizeRecording(recId, durationSec, recovered){
     entry = {
       id: uid(), visitUid: meta.visitUid, kind: "audio", data: out.buffer, mime: meta.mime || "audio/webm",
       text: "", label: recovered ? t("recRecoveredLabel") : "", location: meta.location || null,
+      positionMotif: meta.location ? undefined : (recovered ? "indisponible" : currentGeoMotif()),
       timestamp: meta.startedAt,
       duration: durationSec != null ? durationSec : Math.round(chunks.length * REC_TIMESLICE_MS / 1000),
       recovered: !!recovered
@@ -2733,26 +2806,50 @@ async function renderVisitDetail(uidVal){
      r\u00e9cente ; sinon l'entr\u00e9e est enregistr\u00e9e tout de suite et la position lui est rattach\u00e9e
      d\u00e8s qu'elle arrive (si personne ne l'a renseign\u00e9e \u00e0 la main entre-temps). */
   const LATE_FIX_WINDOW_MS = 2 * 60 * 1000; // au-del\u00e0, on aurait pu bouger : on n'attache plus
+  const RETRY_PAUSE_MS = 3000;
+  /* L'entr\u00e9e est d\u00e9j\u00e0 sauvegard\u00e9e ; on lui rattache la position d\u00e8s qu'elle arrive :
+     tentatives r\u00e9p\u00e9t\u00e9es pendant GEO_TIMEOUT_MS (~20 s), puis \u00e9coute du suivi continu jusqu'\u00e0
+     LATE_FIX_WINDOW_MS. Si rien n'arrive dans les ~20 s, le motif est enregistr\u00e9 (positionMotif) ;
+     il sera retir\u00e9 automatiquement si une position arrive ensuite dans la fen\u00eatre. */
   function attachPositionLater(entryId){
     const startedAt = Date.now();
+    const deadline = startedAt + GEO_TIMEOUT_MS;
     let done = false;
+    const stop = () => { done = true; geoListeners.delete(onGeo); };
     const attach = async (loc) => {
       if(done || !loc || Date.now() - startedAt > LATE_FIX_WINDOW_MS) return;
-      done = true;
-      geoListeners.delete(onGeo);
+      stop();
       const e = await idbGet("entries", entryId);
       if(!e || e.location) return;
       e.location = loc;
       await idbPut("entries", e);
       if(main.isConnected && entryList.isConnected) refreshEntries();
     };
-    // 1) tentative directe (jusqu'\u00e0 GEO_TIMEOUT_MS) ; 2) sinon, la prochaine mesure du suivi continu.
+    const recordMotif = async (motif) => {
+      const e = await idbGet("entries", entryId);
+      if(!e || e.location || e.positionMotif === motif) return;
+      e.positionMotif = POSITION_MOTIFS.includes(motif) ? motif : "indisponible";
+      await idbPut("entries", e);
+      if(main.isConnected && entryList.isConnected) refreshEntries();
+    };
     const onGeo = () => {
       if(Date.now() - startedAt > LATE_FIX_WINDOW_MS){ geoListeners.delete(onGeo); return; }
       if(geoState === "ok") attach(freshFix());
     };
     geoListeners.add(onGeo);
-    tryGetPosition().then(attach);
+    const attempt = async () => {
+      if(done) return;
+      const r = await getPositionResult(Math.max(3000, deadline - Date.now()));
+      if(r.loc){ attach(r.loc); return; }
+      if(done) return;
+      if(r.motif === "refusee" || r.motif === "non_supportee" || Date.now() + RETRY_PAUSE_MS >= deadline){
+        await recordMotif(r.motif);
+        if(r.motif === "non_supportee") stop(); // inutile d'\u00e9couter : il n'y aura jamais de position
+        return;
+      }
+      setTimeout(attempt, RETRY_PAUSE_MS);
+    };
+    attempt();
   }
   async function putEntryWithPosition(entry){
     if(entry.location === undefined) entry.location = freshFix();
@@ -2823,7 +2920,7 @@ async function renderVisitDetail(uidVal){
         <div class="entry-head">
           <span class="entry-meta">${glyph} ${fmtTime(entry.timestamp)}
             ${entry.label ? " \u00b7 " + escapeHtml(entry.label) : ""}
-            ${gpsStr ? " \u00b7 \u{1F4CD} " + gpsStr : ` \u00b7 <button class="no-pos" data-act="position">\u26A0 ${t("noPosition")}</button>`}
+            ${gpsStr ? " \u00b7 \u{1F4CD} " + gpsStr : ` \u00b7 <button class="no-pos" data-act="position">\u26A0 ${t("noPosition")}${entry.positionMotif ? " (" + t("motif_" + entry.positionMotif) + ")" : ""}</button>`}
             ${entry.source === "dictee" ? ` \u00b7 <span class="unreviewed">${t("dictateUnreviewed")}</span>` : ""}
             ${entry.syncState === "sent" ? "" : " \u00b7 \u23F3"}
           </span>
@@ -2895,6 +2992,8 @@ async function renderVisitDetail(uidVal){
         const trimmed = val.trim();
         if(trimmed === ""){
           entry.location = null;
+          entry.clearLocation = true;
+          entry.positionMotif = "indisponible";
           await migrateEntryIfLegacy(entry); await idbPut("entries", entry);
           showToast(t("editPositionCleared"));
           refreshEntries();
@@ -3170,6 +3269,7 @@ async function renderVisitDetail(uidVal){
     updateDictateAvailability();
     await Promise.all(r.writes);
     const entry = await finalizeRecording(r.recId, durationSec, false);
+    if(entry && !entry.location) attachPositionLater(entry.id);
     activeRecIds.delete(r.recId);
     if(!main.isConnected) return;
     refreshEntries(); refreshWeight();
@@ -3235,13 +3335,20 @@ async function renderVisitDetail(uidVal){
     if(c === n || c.endsWith(" " + n)) return; // anti-doublon : déjà validé
     d.committed = d.committed ? d.committed + " " + text : text;
     if(!d.entry){
-      d.entry = { id: uid(), visitUid: visit.uid, kind: "texte", source: "dictee", text: d.committed, label: "", location: d.location, timestamp: d.startedAt };
+      d.entry = { id: uid(), visitUid: visit.uid, kind: "texte", source: "dictee", text: d.committed, label: "", location: d.location || null, timestamp: d.startedAt };
+      d.needsLatePosition = !d.entry.location;
     } else {
       d.entry.text = d.committed;
       if(!d.entry.location && d.location) d.entry.location = d.location;
     }
     const snapshot = d.entry;
     d.saving = d.saving.then(() => idbPut("entries", snapshot)).catch(() => {});
+    // Brouillon cr\u00e9\u00e9 sans position : on la lui rattachera d\u00e8s qu'elle arrive (apr\u00e8s sa 1re sauvegarde).
+    if(d.needsLatePosition){
+      d.needsLatePosition = false;
+      const id = snapshot.id;
+      d.saving = d.saving.then(() => attachPositionLater(id));
+    }
   }
   function renderDictation(d){
     const f = document.getElementById("dictFinal");
@@ -3256,8 +3363,11 @@ async function renderVisitDetail(uidVal){
     if(!navigator.onLine){ showToast(t("dictateOfflineBlocked")); return; }
     const d = dict = { committed: "", interim: "", stopRequested: false, entry: null, errorShown: false, rec: null,
       startedAt: Date.now(), location: null, saving: Promise.resolve(), errCount: 0 };
+    // Position : mesure r\u00e9cente si elle existe ; sinon elle est demand\u00e9e d\u00e8s maintenant et, si elle
+    // arrive avant le premier texte, le brouillon est cr\u00e9\u00e9 AVEC elle ; si elle arrive apr\u00e8s, elle est
+    // rattach\u00e9e au brouillon (attachPositionLater), et idbPut la conserve \u00e0 chaque sauvegarde suivante.
     d.location = freshFix();
-    if(!d.location) tryGetPosition().then(l => { if(l && !d.location){ d.location = l; if(d.entry && !d.entry.location){ d.entry.location = l; const snap = d.entry; d.saving = d.saving.then(() => idbPut("entries", snap)).catch(() => {}); } } });
+    if(!d.location) getPositionResult().then(r => { if(r.loc && !d.location) d.location = r.loc; });
     const btn = addRow.querySelector("#btnDictate");
     btn.textContent = t("dictateStop");
     addRow.querySelector("#btnRec").disabled = true;
