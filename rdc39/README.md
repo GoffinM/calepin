@@ -123,7 +123,7 @@ L'export manuel « Exporter (digest JSON) », dans chaque visite, produit le mê
 |---|---|
 | Enregistrer en vrai mode avion (Wi-Fi coupé aussi), 2 à 3 min, puis réécoute. Sur iPhone : verrouiller l'écran pendant la capture, rouvrir, réécouter | Android + iPhone |
 | Fermer brutalement l'app pendant un enregistrement, la rouvrir : l'« enregistrement récupéré » doit être relisible (en particulier le mp4 sur iPhone) | Android + iPhone |
-| Dicter hors ligne : bouton bloqué avec explication | Android + iPhone |
+| Dicter hors ligne : bouton bloqué avec explication | Android + iPhone | 
 | Dicter avec réseau, 60 à 90 s : ni doublons ni troncature. Un petit bip à chaque relance est possible sur certains Android | Android + iPhone |
 | App qui se charge en mode avion, carte hors ligne avec tuiles préchargées | Les deux |
 | Envoi interrompu puis repris sur réseau faible | Android |
