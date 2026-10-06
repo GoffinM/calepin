@@ -617,7 +617,8 @@ const STRINGS = {
     recStartFailed: "Impossible de d\u00e9marrer l'enregistrement : \u00e9criture sur l'appareil refus\u00e9e ({err}). Lib\u00e9rez de la place puis r\u00e9essayez.",
     pointNoFixSaved: "aucune position GPS fra\u00eeche : le point sera enregistr\u00e9 sans position",
     addDocumentShort: "Document",
-    addFileShort: "\ud83d\udcce Fichier"
+    addFileShort: "\ud83d\udcce Fichier",
+    dictateServiceUnreachable: "Le service de reconnaissance vocale n'est pas joignable depuis ce r\u00e9seau ou ce navigateur. Utilisez Enregistrer."
   },
   en: {
     appName: "RDC39-Calepin", settings: "Settings", back: "Back",
@@ -833,7 +834,8 @@ const STRINGS = {
     recStartFailed: "Cannot start recording: writing to the device was refused ({err}). Free up space and retry.",
     pointNoFixSaved: "no fresh GPS position: the point will be saved without position",
     addDocumentShort: "Document",
-    addFileShort: "\ud83d\udcce File"
+    addFileShort: "\ud83d\udcce File",
+    dictateServiceUnreachable: "The speech recognition service cannot be reached from this network or browser. Use Record."
   },
   sw: {
     appName: "RDC39-Calepin", settings: "Mipangilio", back: "Rudi",
@@ -937,7 +939,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "rdc39-2026-10-05.5";
+const APP_VERSION = "rdc39-2026-10-06.1";
 function currentLang(){ return localStorage.getItem("rdc39_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("rdc39_lang", l); }
 function t(key){
@@ -3770,10 +3772,16 @@ async function renderVisitDetail(uidVal){
     r.onerror = (e) => {
       if(e.error === "aborted" && d.stopRequested) return;
       if(e.error === "no-speech" || e.error === "aborted") return; // silence : la session suivante prend le relais
-      if(e.error === "network"){ d.netLost = true; d.stopRequested = true; }
+      if(e.error === "network"){
+        // Deux cas distincts : le navigateur est hors ligne (r\u00e9seau perdu), ou il est en ligne mais
+        // le service de reconnaissance (serveurs du navigateur) n'est pas joignable depuis ce r\u00e9seau.
+        if(navigator.onLine) d.serviceUnreachable = e.error;
+        else d.netLost = true;
+        d.stopRequested = true;
+      }
       else if(e.error === "not-allowed" || e.error === "service-not-allowed" || e.error === "audio-capture"){ d.stopRequested = true; }
       else if(++d.errCount > 3) d.stopRequested = true;
-      if(d.stopRequested && !d.errorShown && !d.netLost){
+      if(d.stopRequested && !d.errorShown && !d.netLost && !d.serviceUnreachable){
         d.errorShown = true;
         showError(t("dictationErrorPrefix") + " : " + dictationErrorLabel(e.error));
       }
@@ -3783,6 +3791,8 @@ async function renderVisitDetail(uidVal){
       commitDictation(d, sessionFinal || sessionInterim);
       d.interim = "";
       renderDictation(d);
+      // Navigateur pass\u00e9 hors ligne sans que l'\u00e9v\u00e9nement "offline" ait \u00e9t\u00e9 re\u00e7u : m\u00eame message que la perte de r\u00e9seau.
+      if(!d.stopRequested && !navigator.onLine){ d.netLost = true; d.stopRequested = true; }
       if(!d.stopRequested && dict === d && navigator.onLine){
         setTimeout(() => {
           if(d.stopRequested || dict !== d){ finishDictation(d); return; }
@@ -3809,6 +3819,7 @@ async function renderVisitDetail(uidVal){
     if(!main.isConnected) return;
     refreshEntries(); refreshWeight();
     if(d.netLost) showError(d.entry ? t("dictateNetLost") : t("dictateNetLostEmpty"));
+    else if(d.serviceUnreachable) showError(t("dictateServiceUnreachable") + " (" + d.serviceUnreachable + ")");
     else if(d.entry) showToast(t("dictateSaved"));
     else if(!d.errorShown) showToast(t("dictateEmpty"));
   }
