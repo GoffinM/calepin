@@ -369,6 +369,17 @@
   .geo-denied-box p{ margin: 6px 0; line-height: 1.5; }
   .geo-steps{ background: var(--surface); border-radius: 6px; padding: 8px 10px; }
   .report-entry audio{ width:100%; height:32px; display:block; margin-top:4px; }
+  /* ---------- RDC39 : export group\u00e9 ---------- */
+  .select-bar #btnExportSelected{ width:100%; height: 42px; white-space: nowrap; }
+  .bulk-summary{ font-size: 14px; margin: 0 0 8px 0; font-variant-numeric: tabular-nums; }
+  .bulk-progress-label{ font-size: 14px; margin: 0 0 8px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; height: 20px; }
+  .bulk-bar{ height: 12px; background: var(--surface-raised); border-radius: 6px; overflow: hidden; margin-bottom: 8px; }
+  .bulk-bar-fill{ height: 100%; width: 0; background: var(--accent); transition: width 0.2s linear; }
+  .bulk-file{ background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
+  .bulk-file-name{ font-size: 13px; font-family: var(--mono); word-break: break-all; margin-bottom: 8px; }
+  .bulk-file-actions{ display:flex; gap: 8px; }
+  .bulk-file-actions .btn{ flex: 1; }
+  .bulk-warn{ color: var(--warn); }
 </style>
 </head>
 <body>
@@ -618,7 +629,27 @@ const STRINGS = {
     pointNoFixSaved: "aucune position GPS fra\u00eeche : le point sera enregistr\u00e9 sans position",
     addDocumentShort: "Document",
     addFileShort: "\ud83d\udcce Fichier",
-    dictateServiceUnreachable: "Le service de reconnaissance vocale n'est pas joignable depuis ce r\u00e9seau ou ce navigateur. Utilisez Enregistrer."
+    dictateServiceUnreachable: "Le service de reconnaissance vocale n'est pas joignable depuis ce r\u00e9seau ou ce navigateur. Utilisez Enregistrer.",
+    bulkAction: "Exporter la s\u00e9lection",
+    bulkTitle: "Exporter la s\u00e9lection",
+    bulkVisits: "visite(s)",
+    bulkEntries: "entr\u00e9e(s)",
+    bulkEstimated: "poids estim\u00e9",
+    bulkSplit: "Au-del\u00e0 de {max}, l'export est d\u00e9coup\u00e9 automatiquement : {n} fichiers ZIP.",
+    bulkHint: "Un fichier ZIP contenant le digest JSON de chaque visite et un index.json. Gardez l'app ouverte pendant la pr\u00e9paration.",
+    bulkStart: "Exporter",
+    bulkCancel: "Annuler l'export",
+    bulkVisitOf: "Visite {i} / {n}",
+    bulkCancelled: "Export annul\u00e9",
+    bulkFailed: "\u00c9chec de l'export",
+    bulkReady: "Export pr\u00eat",
+    bulkFiles: "fichier(s) ZIP",
+    bulkProblems: "visite(s) signal\u00e9e(s)",
+    bulkProblemsHint: "Certaines visites sont vides, incompl\u00e8tes ou illisibles : elles n'ont pas bloqu\u00e9 l'export et sont signal\u00e9es dans index.json (champ \u00ab statut \u00bb).",
+    bulkShare: "Partager",
+    bulkDownload: "T\u00e9l\u00e9charger",
+    bulkShareFailed: "Partage impossible \u2014 utilisez T\u00e9l\u00e9charger",
+    bulkNothing: "Aucune visite \u00e0 exporter."
   },
   en: {
     appName: "RDC39-Calepin", settings: "Settings", back: "Back",
@@ -835,7 +866,27 @@ const STRINGS = {
     pointNoFixSaved: "no fresh GPS position: the point will be saved without position",
     addDocumentShort: "Document",
     addFileShort: "\ud83d\udcce File",
-    dictateServiceUnreachable: "The speech recognition service cannot be reached from this network or browser. Use Record."
+    dictateServiceUnreachable: "The speech recognition service cannot be reached from this network or browser. Use Record.",
+    bulkAction: "Export selection",
+    bulkTitle: "Export selection",
+    bulkVisits: "visit(s)",
+    bulkEntries: "entr(y/ies)",
+    bulkEstimated: "estimated size",
+    bulkSplit: "Above {max}, the export is split automatically: {n} ZIP files.",
+    bulkHint: "One ZIP file with each visit's JSON digest and an index.json. Keep the app open while it is prepared.",
+    bulkStart: "Export",
+    bulkCancel: "Cancel export",
+    bulkVisitOf: "Visit {i} / {n}",
+    bulkCancelled: "Export cancelled",
+    bulkFailed: "Export failed",
+    bulkReady: "Export ready",
+    bulkFiles: "ZIP file(s)",
+    bulkProblems: "visit(s) flagged",
+    bulkProblemsHint: "Some visits are empty, incomplete or unreadable: they did not block the export and are flagged in index.json (\u201cstatut\u201d field).",
+    bulkShare: "Share",
+    bulkDownload: "Download",
+    bulkShareFailed: "Sharing failed \u2014 use Download",
+    bulkNothing: "No visit to export."
   },
   sw: {
     appName: "RDC39-Calepin", settings: "Mipangilio", back: "Rudi",
@@ -939,7 +990,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "rdc39-2026-10-06.1";
+const APP_VERSION = "rdc39-2026-10-06.2";
 function currentLang(){ return localStorage.getItem("rdc39_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("rdc39_lang", l); }
 function t(key){
@@ -1304,6 +1355,122 @@ function jpegWithGpsExif(buffer, location, timestamp, opts){
   return out.buffer;
 }
 /* EXIF-WRITER-END */
+/* ZIP-WRITER-BEGIN */
+/* ============================================================
+   RDC39 — Écriture ZIP sans dépendance (méthode "stored", sans compression)
+   ------------------------------------------------------------
+   Les photos (JPEG) et l'audio (opus/aac) sont déjà compressés : "stored" suffit et
+   n'ajoute aucun calcul. CRC32 maison (table). Le ZIP est assemblé PAR MORCEAUX : chaque
+   fichier ajouté devient un Blob, et seules les métadonnées (nom, CRC, tailles, position)
+   restent en mémoire JS ; le résultat final est un Blob de parties.
+   Limites : pas de ZIP64 (fichiers et archive < 4 Go — l'export découpe bien avant).
+   Autonome : extrait tel quel par les tests (Node + unzip / Python zipfile).
+   ============================================================ */
+const CRC32_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for(let n = 0; n < 256; n++){
+    let c = n;
+    for(let k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+function crc32(bytes, crc){
+  let c = (crc === undefined ? 0 : crc) ^ 0xFFFFFFFF;
+  for(let i = 0; i < bytes.length; i++) c = CRC32_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+function zipDosDateTime(d){
+  d = d || new Date();
+  const time = (d.getHours() << 11) | (d.getMinutes() << 5) | Math.floor(d.getSeconds() / 2);
+  const date = ((Math.max(1980, d.getFullYear()) - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  return { time, date };
+}
+function createZipBuilder(opts){
+  opts = opts || {};
+  const enc = new TextEncoder();
+  const parts = [];      // Blobs / Uint8Array des en-têtes et données, dans l'ordre
+  const central = [];    // métadonnées pour le répertoire central
+  const names = new Set();
+  let offset = 0;
+  const when = zipDosDateTime(opts.date);
+  const toBlobPart = opts.toBlobPart || ((u8) => (typeof Blob !== "undefined" ? new Blob([u8]) : u8));
+  function uniqueName(name){
+    let n = name, k = 2;
+    while(names.has(n)){ const dot = name.lastIndexOf("."); n = dot > 0 ? name.slice(0, dot) + "_" + k + name.slice(dot) : name + "_" + k; k++; }
+    names.add(n);
+    return n;
+  }
+  return {
+    /* Ajoute un fichier. data : Uint8Array (ou chaîne, encodée en UTF-8). Renvoie le nom retenu. */
+    add(name, data){
+      const bytes = typeof data === "string" ? enc.encode(data) : data;
+      const fname = uniqueName(name);
+      const nameBytes = enc.encode(fname);
+      const crc = crc32(bytes);
+      const size = bytes.length;
+      if(size >= 0xFFFFFFFF || offset >= 0xFFFFFFFF) throw new Error("ZIP > 4 Go non pris en charge");
+      const h = new DataView(new ArrayBuffer(30));
+      h.setUint32(0, 0x04034B50, true);  // signature en-tête local
+      h.setUint16(4, 20, true);           // version nécessaire (2.0)
+      h.setUint16(6, 0x0800, true);       // drapeau bit 11 : noms en UTF-8
+      h.setUint16(8, 0, true);            // méthode 0 = stored
+      h.setUint16(10, when.time, true);
+      h.setUint16(12, when.date, true);
+      h.setUint32(14, crc, true);
+      h.setUint32(18, size, true);        // taille compressée = taille réelle (stored)
+      h.setUint32(22, size, true);
+      h.setUint16(26, nameBytes.length, true);
+      h.setUint16(28, 0, true);
+      parts.push(new Uint8Array(h.buffer), nameBytes, toBlobPart(bytes));
+      central.push({ nameBytes, crc, size, offset });
+      offset += 30 + nameBytes.length + size;
+      return fname;
+    },
+    size(){ return offset; },
+    count(){ return central.length; },
+    /* Termine l'archive : répertoire central + fin de répertoire. Renvoie la liste des parties. */
+    finishParts(){
+      const cdStart = offset;
+      let cdSize = 0;
+      for(const e of central){
+        const c = new DataView(new ArrayBuffer(46));
+        c.setUint32(0, 0x02014B50, true); // signature répertoire central
+        c.setUint16(4, 0x0314, true);     // créé par : version 2.0, Unix
+        c.setUint16(6, 20, true);
+        c.setUint16(8, 0x0800, true);
+        c.setUint16(10, 0, true);
+        c.setUint16(12, when.time, true);
+        c.setUint16(14, when.date, true);
+        c.setUint32(16, e.crc, true);
+        c.setUint32(20, e.size, true);
+        c.setUint32(24, e.size, true);
+        c.setUint16(28, e.nameBytes.length, true);
+        c.setUint16(30, 0, true);         // champ extra
+        c.setUint16(32, 0, true);         // commentaire
+        c.setUint16(34, 0, true);         // disque
+        c.setUint16(36, 0, true);         // attributs internes
+        c.setUint32(38, (0o100644 << 16) >>> 0, true); // attributs externes : fichier -rw-r--r--
+        c.setUint32(42, e.offset, true);
+        parts.push(new Uint8Array(c.buffer), e.nameBytes);
+        cdSize += 46 + e.nameBytes.length;
+      }
+      const end = new DataView(new ArrayBuffer(22));
+      end.setUint32(0, 0x06054B50, true);
+      end.setUint16(4, 0, true);
+      end.setUint16(6, 0, true);
+      end.setUint16(8, central.length, true);
+      end.setUint16(10, central.length, true);
+      end.setUint32(12, cdSize, true);
+      end.setUint32(16, cdStart, true);
+      end.setUint16(20, 0, true);
+      parts.push(new Uint8Array(end.buffer));
+      return parts;
+    },
+    finish(){ return new Blob(this.finishParts(), { type: "application/zip" }); }
+  };
+}
+/* ZIP-WRITER-END */
 
 /* ============================================================
    Format d'envoi / d'export — schemaVersion 2 (RDC39)
@@ -2739,6 +2906,194 @@ async function renderMap(){
 }
 
 /* ============================================================
+   RDC39 — Export groupé de la sélection (accueil, mode sélection)
+   ------------------------------------------------------------
+   UN fichier ZIP (ou plusieurs au-delà de ~80 Mo estimés) : un digest JSON par visite
+   (contenu identique à "Exporter (digest JSON)" d'une visite) + index.json.
+   Mémoire : une visite à la fois (digest -> JSON -> octets -> Blob, puis libéré) ; le ZIP
+   n'est qu'une liste de Blobs. Une visite vide ou illisible n'arrête rien : index.json la
+   signale. Livraison : bouton (geste de l'utilisateur) -> partage natif sur mobile s'il
+   est disponible, sinon téléchargement ; jamais de téléchargements en rafale.
+   ============================================================ */
+const ZIP_SPLIT_DEFAULT_BYTES = 80 * 1024 * 1024;
+function zipSplitBytes(){ return window.__rdc39ZipSplitBytes || ZIP_SPLIT_DEFAULT_BYTES; } // (seuil réglable par les tests)
+function asciiFileName(s, max){
+  return (s || "visite").normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9-_]+/g, "_").replace(/^_+|_+$/g, "").slice(0, max || 40) || "visite";
+}
+function pad2n(n){ return String(n).padStart(2, "0"); }
+function digestFileName(v){
+  const d = new Date(v.date);
+  const day = isFinite(d) ? d.getFullYear() + "-" + pad2n(d.getMonth() + 1) + "-" + pad2n(d.getDate()) : "sans-date";
+  return day + "_" + asciiFileName(v.tag || "visite", 40) + "_" + String(v.uid || "").slice(0, 8) + ".json";
+}
+function exportZipName(now, nVisits, part, parts){
+  const stamp = now.getFullYear() + "-" + pad2n(now.getMonth() + 1) + "-" + pad2n(now.getDate()) + "_" + pad2n(now.getHours()) + pad2n(now.getMinutes());
+  return "RDC39_export_" + stamp + "_" + nVisits + "-visites" + (parts > 1 ? "_partie-" + part + "-sur-" + parts : "") + ".zip";
+}
+/* Poids estimé d'un digest : binaire en base64 (x 4/3) + textes + enveloppe JSON. */
+async function estimateVisitExport(v){
+  const entries = await idbGetByIndex("entries", "visitUid", v.uid);
+  let bytes = 2048;
+  for(const e of entries) bytes += Math.ceil(getEntrySize(e) * 4 / 3) + (e.text ? e.text.length * 1.1 : 0) + 400;
+  return { visit: v, entries: entries.length, bytes: Math.round(bytes) };
+}
+/* Découpage glouton dans l'ordre : chaque ZIP reste sous le seuil (une visite plus grosse que le
+   seuil part seule dans son ZIP). */
+function planZipGroups(items, limit){
+  const groups = [];
+  let cur = [], size = 0;
+  for(const it of items){
+    if(cur.length && size + it.bytes > limit){ groups.push(cur); cur = []; size = 0; }
+    cur.push(it); size += it.bytes;
+  }
+  if(cur.length) groups.push(cur);
+  return groups;
+}
+function isMobileDevice(){ const pf = devicePlatform(); return pf === "ios" || pf === "android"; }
+function canShareFile(file){
+  try{ return !!(isMobileDevice() && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })); }
+  catch(e){ return false; }
+}
+function saveBlobAs(blob, name){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+}
+
+async function exportSelectedVisits(ids, onDone){
+  const visits = [];
+  for(const id of ids){ const v = await idbGet("visits", id); if(v) visits.push(v); }
+  visits.sort((a, b) => new Date(a.date) - new Date(b.date));
+  if(!visits.length){ showError(t("bulkNothing")); return; }
+
+  // ---- 1. Estimation et confirmation ----
+  const items = [];
+  for(const v of visits){
+    try{ items.push(await estimateVisitExport(v)); }
+    catch(e){ items.push({ visit: v, entries: 0, bytes: 2048 }); }
+  }
+  const totalEntries = items.reduce((n, it) => n + it.entries, 0);
+  const totalBytes = items.reduce((n, it) => n + it.bytes, 0);
+  const groups = planZipGroups(items, zipSplitBytes());
+
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay";
+  overlay.innerHTML = `<div class="modal-sheet bulk-sheet"></div>`;
+  document.body.appendChild(overlay);
+  const sheet = overlay.firstElementChild;
+  const created = [];   // { blob, name } à libérer en fermant
+  const close = () => { overlay.remove(); created.length = 0; if(onDone) onDone(); };
+
+  sheet.innerHTML = `
+    <h3>\u{1F4E6} ${t("bulkTitle")}</h3>
+    <p class="bulk-summary" id="bulkSummary">${visits.length} ${t("bulkVisits")} · ${totalEntries} ${t("bulkEntries")} · ${t("bulkEstimated")} ${fmtBytes(totalBytes)}</p>
+    ${groups.length > 1 ? `<p class="capture-hint" id="bulkSplit">${t("bulkSplit").replace("{n}", groups.length).replace("{max}", fmtBytes(zipSplitBytes()))}</p>` : ""}
+    <p class="capture-hint">${t("bulkHint")}</p>
+    <button class="btn primary" id="bulkGo" style="width:100%; margin-bottom:8px;">${t("bulkStart")}</button>
+    <button class="btn" id="bulkCancel" style="width:100%;">${t("cancel")}</button>`;
+  const go = await new Promise(resolve => {
+    sheet.querySelector("#bulkGo").addEventListener("click", () => resolve(true));
+    sheet.querySelector("#bulkCancel").addEventListener("click", () => resolve(false));
+  });
+  if(!go){ close(); return; }
+
+  // ---- 2. Construction, une visite à la fois ----
+  let cancelled = false;
+  sheet.innerHTML = `
+    <h3>\u{1F4E6} ${t("bulkTitle")}</h3>
+    <p class="bulk-progress-label" id="bulkLabel">…</p>
+    <div class="bulk-bar"><div class="bulk-bar-fill" id="bulkFill"></div></div>
+    <p class="capture-hint" id="bulkCount"></p>
+    <button class="btn" id="bulkStop" style="width:100%;">${t("bulkCancel")}</button>`;
+  sheet.querySelector("#bulkStop").addEventListener("click", () => { cancelled = true; sheet.querySelector("#bulkStop").disabled = true; });
+  const label = sheet.querySelector("#bulkLabel"), fill = sheet.querySelector("#bulkFill"), count = sheet.querySelector("#bulkCount");
+  const now = new Date();
+  let doneBytes = 0, doneVisits = 0, problems = 0;
+  const yieldUI = () => new Promise(r => setTimeout(r, 0));
+  try{
+    for(let g = 0; g < groups.length && !cancelled; g++){
+      const zip = createZipBuilder({ date: now });
+      const index = {
+        schema: "rdc39-export-index", schemaIndex: 1, schemaDigest: SCHEMA_VERSION,
+        app: APP_VERSION, genereLe: now.toISOString(), appareil: deviceId(),
+        partie: g + 1, parties: groups.length, visitesSelectionnees: visits.length, visites: []
+      };
+      for(const it of groups[g]){
+        if(cancelled) break;
+        const v = it.visit;
+        setTextIfChanged(label, t("bulkVisitOf").replace("{i}", doneVisits + 1).replace("{n}", visits.length) + " : " + (v.tag || "—"));
+        await yieldUI();
+        const row = { fichier: null, uid: v.uid, repere: v.tag || null, date: v.date || null, entrees: it.entries, taille: 0, statut: "ok" };
+        try{
+          // Même contenu que l'export "digest JSON" d'une visite.
+          let digest = await buildDigest(v);
+          const bad = (digest.entries || []).filter(e => e.erreur).map(e => ({ id: e.id, type: e.type, erreur: e.erreur }));
+          row.entrees = (digest.entries || []).length;
+          let bytes = new TextEncoder().encode(JSON.stringify(digest));
+          digest = null;
+          row.fichier = zip.add(digestFileName(v), bytes);
+          row.taille = bytes.length;
+          bytes = null; // le Blob du ZIP garde les données ; la copie JS est libérée
+          if(row.entrees === 0){ row.statut = "vide"; problems++; }
+          if(bad.length){ row.statut = row.statut === "vide" ? "vide" : "partiel"; row.entreesEnErreur = bad; problems++; }
+        }catch(err){
+          row.statut = "erreur";
+          row.erreur = errText((err && (err.message || err.name)) || String(err));
+          problems++;
+        }
+        index.visites.push(row);
+        doneVisits++; doneBytes += it.bytes;
+        fill.style.width = Math.min(100, Math.round(doneBytes / Math.max(1, totalBytes) * 100)) + "%";
+        setTextIfChanged(count, doneVisits + " / " + visits.length + " · " + fmtBytes(doneBytes) + " / ~" + fmtBytes(totalBytes));
+      }
+      if(cancelled) break;
+      index.visitesDansCeFichier = index.visites.length;
+      zip.add("index.json", JSON.stringify(index, null, 1));
+      created.push({ blob: zip.finish(), name: exportZipName(now, index.visites.length, g + 1, groups.length) });
+    }
+  }catch(err){
+    showError(t("bulkFailed") + " : " + ((err && (err.message || err.name)) || err));
+    close();
+    return;
+  }
+  if(cancelled){ showToast(t("bulkCancelled")); close(); return; }
+
+  // ---- 3. Livraison : un bouton par fichier (geste de l'utilisateur, requis pour le partage) ----
+  sheet.innerHTML = `
+    <h3>✅ ${t("bulkReady")}</h3>
+    <p class="bulk-summary">${visits.length} ${t("bulkVisits")} · ${created.length} ${t("bulkFiles")}${problems ? " · " + problems + " " + t("bulkProblems") : ""}</p>
+    ${problems ? `<p class="capture-hint bulk-warn">${escapeHtml(errText(t("bulkProblemsHint")))}</p>` : ""}
+    <div id="bulkFilesList"></div>
+    <button class="btn" id="bulkClose" style="width:100%; margin-top:8px;">${t("close")}</button>`;
+  const list = sheet.querySelector("#bulkFilesList");
+  for(const c of created){
+    const file = (typeof File !== "undefined") ? new File([c.blob], c.name, { type: "application/zip" }) : c.blob;
+    const row = document.createElement("div");
+    row.className = "bulk-file";
+    row.innerHTML = `<div class="bulk-file-name">${escapeHtml(c.name)} <span class="storage-line">(${fmtBytes(c.blob.size)})</span></div><div class="bulk-file-actions"></div>`;
+    const actions = row.querySelector(".bulk-file-actions");
+    if(canShareFile(file)){
+      const share = document.createElement("button");
+      share.className = "btn primary"; share.textContent = "\u{1F4E4} " + t("bulkShare");
+      share.addEventListener("click", async () => {
+        try{ await navigator.share({ files: [file], title: c.name }); }
+        catch(err){ if(!err || err.name !== "AbortError") showError(t("bulkShareFailed") + " (" + ((err && err.name) || "?") + ")"); }
+      });
+      actions.appendChild(share);
+    }
+    const dl = document.createElement("button");
+    dl.className = "btn" + (actions.children.length ? "" : " primary");
+    dl.textContent = "⬇️ " + t("bulkDownload");
+    dl.addEventListener("click", () => saveBlobAs(c.blob, c.name));
+    actions.appendChild(dl);
+    list.appendChild(row);
+  }
+  sheet.querySelector("#bulkClose").addEventListener("click", close);
+}
+
+/* ============================================================
    Routeur : #home | #new | #visit/<uid> | #report/<uid> | #settings | #map
    ============================================================ */
 const main = document.getElementById("main");
@@ -2852,6 +3207,7 @@ async function renderHome(){
     if(!selectBar) return;
     selectBar.innerHTML = `
       <span class="count">${selectedIds.size} ${t("selectedCount")}</span>
+      <button class="btn primary" id="btnExportSelected" ${selectedIds.size === 0 ? "disabled" : ""}>\u{1F4E6} ${t("bulkAction")}</button>
       <div class="actions">
         <button class="btn" id="btnMoveSelected" ${selectedIds.size === 0 ? "disabled" : ""}>${t("moveSelected")}</button>
         <button class="btn danger" id="btnDeleteSelected" ${selectedIds.size === 0 ? "disabled" : ""}>${t("deleteSelected")}</button>
@@ -2860,6 +3216,11 @@ async function renderHome(){
     `;
     selectBar.querySelector("#btnCancelSelect").addEventListener("click", () => {
       selectMode = false; selectedIds = new Set(); route();
+    });
+    selectBar.querySelector("#btnExportSelected").addEventListener("click", async () => {
+      if(selectedIds.size === 0) return;
+      // La s\u00e9lection est conserv\u00e9e : on peut relancer l'export ou d\u00e9placer/supprimer ensuite.
+      await exportSelectedVisits(Array.from(selectedIds));
     });
     selectBar.querySelector("#btnMoveSelected").addEventListener("click", async () => {
       if(selectedIds.size === 0) return;
