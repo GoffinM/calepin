@@ -378,6 +378,16 @@
   .bulk-file{ background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; }
   .bulk-file-name{ font-size: 13px; font-family: var(--mono); word-break: break-all; margin-bottom: 8px; }
   .bulk-file-actions{ display:flex; gap: 8px; }
+  /* ---------- RDC39 : suppressions prot\u00e9g\u00e9es ---------- */
+  .select-danger{ display:flex; justify-content:flex-end; border-top: 1px dashed var(--line); padding-top: 6px; margin-top: 2px; }
+  .select-danger button{ background:none; border:none; color: var(--text-dim); font-size: 12px; text-decoration: underline; cursor:pointer; padding: 4px 2px; font-family: inherit; }
+  .select-danger button:disabled{ opacity: 0.4; cursor: default; }
+  .del-warn{ color: var(--warn); font-weight: 600; }
+  .del-ok{ color: var(--text-dim); }
+  .del-type{ width:100%; box-sizing:border-box; font-size: 16px; padding: 10px; border-radius: 8px; border:1px solid var(--danger); background: var(--surface); color: var(--text); margin: 4px 0 12px 0; font-family: var(--mono); letter-spacing: 1px; }
+  .del-sheet .btn{ width:100%; margin-bottom: 8px; }
+  .del-sheet .btn.danger:disabled{ opacity: 0.35; }
+  .del-backup-done{ color: #8FBF7F; font-size: 13px; margin: 0 0 10px 0; }
   .bulk-file-actions .btn{ flex: 1; }
   .bulk-warn{ color: var(--warn); }
 </style>
@@ -423,8 +433,8 @@ const STRINGS = {
     entryLabelPrompt: "Nommer ce rep\u00e8re (facultatif) :",
     transcriptPh: "Transcription (\u00e0 compl\u00e9ter)...", textEntryPh: "\u00c9crivez votre observation...",
     save: "Enregistrer", cancel: "Annuler",
-    consolidate: "Rapport", exportVisit: "Exporter cette visite", deleteVisit: "Supprimer la visite",
-    confirmDeleteVisit: "Supprimer d\u00e9finitivement cette visite et tous ses fichiers ?",
+    consolidate: "Rapport", exportVisit: "Exporter cette visite", deleteVisit: "\u{1F5D1} Mettre la visite \u00e0 la corbeille",
+    confirmDeleteVisit: "Mettre cette visite \u00e0 la corbeille ?",
     deletedVisit: "Visite supprim\u00e9e", exportLaunched: "Export lanc\u00e9",
     micDenied: "Acc\u00e8s au micro refus\u00e9.", micUnavailable: "Micro non disponible sur cet appareil.",
     photoUnreadable: "Photo illisible, ignor\u00e9e.", photosAdded: "Photo(s) ajout\u00e9e(s)", audioSaved: "Audio enregistr\u00e9",
@@ -458,7 +468,7 @@ const STRINGS = {
     reportAISynthConfirm: "Envoyer le contenu de ce rapport pour g\u00e9n\u00e9rer une synth\u00e8se ?",
     reportAISynthNote: "G\u00e9n\u00e9r\u00e9e par IA \u2014 relisez avant de vous y fier.",
     selectMode: "S\u00e9lectionner", selectCancel: "Annuler", selectedCount: "s\u00e9lectionn\u00e9e(s)",
-    deleteSelected: "Supprimer", confirmDeleteSelected: "Supprimer d\u00e9finitivement ces visites et tous leurs fichiers ?",
+    deleteSelected: "\u{1F5D1} Mettre \u00e0 la corbeille\u2026", confirmDeleteSelected: "Mettre ces visites \u00e0 la corbeille ?",
     deletedSelectedCount: "visite(s) supprim\u00e9e(s)",
     folders: "Dossiers", trash: "Corbeille", allVisits: "Toutes les visites", unfiled: "Non class\u00e9",
     newTopFolder: "+ Nouveau dossier", newTopFolderPrompt: "Nom du dossier (pays, client...) :",
@@ -649,7 +659,30 @@ const STRINGS = {
     bulkShare: "Partager",
     bulkDownload: "T\u00e9l\u00e9charger",
     bulkShareFailed: "Partage impossible \u2014 utilisez T\u00e9l\u00e9charger",
-    bulkNothing: "Aucune visite \u00e0 exporter."
+    bulkNothing: "Aucune visite à exporter.",
+    delTrashTitle: "Mettre {n} visite(s) à la corbeille ?",
+    delTrashBody: "Elles disparaissent de la liste mais RESTENT sur ce téléphone : récupérables à tout moment depuis Dossiers › Corbeille.",
+    delUnsent: "⚠ {n} visite(s) contiennent des données PAS ENCORE ENVOYÉES au relais : elles n'existent que sur ce téléphone.",
+    delAllSent: "Tout a été envoyé au relais (copie de secours côté serveur).",
+    delBackupFirst: "\u{1F4BE} Sauvegarder d'abord (ZIP)",
+    delBackupDone: "✅ Sauvegarde ZIP créée — vérifiez qu'elle est bien enregistrée (Fichiers / Téléchargements) avant de continuer.",
+    delConfirmTrash: "Mettre à la corbeille",
+    delForeverTitle: "Supprimer DÉFINITIVEMENT {n} visite(s) ?",
+    delForeverBody: "IRRÉVERSIBLE : entrées, photos et enregistrements seront effacés de ce téléphone. Seule une sauvegarde ZIP (ou la copie déjà envoyée au relais) permettra de les retrouver.",
+    delTypeWord: "SUPPRIMER",
+    delTypePrompt: "Pour confirmer, tapez {w} :",
+    delConfirmForever: "Supprimer définitivement",
+    delEntryTitle: "Supprimer cette entrée ?",
+    delEntryBody: "Irréversible : une entrée supprimée ne passe pas par la corbeille.",
+    delEntryUnsent: "⚠ Pas encore envoyée au relais : elle n'existe que sur ce téléphone.",
+    delEntryConfirm: "Supprimer l'entrée",
+    entryDeleted: "Entrée supprimée",
+    backupTitle: "Sauvegarde",
+    backupAll: "\u{1F4BE} Sauvegarder toutes les visites (ZIP)",
+    backupHint: "Les données restent stockées sur ce téléphone (mémoire de l'app), hors ligne et après fermeture, corbeille comprise. Elles sont perdues si l'on efface les données du navigateur ou du site, désinstalle l'app ou réinitialise le téléphone. Faites régulièrement une sauvegarde ZIP (corbeille comprise) et gardez-la hors du téléphone.",
+    backupNone: "Aucune visite à sauvegarder.",
+    backupLast: "Dernière sauvegarde ZIP",
+    backupNever: "jamais"
   },
   en: {
     appName: "RDC39-Calepin", settings: "Settings", back: "Back",
@@ -666,8 +699,8 @@ const STRINGS = {
     entryLabelPrompt: "Name this landmark (optional):",
     transcriptPh: "Transcript (to complete)...", textEntryPh: "Write your observation...",
     save: "Save", cancel: "Cancel",
-    consolidate: "Consolidate / Report", exportVisit: "Export this visit", deleteVisit: "Delete visit",
-    confirmDeleteVisit: "Permanently delete this visit and all its files?",
+    consolidate: "Consolidate / Report", exportVisit: "Export this visit", deleteVisit: "\u{1F5D1} Move visit to trash",
+    confirmDeleteVisit: "Move this visit to the trash?",
     deletedVisit: "Visit deleted", exportLaunched: "Export started",
     micDenied: "Microphone access denied.", micUnavailable: "Microphone unavailable on this device.",
     photoUnreadable: "Unreadable photo, skipped.", photosAdded: "Photo(s) added", audioSaved: "Audio saved",
@@ -701,7 +734,7 @@ const STRINGS = {
     reportAISynthConfirm: "Send this report's content to generate a synthesis?",
     reportAISynthNote: "AI-generated \u2014 review before relying on it.",
     selectMode: "Select", selectCancel: "Cancel", selectedCount: "selected",
-    deleteSelected: "Delete", confirmDeleteSelected: "Permanently delete these visits and all their files?",
+    deleteSelected: "\u{1F5D1} Move to trash\u2026", confirmDeleteSelected: "Move these visits to the trash?",
     deletedSelectedCount: "visit(s) deleted",
     folders: "Folders", trash: "Trash", allVisits: "All visits", unfiled: "Unfiled",
     newTopFolder: "+ New folder", newTopFolderPrompt: "Folder name (country, client...):",
@@ -886,7 +919,30 @@ const STRINGS = {
     bulkShare: "Share",
     bulkDownload: "Download",
     bulkShareFailed: "Sharing failed \u2014 use Download",
-    bulkNothing: "No visit to export."
+    bulkNothing: "No visit to export.",
+    delTrashTitle: "Move {n} visit(s) to the trash?",
+    delTrashBody: "They leave the list but STAY on this phone: restore them at any time from Folders › Trash.",
+    delUnsent: "⚠ {n} visit(s) contain data NOT YET SENT to the relay: it exists only on this phone.",
+    delAllSent: "Everything has been sent to the relay (server-side backup copy).",
+    delBackupFirst: "\u{1F4BE} Back up first (ZIP)",
+    delBackupDone: "✅ ZIP backup created — check it is saved (Files / Downloads) before continuing.",
+    delConfirmTrash: "Move to trash",
+    delForeverTitle: "PERMANENTLY delete {n} visit(s)?",
+    delForeverBody: "CANNOT BE UNDONE: entries, photos and recordings will be erased from this phone. Only a ZIP backup (or the copy already sent to the relay) can bring them back.",
+    delTypeWord: "DELETE",
+    delTypePrompt: "To confirm, type {w}:",
+    delConfirmForever: "Delete permanently",
+    delEntryTitle: "Delete this entry?",
+    delEntryBody: "Cannot be undone: a deleted entry does not go to the trash.",
+    delEntryUnsent: "⚠ Not yet sent to the relay: it exists only on this phone.",
+    delEntryConfirm: "Delete entry",
+    entryDeleted: "Entry deleted",
+    backupTitle: "Backup",
+    backupAll: "\u{1F4BE} Back up all visits (ZIP)",
+    backupHint: "Data stays stored on this phone (app storage), offline and after closing, trash included. It is lost if browser/site data is cleared, the app is uninstalled or the phone is reset. Make a ZIP backup regularly (trash included) and keep it off the phone.",
+    backupNone: "No visit to back up.",
+    backupLast: "Last ZIP backup",
+    backupNever: "never"
   },
   sw: {
     appName: "RDC39-Calepin", settings: "Mipangilio", back: "Rudi",
@@ -903,8 +959,8 @@ const STRINGS = {
     entryLabelPrompt: "Peana jina la alama (hiari):",
     transcriptPh: "Nakala (kukamilika)...", textEntryPh: "Andika uchunguzi wako...",
     save: "Hifadhi", cancel: "Ghairi",
-    consolidate: "Unganisha / Ripoti", exportVisit: "Hamisha ziara hii", deleteVisit: "Futa ziara",
-    confirmDeleteVisit: "Futa kabisa ziara hii na faili zake zote?",
+    consolidate: "Unganisha / Ripoti", exportVisit: "Hamisha ziara hii", deleteVisit: "\u{1F5D1} Hamishia ziara kwenye takataka",
+    confirmDeleteVisit: "Hamishia ziara hii kwenye takataka?",
     deletedVisit: "Ziara imefutwa", exportLaunched: "Uhamishaji umeanza",
     micDenied: "Ufikiaji wa maikrofoni umekataliwa.", micUnavailable: "Maikrofoni haipatikani kwenye kifaa hiki.",
     photoUnreadable: "Picha haisomeki, imerukwa.", photosAdded: "Picha zimeongezwa", audioSaved: "Sauti imehifadhiwa",
@@ -938,7 +994,7 @@ const STRINGS = {
     reportAISynthConfirm: "Tuma maudhui ya ripoti hii kutengeneza muhtasari?",
     reportAISynthNote: "Imetengenezwa na AI \u2014 soma kabla ya kuitegemea.",
     selectMode: "Chagua", selectCancel: "Ghairi", selectedCount: "zimechaguliwa",
-    deleteSelected: "Futa", confirmDeleteSelected: "Futa kabisa ziara hizi na faili zake zote?",
+    deleteSelected: "\u{1F5D1} Hamishia kwenye takataka\u2026", confirmDeleteSelected: "Hamishia ziara hizi kwenye takataka?",
     deletedSelectedCount: "ziara zimefutwa",
     folders: "Folda", trash: "Takataka", allVisits: "Ziara zote", unfiled: "Bila mpangilio",
     newTopFolder: "+ Folda mpya", newTopFolderPrompt: "Jina la folda (nchi, mteja...):",
@@ -990,7 +1046,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "rdc39-2026-10-06.2";
+const APP_VERSION = "rdc39-2026-10-07.1";
 function currentLang(){ return localStorage.getItem("rdc39_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("rdc39_lang", l); }
 function t(key){
@@ -2966,7 +3022,7 @@ async function exportSelectedVisits(ids, onDone){
   const visits = [];
   for(const id of ids){ const v = await idbGet("visits", id); if(v) visits.push(v); }
   visits.sort((a, b) => new Date(a.date) - new Date(b.date));
-  if(!visits.length){ showError(t("bulkNothing")); return; }
+  if(!visits.length){ showError(t("bulkNothing")); if(onDone) onDone({ delivered: false }); return; }
 
   // ---- 1. Estimation et confirmation ----
   const items = [];
@@ -2984,7 +3040,9 @@ async function exportSelectedVisits(ids, onDone){
   document.body.appendChild(overlay);
   const sheet = overlay.firstElementChild;
   const created = [];   // { blob, name } à libérer en fermant
-  const close = () => { overlay.remove(); created.length = 0; if(onDone) onDone(); };
+  let delivered = false; // au moins un fichier partag\u00e9 ou t\u00e9l\u00e9charg\u00e9
+  const close = () => { overlay.remove(); created.length = 0; if(onDone) onDone({ delivered }); };
+  const markDelivered = () => { delivered = true; try{ localStorage.setItem("rdc39_last_backup", String(Date.now())); }catch(e){} };
 
   sheet.innerHTML = `
     <h3>\u{1F4E6} ${t("bulkTitle")}</h3>
@@ -3078,7 +3136,7 @@ async function exportSelectedVisits(ids, onDone){
       const share = document.createElement("button");
       share.className = "btn primary"; share.textContent = "\u{1F4E4} " + t("bulkShare");
       share.addEventListener("click", async () => {
-        try{ await navigator.share({ files: [file], title: c.name }); }
+        try{ await navigator.share({ files: [file], title: c.name }); markDelivered(); }
         catch(err){ if(!err || err.name !== "AbortError") showError(t("bulkShareFailed") + " (" + ((err && err.name) || "?") + ")"); }
       });
       actions.appendChild(share);
@@ -3086,11 +3144,94 @@ async function exportSelectedVisits(ids, onDone){
     const dl = document.createElement("button");
     dl.className = "btn" + (actions.children.length ? "" : " primary");
     dl.textContent = "⬇️ " + t("bulkDownload");
-    dl.addEventListener("click", () => saveBlobAs(c.blob, c.name));
+    dl.addEventListener("click", () => { saveBlobAs(c.blob, c.name); markDelivered(); });
     actions.appendChild(dl);
     list.appendChild(row);
   }
   sheet.querySelector("#bulkClose").addEventListener("click", close);
+}
+
+/* ============================================================
+   RDC39 — Suppressions protégées
+   ------------------------------------------------------------
+   - Mise à la corbeille (récupérable) : fenêtre de confirmation indiquant ce qui n'a pas
+     encore été envoyé au relais, avec sauvegarde ZIP proposée AVANT.
+   - Suppression définitive (corbeille) : idem + mot à taper (SUPPRIMER).
+   - Entrée (✕) : confirmation (une entrée ne passe pas par la corbeille).
+   Annuler est toujours le choix le plus visible ; toucher à côté annule.
+   ============================================================ */
+async function unsentVisitCount(ids){
+  let n = 0;
+  for(const id of ids){
+    const v = await idbGet("visits", id);
+    if(!v) continue;
+    const entries = await idbGetByIndex("entries", "visitUid", id);
+    if(!visitIsSent(v, entries)) n++;
+  }
+  return n;
+}
+function dangerSheet(opts){
+  return new Promise(resolve => {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    const word = opts.typedWord || "";
+    overlay.innerHTML = `<div class="modal-sheet del-sheet">
+      <h3>${escapeHtml(opts.title)}</h3>
+      ${opts.body.map(l => `<p class="capture-hint ${l.cls || ""}" style="margin:0 0 10px 0;">${escapeHtml(l.text)}</p>`).join("")}
+      <p class="del-backup-done" id="delBackupDone" hidden>${escapeHtml(t("delBackupDone"))}</p>
+      ${opts.backupIds ? `<button class="btn primary" id="delBackup">${t("delBackupFirst")}</button>` : ""}
+      <button class="btn${opts.backupIds ? "" : " primary"}" id="delCancel">${t("cancel")}</button>
+      ${word ? `<label class="capture-hint" for="delType" style="display:block; margin:14px 0 0 0;">${escapeHtml(t("delTypePrompt").replace("{w}", word))}</label>
+      <input id="delType" class="del-type" autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false">` : ""}
+      <button class="btn danger" id="delGo" ${word ? "disabled" : ""} style="${word ? "" : "margin-top:10px;"}">${escapeHtml(opts.confirmLabel)}</button>
+    </div>`;
+    document.body.appendChild(overlay);
+    const done = (ok) => { overlay.remove(); resolve(ok); };
+    overlay.addEventListener("click", (e) => { if(e.target === overlay) done(false); });
+    overlay.querySelector("#delCancel").addEventListener("click", () => done(false));
+    const go = overlay.querySelector("#delGo");
+    go.addEventListener("click", () => { if(!go.disabled) done(true); });
+    if(word){
+      const inp = overlay.querySelector("#delType");
+      const norm = (x) => String(x).trim().toUpperCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+      inp.addEventListener("input", () => { go.disabled = norm(inp.value) !== norm(word); });
+    }
+    const b = overlay.querySelector("#delBackup");
+    if(b) b.addEventListener("click", () => {
+      overlay.style.display = "none";
+      exportSelectedVisits(opts.backupIds, (res) => {
+        overlay.style.display = "";
+        if(res && res.delivered){ overlay.querySelector("#delBackupDone").hidden = false; b.classList.remove("primary"); }
+      });
+    });
+  });
+}
+async function confirmTrashVisits(ids){
+  const unsent = await unsentVisitCount(ids);
+  return dangerSheet({
+    title: t("delTrashTitle").replace("{n}", ids.length),
+    body: [{ text: t("delTrashBody") }, unsent ? { text: t("delUnsent").replace("{n}", unsent), cls: "del-warn" } : { text: t("delAllSent"), cls: "del-ok" }],
+    backupIds: ids,
+    confirmLabel: t("delConfirmTrash")
+  });
+}
+async function confirmDeleteForever(ids){
+  const unsent = await unsentVisitCount(ids);
+  return dangerSheet({
+    title: t("delForeverTitle").replace("{n}", ids.length),
+    body: [{ text: t("delForeverBody"), cls: "del-warn" }, unsent ? { text: t("delUnsent").replace("{n}", unsent), cls: "del-warn" } : { text: t("delAllSent"), cls: "del-ok" }],
+    backupIds: ids,
+    typedWord: t("delTypeWord"),
+    confirmLabel: t("delConfirmForever")
+  });
+}
+function confirmDeleteEntry(entry){
+  const txt = (entry.text || "").trim();
+  const desc = entryGlyph(entry) + " " + fmtTime(entry.timestamp) + (entry.label ? " · " + entry.label : "")
+    + (txt ? " — « " + txt.slice(0, 80) + (txt.length > 80 ? "…" : "") + " »" : "");
+  const body = [{ text: desc }, { text: t("delEntryBody") }];
+  if(entry.syncState !== "sent") body.push({ text: t("delEntryUnsent"), cls: "del-warn" });
+  return dangerSheet({ title: t("delEntryTitle"), body, confirmLabel: t("delEntryConfirm") });
 }
 
 /* ============================================================
@@ -3210,8 +3351,10 @@ async function renderHome(){
       <button class="btn primary" id="btnExportSelected" ${selectedIds.size === 0 ? "disabled" : ""}>\u{1F4E6} ${t("bulkAction")}</button>
       <div class="actions">
         <button class="btn" id="btnMoveSelected" ${selectedIds.size === 0 ? "disabled" : ""}>${t("moveSelected")}</button>
-        <button class="btn danger" id="btnDeleteSelected" ${selectedIds.size === 0 ? "disabled" : ""}>${t("deleteSelected")}</button>
         <button class="btn" id="btnCancelSelect">${t("selectCancel")}</button>
+      </div>
+      <div class="select-danger">
+        <button id="btnDeleteSelected" ${selectedIds.size === 0 ? "disabled" : ""}>${t("deleteSelected")}</button>
       </div>
     `;
     selectBar.querySelector("#btnCancelSelect").addEventListener("click", () => {
@@ -3237,8 +3380,8 @@ async function renderHome(){
     });
     selectBar.querySelector("#btnDeleteSelected").addEventListener("click", async () => {
       if(selectedIds.size === 0) return;
-      if(!confirm(t("confirmDeleteSelected"))) return;
       const ids = Array.from(selectedIds);
+      if(!(await confirmTrashVisits(ids))) return;
       for(const uid2 of ids){
         const v = await idbGet("visits", uid2);
         if(v){ v.trashedAt = Date.now(); await idbPut("visits", v); }
@@ -3643,7 +3786,9 @@ async function renderVisitDetail(uidVal){
         });
       }
       card.querySelector(".del").addEventListener("click", async () => {
+        if(!(await confirmDeleteEntry(entry))) return;
         await idbDelete("entries", entry.id);
+        showToast(t("entryDeleted"));
         refreshEntries(); refreshWeight();
       });
       card.querySelector('[data-act="label"]').addEventListener("click", async () => {
@@ -4270,7 +4415,7 @@ async function renderVisitDetail(uidVal){
     setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
   async function deleteVisit(v){
-    if(!confirm(t("confirmDeleteVisit"))) return;
+    if(!(await confirmTrashVisits([v.uid]))) return;
     v.trashedAt = Date.now();
     await idbPut("visits", v);
     showToast(t("trashedVisit"));
@@ -4644,7 +4789,7 @@ async function renderTrash(){
         refresh();
       });
       row.querySelector('[data-act="forever"]').addEventListener("click", async () => {
-        if(!confirm(t("confirmDeleteForever"))) return;
+        if(!(await confirmDeleteForever([v.uid]))) return;
         const entries = await idbGetByIndex("entries", "visitUid", v.uid);
         for(const e of entries) await idbDelete("entries", e.id);
         await idbDelete("visits", v.uid);
@@ -4654,8 +4799,8 @@ async function renderTrash(){
     }
   }
   emptyBtn.addEventListener("click", async () => {
-    if(!confirm(t("confirmEmptyTrash"))) return;
     const visits = (await idbGetAll("visits")).filter(v => v.trashedAt);
+    if(!visits.length || !(await confirmDeleteForever(visits.map(v => v.uid)))) return;
     for(const v of visits){
       const entries = await idbGetByIndex("entries", "visitUid", v.uid);
       for(const e of entries) await idbDelete("entries", e.id);
@@ -4741,6 +4886,25 @@ async function renderSettings(){
     ${RELAY_URL ? "" : `<div class="storage-line" style="margin-top:4px; word-break:break-all;">${t("accessRelay")} : ${escapeHtml(currentRelayUrl() || "\u2014")}</div>`}
   `;
   main.appendChild(accessGroup);
+
+  /* Sauvegarde : où vivent les données + export ZIP de TOUT (corbeille comprise). */
+  const backupGroup = document.createElement("div");
+  backupGroup.className = "settings-group";
+  const lastBackup = Number(localStorage.getItem("rdc39_last_backup") || "0");
+  backupGroup.innerHTML = `
+    <h3>${t("backupTitle")}</h3>
+    <p class="capture-hint" style="margin-top:0;">${escapeHtml(t("backupHint"))}</p>
+    <div class="storage-line" id="backupLastLine">${t("backupLast")} : ${lastBackup ? fmtDateTime(new Date(lastBackup).toISOString()) : t("backupNever")}</div>
+    <button class="btn primary" id="btnBackupAll" style="width:100%; margin-top:10px;">${t("backupAll")}</button>`;
+  main.appendChild(backupGroup);
+  backupGroup.querySelector("#btnBackupAll").addEventListener("click", async () => {
+    const all = await idbGetAll("visits");
+    if(!all.length){ showError(t("backupNone")); return; }
+    await exportSelectedVisits(all.map(v => v.uid), () => {
+      const last = Number(localStorage.getItem("rdc39_last_backup") || "0");
+      backupGroup.querySelector("#backupLastLine").textContent = t("backupLast") + " : " + (last ? fmtDateTime(new Date(last).toISOString()) : t("backupNever"));
+    });
+  });
 
   const storageGroup = document.createElement("div");
   storageGroup.className = "settings-group";

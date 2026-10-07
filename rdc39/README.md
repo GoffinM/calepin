@@ -86,6 +86,18 @@ L'export manuel « Exporter (digest JSON) », dans chaque visite, produit le mê
 - **Discrétion** : le dépôt et les couches (`layers/`) sont publics. Les données (KV) restent privées derrière les codes.
 - **Seuil « aucun son »** (`REC_SILENCE_THRESHOLD` = 0,008) : à calibrer sur un vrai téléphone. Il a été réglé avec un micro simulé (son de test et silence).
 
+## Données sur le téléphone et suppressions
+
+- **Stockage local** : tout (visites, entrées, photos, enregistrements, corbeille) est dans la mémoire de l'app sur le téléphone (IndexedDB `rdc39-calepin`). Les données restent hors ligne, après fermeture et redémarrage, et l'app demande le stockage persistant au lancement. Elles sont **perdues** si l'on efface les données du navigateur ou du site, si l'on désinstalle l'app ou si l'on réinitialise le téléphone. Sur iPhone, le navigateur peut aussi les effacer lorsque l'app n'est pas installée sur l'écran d'accueil et reste longtemps inutilisée. La copie envoyée au relais (KV) sert de secours.
+- **Sauvegarde** : Réglages › Sauvegarde › « Sauvegarder toutes les visites (ZIP) ». Le ZIP contient un digest JSON par visite, corbeille comprise, plus `index.json`. L'écran affiche la date de la dernière sauvegarde.
+- **Mise à la corbeille** (barre de sélection ou fiche visite) :
+  - dans la barre de sélection, c'est un petit lien en bas, à l'écart des boutons ;
+  - une fenêtre de confirmation donne le nombre de visites et signale celles qui ne sont pas encore envoyées au relais ;
+  - elle propose « Sauvegarder d'abord (ZIP) », et le bouton le plus visible n'est jamais « supprimer » ;
+  - toucher à côté de la fenêtre annule.
+- **Suppression définitive** (corbeille, ou « Vider la corbeille ») : même fenêtre, et il faut en plus taper `SUPPRIMER` (`DELETE` en anglais).
+- **Entrée (✕)** : une confirmation est demandée, car une entrée supprimée ne passe pas par la corbeille.
+
 ## Tests effectués (Chromium headless, relais simulé exécutant le Worker sous Node)
 
 - Accès : code refusé puis accepté. Révocation (test de la version précédente, code inchangé).
@@ -113,6 +125,15 @@ L'export manuel « Exporter (digest JSON) », dans chaque visite, produit le mê
   - pas de géolocalisation sur l'appareil : `non_supportee` ;
   - dictée : position présente dès le premier brouillon, ou rattachée en cours de dictée, puis conservée à la finalisation ;
   - première entrée créée juste après l'autorisation : position rattachée dès la première mesure.
+- **Suppressions protégées**, test navigateur (26 vérifications) :
+  - lien discret dans la barre de sélection, désactivé tant que rien n'est sélectionné ;
+  - Annuler et toucher à côté ne suppriment rien ;
+  - le ZIP de sauvegarde est créé depuis la fenêtre, qui réapparaît ensuite ;
+  - le mot à taper est exigé, minuscules acceptées ;
+  - Vider la corbeille a la même protection ;
+  - la confirmation de l'entrée ✕ fonctionne ;
+  - la sauvegarde complète inclut la corbeille ;
+  - aucun `confirm()` natif.
 - **Position**, testée de bout en bout dans le navigateur :
   - position refusée : fenêtre au premier lancement, statut « refusée », « ⚠ sans position » cliquable, photo exportée sans EXIF ;
   - position accordée : statut « OK ± 7 m », EXIF présent dans le digest, l'export standard et la synchro ;
