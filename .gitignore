@@ -1,0 +1,13 @@
+# Données de terrain confidentielles et sorties de calepin-bureau : jamais versionnées
+samples/
+sortie/
+.env
+*.zip
+
+# Python
+__pycache__/
+*.egg-info/
+.pytest_cache/
+.venv/
+build/
+dist/

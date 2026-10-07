@@ -1,0 +1,38 @@
+# Configuration de calepin-bureau.
+# Ce fichier est lu dans le dossier courant, ou à l'endroit indiqué par --config.
+# Toute clé absente reprend sa valeur par défaut.
+
+# Fuseau horaire des colonnes « date_heure_locale » (remplacé par --fuseau).
+fuseau: Africa/Kigali
+
+# Codes de thème reconnus : préfixe du repère, avant le premier espace ou tiret.
+# « FONC 12 », « fonc-12 » et « FONC – 12 » donnent FONC. Liste appelée à évoluer.
+themes:
+  - FONC
+  - OCC
+  - SOC
+  - ACC
+  - HYD
+  - RIV
+  - TRAV
+  - ERO
+  - EMP
+  - ACT
+
+# Thème attribué quand le préfixe n'est pas dans la liste ci-dessus.
+theme_defaut: AUTRE
+
+# Précision GPS au-delà de laquelle la position est signalée (mètres).
+precision_max_m: 50
+
+# Volume moyen (dB) sous lequel un audio est jugé quasi silencieux (contrôle via ffmpeg).
+audio_silence_db: -60
+
+# Chemin de ffmpeg.exe. Vide : recherche dans le PATH. Absent : contrôle ignoré, avec avertissement.
+ffmpeg: ""
+
+# Longueur maximale d'un nom de fichier extrait (photos, audio, pièces jointes).
+longueur_nom_max: 120
+
+# CSV : séparateur « ; » (Excel français). Les nombres gardent le point décimal.
+csv_separateur: ";"

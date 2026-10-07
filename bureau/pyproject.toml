@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "calepin-bureau"
+version = "0.1.0"
+description = "Consolidation locale des relevés de terrain RDC39-Calepin (digests JSON)"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "openpyxl>=3.1",
+    "Pillow>=9.4",
+    "PyYAML>=6.0",
+    # Windows n'a pas de base de fuseaux horaires : zoneinfo la trouve dans tzdata.
+    "tzdata; sys_platform == 'win32'",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+calepin-bureau = "calepin_bureau.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
