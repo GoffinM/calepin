@@ -8,7 +8,7 @@
 // partagés entre les deux apps. On ne supprime donc JAMAIS que nos propres caches
 // (préfixe "rdc39-shell-"), et le cache de tuiles n'est jamais vidé par une mise à jour.
 const CACHE_PREFIX = 'rdc39-shell-';
-const CACHE_NAME = CACHE_PREFIX + '2026-10-06-2'; // à incrémenter AVEC APP_VERSION (index.html) à chaque livraison
+const CACHE_NAME = CACHE_PREFIX + '2026-10-07-1'; // à incrémenter AVEC APP_VERSION (index.html) à chaque livraison
 const TILE_CACHE = 'rdc39-tiles-v1';
 const NETWORK_TIMEOUT_MS = 3000;
 const LEAFLET_FILES = [
