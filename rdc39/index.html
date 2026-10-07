@@ -551,7 +551,7 @@ const STRINGS = {
     syncDone: "Envoi termin\u00e9",
     settingsAccess: "Acc\u00e8s",
     accessLastCheck: "Derni\u00e8re validation du code",
-    accessDevice: "Appareil",
+    accessDevice: "Appareil", accessAgent: "\u00c9tiquette du code",
     accessRelay: "Relais",
     gateIntro: "Application r\u00e9serv\u00e9e \u00e0 l'\u00e9quipe du projet. Saisissez le code d'acc\u00e8s qui vous a \u00e9t\u00e9 communiqu\u00e9.",
     gateCodeLabel: "Code d'acc\u00e8s",
@@ -818,7 +818,7 @@ const STRINGS = {
     syncDone: "Send complete",
     settingsAccess: "Access",
     accessLastCheck: "Last code validation",
-    accessDevice: "Device",
+    accessDevice: "Device", accessAgent: "Code label",
     accessRelay: "Relay",
     gateIntro: "This app is reserved for the project team. Enter the access code you were given.",
     gateCodeLabel: "Access code",
@@ -1082,7 +1082,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "rdc39-2026-10-08.1";
+const APP_VERSION = "rdc39-2026-10-08.2";
 function currentLang(){ return localStorage.getItem("rdc39_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("rdc39_lang", l); }
 function t(key){
@@ -1574,6 +1574,9 @@ function createZipBuilder(opts){
    - plus de category ni de syntheseIA ; ajout de dossier, tags, corbeille, appareil.
    - entries[].theme (facultatif) : code du rep\u00e8re ("HYD"...), repere = "CODE_nom" ; absent si \u00ab Sans code \u00bb.
    - entr\u00e9es audio : id d\u00e9terministe "rec_<recId>" (une m\u00eame prise ne peut plus donner deux entr\u00e9es).
+   - operateur (facultatif) : \u00e9tiquette du code d'acc\u00e8s (ex. "Agent-1", jamais nominative) ou null ;
+     une \u00e9tiquette d\u00e9signe le code utilis\u00e9, pas une personne (un code peut \u00eatre partag\u00e9) ;
+     absent dans les digests plus anciens, qui restent valides (schemaVersion inchang\u00e9).
    Pour la synchro, une visite est envoy\u00e9e en morceaux : un manifeste (m\u00e9tadonn\u00e9es + liste
    des entr\u00e9es) et un objet par entr\u00e9e. Le digest complet (manifeste + entries) est
    r\u00e9assembl\u00e9 par la page d'administration, ou produit directement par l'export manuel.
@@ -1618,6 +1621,11 @@ async function entryToDigest(e){
   }
   return out;
 }
+/* operateur : \u00e9tiquette du code d'acc\u00e8s utilis\u00e9 \u00e0 la cr\u00e9ation de la visite (m\u00e9moris\u00e9e alors),
+   \u00e0 d\u00e9faut celle du code actuel ; null sans \u00e9tiquette. Champ facultatif du schemaVersion 2.
+   Ordre de lecture pour Calepin Bureau : operateur, puis agentRelais / agentsEntrees (relais),
+   puis la correspondance appareil -> agent de la configuration Bureau. */
+function visitOperator(v){ return validLabel(v && v.operateur) || currentAgent(); }
 async function buildManifest(v, entries){
   return {
     schemaVersion: SCHEMA_VERSION,
@@ -1628,6 +1636,7 @@ async function buildManifest(v, entries){
     tags: v.tags || [],
     corbeille: v.trashedAt ? new Date(v.trashedAt).toISOString() : null,
     appareil: deviceId(),
+    operateur: visitOperator(v),
     versionApp: APP_VERSION,
     genereLe: new Date().toISOString(),
     entrees: entries.map(e => ({ id: e.id, type: e.kind, horodatage: new Date(e.timestamp).toISOString() }))
@@ -2317,6 +2326,22 @@ async function geoFirstRun(){
    ============================================================ */
 const DEFAULT_GRACE_DAYS = 14;
 function currentAccessCode(){ return localStorage.getItem("rdc39_access_code") || ""; }
+/* \u00c9tiquette du code d'acc\u00e8s renvoy\u00e9e par le relais (ACCESS_CODES "code=\u00e9tiquette", ex.
+   "Agent-1") ; null si le code n'en a pas ou si le relais est ancien. Courte et NON nominative
+   (jamais un nom ni un num\u00e9ro de t\u00e9l\u00e9phone) : m\u00eame r\u00e8gle que le relais. Elle d\u00e9signe le code
+   utilis\u00e9, pas une personne (un code peut \u00eatre partag\u00e9) : ce n'est pas une preuve d'identit\u00e9. */
+function validLabel(x){
+  const s = String(x == null ? "" : x).trim();
+  if(!/^[A-Za-z0-9][A-Za-z0-9._-]{0,23}$/.test(s)) return null;
+  if((s.match(/[0-9]/g) || []).length > 5) return null;
+  return s;
+}
+function currentAgent(){ return validLabel(localStorage.getItem("rdc39_agent")); }
+function clearAccess(){
+  localStorage.removeItem("rdc39_access_code");
+  localStorage.removeItem("rdc39_access_validated_at");
+  localStorage.removeItem("rdc39_agent");
+}
 function deviceId(){
   let d = localStorage.getItem("rdc39_device_id");
   if(!d){ d = uid(); localStorage.setItem("rdc39_device_id", d); }
@@ -2344,6 +2369,9 @@ async function validateCodeOnline(code){
     if(resp.ok){
       const data = await resp.json().catch(() => ({}));
       if(data && data.graceDays) localStorage.setItem("rdc39_grace_days", String(data.graceDays));
+      // Mis \u00e0 jour \u00e0 chaque validation : \u00e9tiquette chang\u00e9e ou retir\u00e9e c\u00f4t\u00e9 relais = suivie ici.
+      const agent = data ? validLabel(data.agent) : null;
+      if(agent) localStorage.setItem("rdc39_agent", agent); else localStorage.removeItem("rdc39_agent");
       localStorage.setItem("rdc39_access_validated_at", String(Date.now()));
       return "ok";
     }
@@ -2445,8 +2473,7 @@ async function revalidateInBackground(force){
   lastBackgroundCheck = Date.now();
   const res = await validateCodeOnline(code);
   if(res === "refused"){
-    localStorage.removeItem("rdc39_access_code");
-    localStorage.removeItem("rdc39_access_validated_at");
+    clearAccess();
     lockApp("gateRevoked");
   } else if(res === "ok" && !appUnlocked){
     unlockApp();
@@ -2469,8 +2496,7 @@ async function startAccessGate(){
   const res = await validateCodeOnline(code);
   if(res === "ok") unlockApp();
   else if(res === "refused"){
-    localStorage.removeItem("rdc39_access_code");
-    localStorage.removeItem("rdc39_access_validated_at");
+    clearAccess();
     showGate("gateRevoked");
   } else {
     showGate("gateGraceExpired");
@@ -2572,8 +2598,7 @@ async function doSyncPending(opts){
     }
   }catch(err){
     if(err instanceof AccessRevoked){
-      localStorage.removeItem("rdc39_access_code");
-      localStorage.removeItem("rdc39_access_validated_at");
+      clearAccess();
       lockApp("gateRevoked");
       return { error: t("gateRevoked") };
     }
@@ -2740,7 +2765,7 @@ async function finalizeRecordingUnlocked(recId, durationSec, recovered){
       if(!visit){
         // Visite supprimée entre-temps : on ne jette jamais un enregistrement, on recrée une visite.
         await idbPut("visits", { uid: meta.visitUid, tag: t("recRecoveredLabel"), date: new Date(meta.startedAt).toISOString(),
-          folderId: null, tags: [], trashedAt: null, createdAt: new Date().toISOString() });
+          folderId: null, tags: [], trashedAt: null, operateur: currentAgent(), createdAt: new Date().toISOString() });
       }
       entry = {
         id: entryId, visitUid: meta.visitUid, kind: "audio", data: out.buffer, mime: meta.mime || "audio/webm",
@@ -3275,7 +3300,7 @@ async function exportSelectedVisits(ids, onDone){
       const zip = createZipBuilder({ date: now });
       const index = {
         schema: "rdc39-export-index", schemaIndex: 1, schemaDigest: SCHEMA_VERSION,
-        app: APP_VERSION, genereLe: now.toISOString(), appareil: deviceId(),
+        app: APP_VERSION, genereLe: now.toISOString(), appareil: deviceId(), operateur: currentAgent(),
         partie: g + 1, parties: groups.length, visitesSelectionnees: visits.length, visites: []
       };
       for(const it of groups[g]){
@@ -3283,7 +3308,7 @@ async function exportSelectedVisits(ids, onDone){
         const v = it.visit;
         setTextIfChanged(label, t("bulkVisitOf").replace("{i}", doneVisits + 1).replace("{n}", visits.length) + " : " + (v.tag || "—"));
         await yieldUI();
-        const row = { fichier: null, uid: v.uid, repere: v.tag || null, date: v.date || null, entrees: it.entries, taille: 0, statut: "ok" };
+        const row = { fichier: null, uid: v.uid, repere: v.tag || null, date: v.date || null, operateur: visitOperator(v), entrees: it.entries, taille: 0, statut: "ok" };
         try{
           // Même contenu que l'export "digest JSON" d'une visite.
           let digest = await buildDigest(v);
@@ -3695,7 +3720,7 @@ function renderNewVisit(){
     const visit = {
       uid: uid(), tag,
       date: new Date(dateStr + "T" + now.toTimeString().slice(0,8)).toISOString(),
-      folderId: null, tags: [], trashedAt: null,
+      folderId: null, tags: [], trashedAt: null, operateur: currentAgent(),
       createdAt: new Date().toISOString(), updatedAt: new Date().toISOString()
     };
     await idbPut("visits", visit);
@@ -5153,6 +5178,7 @@ async function renderSettings(){
   accessGroup.innerHTML = `
     <h3>${t("settingsAccess")}</h3>
     <div class="storage-line">${t("accessLastCheck")} : ${lastOk ? fmtDateTime(new Date(lastOk).toISOString()) : "\u2014"}</div>
+    <div class="storage-line" style="margin-top:4px;" id="agentLine">${t("accessAgent")} : ${escapeHtml(currentAgent() || "\u2014")}</div>
     <div class="storage-line" style="margin-top:4px;">${t("accessDevice")} : ${escapeHtml(deviceId().slice(0, 8))}</div>
     ${RELAY_URL ? "" : `<div class="storage-line" style="margin-top:4px; word-break:break-all;">${t("accessRelay")} : ${escapeHtml(currentRelayUrl() || "\u2014")}</div>`}
   `;

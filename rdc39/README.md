@@ -38,6 +38,30 @@ Le relais est déjà déployé (`terrain-relais`). **Pour cette version, il faut
 
 Autres variables : `ACCESS_CODES` (codes d'équipe séparés par des virgules), `GRACE_DAYS` (facultatif, 14 par défaut) et `ALLOWED_ORIGIN` (facultatif, `https://goffinm.github.io`). La liaison KV reste `DIGESTS` → `rdc39-digests`.
 
+### Étiquettes des codes d'accès (`operateur`)
+
+Chaque code de `ACCESS_CODES` peut porter une étiquette : `code=étiquette`, séparés par des virgules. Exemple : `K7M2P9=Agent-1,Q4X8ZD=Bunia-2,Nyamukau`.
+
+- **Courte et non nominative** : par exemple `Agent-1` ou `Bunia-2`. **Jamais un nom de personne ni un numéro de téléphone.** Le relais applique cette règle : 1 à 24 caractères parmi les lettres, les chiffres, `.`, `_` et `-`, sans espace, avec 5 chiffres au plus. Une étiquette non conforme est **ignorée** (`agent: null`), et la page de diagnostic du relais la signale. L'app applique la même règle.
+- **Pas une preuve d'identité.** Une étiquette désigne le **code** utilisé, pas une personne : un code peut être partagé ou transmis.
+- Un code sans étiquette continue de fonctionner, avec `agent: null`.
+- `/validate-code` renvoie `{ ok: true, agent: "Agent-1" }`. L'app affiche « Étiquette du code : Agent-1 » dans Réglages › Accès et la met à jour à chaque revalidation. Si le code est révoqué, l'étiquette est effacée avec le code.
+- Pour changer une étiquette, modifiez la partie après `=` : elle est prise en compte à la prochaine validation. Ajouter une étiquette ne demande pas de nouveau code.
+
+**Mêmes noms de champs partout :**
+
+| Champ | Où | Contenu |
+|---|---|---|
+| `operateur` | racine du digest et du manifeste, racine et lignes `visites` d'`index.json`, métadonnées KV du manifeste | étiquette du code utilisé à la **création** de la visite (à défaut, celle du code actuel), ou `null` ; dans `index.json`, la racine donne l'étiquette du code qui exporte |
+| `agent` | métadonnées KV de chaque envoi (manifeste `m:` et entrées `e:`) | étiquette du code qui a fait **cet envoi**, ou `null` ; **jamais le code** |
+| `agentRelais` | digest réassemblé par `/admin/visit` | `agent` du dernier envoi du manifeste |
+| `agentsEntrees` | digest réassemblé par `/admin/visit` | liste des `agent` vus sur les entrées |
+
+**Ordre de lecture pour Calepin Bureau :**
+1. `operateur` ;
+2. à défaut, `agentRelais`, puis `agentsEntrees` ;
+3. à défaut, la correspondance appareil → agent de la configuration Bureau.
+
 ### Révoquer l'accès
 
 Retirez le code de `ACCESS_CODES` et enregistrez, sans rien redéployer. L'appareil est verrouillé à son prochain contact réseau, et au plus tard 14 jours après sa dernière validation. Les entrées encore ⏳ sur un appareil verrouillé ne peuvent plus être envoyées : vérifiez que tout est ✓ avant de révoquer en fin de mission.
@@ -55,7 +79,7 @@ Dans KV, une visite occupe plusieurs clés : `m:<visite>` (manifeste : métadonn
 Le format est dérivé du digest v1 de Calepin. Le Calepin personnel et son format v1, consommé par l'outil pompage, ne sont pas modifiés.
 
 ```
-{ schemaVersion: 2, uid, tag, date, dossier, tags, corbeille, appareil, versionApp, genereLe,
+{ schemaVersion: 2, uid, tag, date, dossier, tags, corbeille, appareil, operateur?, versionApp, genereLe,
   entries: [ { id, type: "audio"|"photo"|"texte"|"fichier"|"point", horodatage, repere, position, texte,
                // position = { lat, lng, accuracy?, altitude?, fixTs? }  fixTs = heure ISO du relevé GPS (absent si saisie manuelle)
                theme?: "HYD"|"RIV"|"ERO"|"OCC"|"ACC"|"TRAV"|"FONC"|"SOC"|"EMP"|"ACT",  // code du repère, absent si « Sans code » ou ancienne entrée
@@ -76,7 +100,8 @@ Changements par rapport à la v1 :
   - **« Sans code »** : `repere` est un nom libre, sans champ `theme` ;
   - **entrées antérieures** : pas de `theme`, et elles restent valides ;
   - **liste des codes** (écrite dans l'app, elle passera dans `themes` de `projet.json` à la migration vers le noyau) : HYD Hydrologie, RIV Rivière, lit, ERO Érosion, OCC Occupation du sol, ACC Accès, TRAV Traversée, franchissement, FONC Foncier, SOC Social, communauté, EMP Emprise (ouvrage), ACT Activités économiques ;
-- l'identifiant d'une entrée audio est `rec_<identifiant de l'enregistrement>` (depuis le 08/10/2026), à la place d'un identifiant aléatoire : une même prise ne peut plus donner deux entrées.
+- l'identifiant d'une entrée audio est `rec_<identifiant de l'enregistrement>` (depuis le 08/10/2026), à la place d'un identifiant aléatoire : une même prise ne peut plus donner deux entrées ;
+- `operateur` (facultatif, ajouté le 08/10/2026) contient l'étiquette du code d'accès ou `null` (voir « Étiquettes des codes d'accès »). Ce n'est pas une preuve d'identité. Un digest sans ce champ reste valide et `schemaVersion` reste 2. L'`index.json` de l'export groupé porte aussi `operateur`, à la racine et pour chaque visite.
 
 L'export manuel « Exporter (digest JSON) », dans chaque visite, produit le même format avec en plus `syntheseBrute`. Il sert de secours si la synchronisation échoue.
 
@@ -156,6 +181,17 @@ L'export manuel « Exporter (digest JSON) », dans chaque visite, produit le mê
   - pas de géolocalisation sur l'appareil : `non_supportee` ;
   - dictée : position présente dès le premier brouillon, ou rattachée en cours de dictée, puis conservée à la finalisation ;
   - première entrée créée juste après l'autorisation : position rattachée dès la première mesure.
+- **Étiquettes des codes d'accès**, test navigateur, avec le nouveau relais et l'ancien côte à côte :
+  - code avec étiquette : stockée, affichée dans Réglages, `operateur` présent dans le digest, le manifeste et `index.json` ;
+  - métadonnées KV `agent` sur le manifeste et les entrées, et le code n'est jamais stocké ;
+  - `/admin/list` et `/admin/visit` exposent l'étiquette ;
+  - étiquette modifiée, puis retirée côté relais : suivie à la revalidation ;
+  - visite plus ancienne sans `operateur` : traitée sans erreur ;
+  - code sans étiquette : `operateur: null` ;
+  - révocation : code et étiquette effacés, données locales conservées, envoi refusé (403) ;
+  - ancien relais : validation et envoi fonctionnent, `operateur: null` ;
+  - manifeste sans `operateur` : relu sans erreur ;
+  - étiquettes non conformes (numéro de téléphone, espace, trop longue) : ignorées et signalées.
 - **Suppressions protégées**, test navigateur (26 vérifications) :
   - lien discret dans la barre de sélection, désactivé tant que rien n'est sélectionné ;
   - Annuler et toucher à côté ne suppriment rien ;
