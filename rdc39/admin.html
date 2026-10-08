@@ -93,7 +93,7 @@ async function load(){
       div.className = "visit";
       div.innerHTML = `
         <div class="t">${esc(v.repere || "—")}${v.corbeille ? '<span class="tag">corbeille</span>' : ""}</div>
-        <div class="m">${esc((v.date || "").slice(0, 10))} · ${esc(v.entrees)} entrée(s)${v.dossier ? " · " + esc(v.dossier) : ""} · appareil ${esc(String(v.appareil || "").slice(0, 8))} · reçu ${esc((v.recuLe || "").replace("T", " ").slice(0, 16))}</div>
+        <div class="m">${esc((v.date || "").slice(0, 10))} · ${esc(v.entrees)} entrée(s)${v.dossier ? " · " + esc(v.dossier) : ""}${(v.operateur || v.agent) ? " · étiquette " + esc(v.operateur || v.agent) : ""} · appareil ${esc(String(v.appareil || "").slice(0, 8))} · reçu ${esc((v.recuLe || "").replace("T", " ").slice(0, 16))}</div>
         <div class="row">
           <button data-act="json">Digest JSON</button>
           <button data-act="files">Fichiers (audio, photos…)</button>

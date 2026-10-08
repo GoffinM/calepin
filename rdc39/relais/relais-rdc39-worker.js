@@ -8,7 +8,7 @@
  * par un code distinct, pour lister et télécharger les visites.
  *
  * Routes (toutes en POST) :
- *   /validate-code     {code}                   -> 200 {ok, graceDays} | 403
+ *   /validate-code     {code}                   -> 200 {ok, graceDays, agent} | 403
  *   /upload-entry      {visitUid, entry}        -> KV "e:<visitUid>:<entryId>"   (code équipe)
  *   /upload-manifest   manifeste de la visite   -> KV "m:<visitUid>"             (code équipe)
  *   /admin/list        {}                       -> liste des visites             (code admin)
@@ -21,7 +21,18 @@
  *
  * ---------------------------------------------------------------------------
  * Variables du Worker (Settings -> Variables and Secrets) :
- *   ACCESS_CODES    (Secret)  codes de l'équipe, séparés par des virgules.
+ *   ACCESS_CODES    (Secret)  codes de l'équipe, séparés par des virgules. Chaque code
+ *                             peut porter une étiquette : "code=étiquette"
+ *                             (ex. "K7M2P9=Agent-1,Q4X8ZD=Bunia-2"). Étiquette COURTE et
+ *                             NON NOMINATIVE : jamais un nom de personne ni un numéro de
+ *                             téléphone. Règle appliquée : 1 à 24 caractères parmi lettres,
+ *                             chiffres, ".", "_", "-" (pas d'espace), 5 chiffres au plus ;
+ *                             sinon l'étiquette est IGNORÉE (agent null) et signalée par la
+ *                             page de diagnostic. Un code sans étiquette reste valable.
+ *                             Une étiquette désigne le CODE utilisé, pas une personne : un
+ *                             code peut être partagé, ce n'est pas une preuve d'identité.
+ *                             Seule l'ÉTIQUETTE est enregistrée avec les envois (champ
+ *                             agent des métadonnées KV), jamais le code.
  *                             RÉVOQUER = retirer le code de la liste (effet dès que
  *                             l'appareil se reconnecte, sans redéployer l'app).
  *   ADMIN_CODE      (Secret)  code de la page d'administration (différent des codes
@@ -57,6 +68,34 @@ function json(env, status, obj){
 }
 function codeList(value){
   return String(value || "").split(",").map(s => s.trim()).filter(Boolean);
+}
+/* Étiquette acceptée : courte, sans espace, 5 chiffres au plus (écarte noms complets et
+   numéros de téléphone). Renvoie l'étiquette ou null. */
+const LABEL_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,23}$/;
+function validLabel(x){
+  const s = String(x == null ? "" : x).trim();
+  if (!LABEL_RE.test(s)) return null;
+  if ((s.match(/[0-9]/g) || []).length > 5) return null;
+  return s;
+}
+/* ACCESS_CODES : "code" ou "code=étiquette". Coupure au PREMIER "=" ; étiquette non conforme
+   -> agent null, signalée (refusee: true) par la page de diagnostic. */
+function accessEntries(value){
+  return codeList(value).map(item => {
+    const i = item.indexOf("=");
+    if (i < 0) return { code: item, agent: null, refusee: false };
+    const raw = item.slice(i + 1).trim();
+    const agent = validLabel(raw);
+    return { code: item.slice(0, i).trim(), agent, refusee: !!raw && !agent };
+  }).filter(e => e.code);
+}
+/* Renvoie l'entrée correspondant au code (ou null). Parcourt TOUTE la liste, à durée
+   constante par code, comme matchesAny. */
+function findAccess(env, code){
+  if (!code) return null;
+  let found = null;
+  for (const e of accessEntries(env.ACCESS_CODES)) if (safeEqual(e.code, code) && !found) found = e;
+  return found;
 }
 /* Comparaison à durée constante : ne révèle pas, par le temps de réponse, combien de
    caractères d'un code sont corrects. */
@@ -97,7 +136,8 @@ async function handle(request, env) {
   if (request.method !== "POST") {
     // Réponse visible quand on ouvre l'URL du relais dans un navigateur : sert de test.
     const diag = "Relais RDC39 actif. " +
-      "Codes équipe : " + (codeList(env.ACCESS_CODES).length ? "oui" : "NON (ACCESS_CODES manquant)") + ". " +
+      "Codes équipe : " + (accessEntries(env.ACCESS_CODES).length ? accessEntries(env.ACCESS_CODES).length + " (dont " + accessEntries(env.ACCESS_CODES).filter(e => e.agent).length + " avec étiquette)" : "NON (ACCESS_CODES manquant)") + ". " +
+      (accessEntries(env.ACCESS_CODES).some(e => e.refusee) ? "ATTENTION : " + accessEntries(env.ACCESS_CODES).filter(e => e.refusee).length + " étiquette(s) ignorée(s) (non conformes : 24 caractères au plus, lettres, chiffres, . _ -, sans espace, 5 chiffres au plus ; jamais de nom ni de numéro de téléphone). " : "") +
       "Stockage KV : " + (env.DIGESTS ? "lié" : "NON lié (binding DIGESTS manquant)") + ". " +
       "Code admin : " + (env.ADMIN_CODE ? "oui" : "NON (ADMIN_CODE manquant, page d'administration inactive)") + ".";
     return new Response(diag, { status: 200, headers: Object.assign({ "Content-Type": "text/plain; charset=utf-8" }, corsHeaders(env)) });
@@ -108,8 +148,9 @@ async function handle(request, env) {
   if (url.pathname === "/validate-code") {
     let body = {};
     try { body = await request.json(); } catch (e) {}
-    if (!matchesAny(codeList(env.ACCESS_CODES), String(body.code || "").trim())) return json(env, 403, { ok: false });
-    return json(env, 200, { ok: true, graceDays: Number(env.GRACE_DAYS) || 14 });
+    const access = findAccess(env, String(body.code || "").trim());
+    if (!access) return json(env, 403, { ok: false });
+    return json(env, 200, { ok: true, graceDays: Number(env.GRACE_DAYS) || 14, agent: access.agent });
   }
 
   if (!env.DIGESTS) return json(env, 500, { ok: false, error: "Espace KV DIGESTS non lié au Worker." });
@@ -133,13 +174,17 @@ async function handle(request, env) {
       try { body = await request.json(); } catch (e) {}
       const uid = safeId(body.uid);
       if (!uid) return json(env, 400, { ok: false, error: "uid manquant." });
-      const manifest = await env.DIGESTS.get("m:" + uid, "json");
+      const got = await env.DIGESTS.getWithMetadata("m:" + uid, "json");
+      const manifest = got && got.value;
       if (!manifest) return json(env, 404, { ok: false, error: "Visite inconnue." });
+      const manifestMeta = (got && got.metadata) || {};
       const stored = {};
+      const agentsEntrees = new Set();
       let cursor;
       do {
         const page = await env.DIGESTS.list({ prefix: "e:" + uid + ":", cursor });
         for (const k of page.keys) stored[k.name.slice(("e:" + uid + ":").length)] = k.name;
+        for (const k of page.keys) if (k.metadata && k.metadata.agent) agentsEntrees.add(k.metadata.agent);
         cursor = page.list_complete ? null : page.cursor;
       } while (cursor);
       const entries = [], manquantes = [];
@@ -155,7 +200,10 @@ async function handle(request, env) {
         const e = await env.DIGESTS.get(stored[id], "json");
         if (e) entries.push(Object.assign(e, { supprimeeSurTelephone: true }));
       }
-      const digest = Object.assign({}, manifest, { entries, entreesManquantes: manquantes });
+      // agentRelais : étiquette du code utilisé pour le dernier envoi du manifeste (null :
+      // code sans étiquette ou ancien envoi) ; agentsEntrees : étiquettes vues sur les entrées.
+      // Ce sont des étiquettes de CODE (un code peut être partagé), pas des identités.
+      const digest = Object.assign({}, manifest, { agentRelais: manifestMeta.agent || null, agentsEntrees: Array.from(agentsEntrees), entries, entreesManquantes: manquantes });
       delete digest.entrees;
       return json(env, 200, digest);
     }
@@ -164,7 +212,9 @@ async function handle(request, env) {
 
   // --- Toutes les autres routes : code d'équipe obligatoire ---
   const code = (request.headers.get("X-Access-Code") || "").trim();
-  if (!matchesAny(codeList(env.ACCESS_CODES), code)) return json(env, 403, { ok: false, error: "code" });
+  const access = findAccess(env, code);
+  if (!access) return json(env, 403, { ok: false, error: "code" });
+  const agent = access.agent; // étiquette seulement — le code n'est jamais enregistré
   const device = (request.headers.get("X-Device-Id") || "").slice(0, 64);
   const receivedAt = new Date().toISOString();
 
@@ -181,7 +231,7 @@ async function handle(request, env) {
       if (!visitUid || !entryId) return json(env, 400, { ok: false, error: "visitUid ou entry.id manquant." });
       const value = JSON.stringify(entry);
       await env.DIGESTS.put("e:" + visitUid + ":" + entryId, value, {
-        metadata: { type: entry.type || null, horodatage: entry.horodatage || null, taille: value.length, appareil: device, recuLe: receivedAt }
+        metadata: { type: entry.type || null, horodatage: entry.horodatage || null, taille: value.length, appareil: device, agent, recuLe: receivedAt }
       });
       return json(env, 200, { ok: true, receivedAt });
     }
@@ -194,6 +244,8 @@ async function handle(request, env) {
         date: body.date || null,
         dossier: body.dossier ? String(body.dossier).slice(0, 120) : null,
         appareil: device || body.appareil || null,
+        agent,
+        operateur: validLabel(body.operateur),
         recuLe: receivedAt,
         entrees: Array.isArray(body.entrees) ? body.entrees.length : 0,
         corbeille: !!body.corbeille
