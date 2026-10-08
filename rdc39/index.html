@@ -335,6 +335,21 @@
   @media (prefers-reduced-motion: reduce){ .rec-dot{ animation:none; } }
   .level{ height: 10px; background: var(--surface-raised); border-radius: 5px; margin: 8px 0 6px 0; overflow:hidden; }
   .level-bar{ height:100%; width:0; background: #6BAF5B; transition: width 0.1s linear; }
+  /* RDC39 : codes de thème des repères, alertes de l'enregistreur */
+  .theme-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+  .theme-btn{ text-align:left; background: var(--surface); border:1px solid var(--line); border-radius: 8px; padding: 5px 10px; color: var(--text); cursor:pointer; height: 46px; overflow:hidden; font-family: inherit; }
+  .theme-btn b{ display:block; font-size: 14px; font-family: var(--mono); line-height: 18px; }
+  .theme-btn span{ display:block; font-size: 11px; color: var(--text-dim); line-height: 16px; white-space: nowrap; overflow:hidden; text-overflow: ellipsis; }
+  .theme-btn.none{ grid-column: 1 / -1; height: 38px; }
+  .theme-btn.selected{ border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+  .theme-btn.selected b{ color: var(--accent); }
+  .theme-name{ width:100%; box-sizing:border-box; font-size: 16px; padding: 10px; border-radius: 8px; border:1px solid var(--line); background: var(--surface); color: var(--text); font-family: inherit; }
+  .theme-preview{ font-family: var(--mono); font-size: 13px; height: 18px; line-height: 18px; margin: 6px 0 10px 0; color: var(--text-dim); white-space: nowrap; overflow:hidden; text-overflow: ellipsis; }
+  .theme-sheet .btn{ width:100%; margin-bottom: 8px; }
+  .rec-alert{ margin-top: 8px; border:1px solid var(--warn); border-radius: 8px; padding: 8px 10px; }
+  .rec-alert p{ margin: 0 0 8px 0; font-size: 13px; line-height: 18px; color: var(--text); }
+  .rec-alert .row{ display:flex; gap: 8px; }
+  .rec-alert .btn{ flex:1; }
   .rec-keep{ font-size: 12px; color: var(--text-dim); height: 18px; line-height: 18px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   /* Texte de la dict\u00e9e : hauteur FIXE (5 lignes), d\u00e9filement interne cal\u00e9 sur la fin. */
   .dict-text{ margin-top: 8px; background: var(--paper); color: var(--ink); border-radius: 6px; padding: 8px 10px; box-sizing: border-box;
@@ -590,6 +605,13 @@ const STRINGS = {
     pointImproving: "affinage en cours (30 s max)",
     pointSaveNow: "Enregistrer maintenant",
     pointNamePrompt: "Nom du point (facultatif) :",
+    pointNameTitle: "Nom du point", repereTitle: "Repère", themeNone: "Sans code",
+    themeNameLabel: "Nom (facultatif)", themeNamePh: "ex. pont amont", themePreview: "Repère enregistré :",
+    themeChoose: "Choisissez un code (ou « Sans code »).", themeSave: "Enregistrer", pointAccuracy: "Précision ± {m} m",
+    recRemind: "Enregistrement en cours depuis {min} min. Sans réponse, il sera arrêté et sauvegardé dans {left} min.",
+    recSilence: "Aucun son capté depuis {min} min — micro couvert ou enregistrement oublié ?",
+    recContinue: "Continuer", recStopNow: "Arrêter",
+    recAutoStopped: "Enregistrement arrêté automatiquement (sans réponse) et sauvegardé : {d}.",
     pointSaved: "Point enregistr\u00e9",
     pointNoFix: "Point enregistr\u00e9 SANS position (aucun relev\u00e9 GPS frais) \u2014 corrigez-la avec \u26A0 ou refaites le point \u00e0 d\u00e9couvert",
     pointDenied: "Acc\u00e8s \u00e0 la position refus\u00e9 \u2014 autorisez-le dans les r\u00e9glages du t\u00e9l\u00e9phone.",
@@ -850,6 +872,13 @@ const STRINGS = {
     pointImproving: "refining (30 s max)",
     pointSaveNow: "Save now",
     pointNamePrompt: "Point name (optional):",
+    pointNameTitle: "Point name", repereTitle: "Landmark", themeNone: "No code",
+    themeNameLabel: "Name (optional)", themeNamePh: "e.g. upstream bridge", themePreview: "Saved landmark:",
+    themeChoose: "Choose a code (or “No code”).", themeSave: "Save", pointAccuracy: "Accuracy ± {m} m",
+    recRemind: "Recording for {min} min. Without an answer it will be stopped and saved in {left} min.",
+    recSilence: "No sound picked up for {min} min — microphone covered or recording forgotten?",
+    recContinue: "Continue", recStopNow: "Stop",
+    recAutoStopped: "Recording stopped automatically (no answer) and saved: {d}.",
     pointSaved: "Point saved",
     pointNoFix: "Point saved WITHOUT position (no fresh GPS fix) \u2014 fix it with \u26A0 or redo the point in the open",
     pointDenied: "Location access denied \u2014 allow it in the phone settings.",
@@ -957,6 +986,13 @@ const STRINGS = {
     addAudio: "Rekodi", addPhoto: "Picha", addText: "Maandishi",
     captureHint: "Ongea wazi, wazo moja kwa wakati.",
     entryLabelPrompt: "Peana jina la alama (hiari):",
+    pointNameTitle: "Jina la eneo", repereTitle: "Alama", themeNone: "Bila msimbo",
+    themeNameLabel: "Jina (hiari)", themeNamePh: "mf. daraja la juu", themePreview: "Alama itakayohifadhiwa:",
+    themeChoose: "Chagua msimbo (au « Bila msimbo »).", themeSave: "Hifadhi", pointAccuracy: "Usahihi ± {m} m",
+    recRemind: "Kurekodi kunaendelea kwa dakika {min}. Bila jibu, kutasimamishwa na kuhifadhiwa baada ya dakika {left}.",
+    recSilence: "Hakuna sauti kwa dakika {min} — maikrofoni imefunikwa au umesahau kurekodi?",
+    recContinue: "Endelea", recStopNow: "Simamisha",
+    recAutoStopped: "Kurekodi kumesimamishwa kiotomatiki (bila jibu) na kuhifadhiwa: {d}.",
     transcriptPh: "Nakala (kukamilika)...", textEntryPh: "Andika uchunguzi wako...",
     save: "Hifadhi", cancel: "Ghairi",
     consolidate: "Unganisha / Ripoti", exportVisit: "Hamisha ziara hii", deleteVisit: "\u{1F5D1} Hamishia ziara kwenye takataka",
@@ -1046,7 +1082,7 @@ const STRINGS = {
 };
 /* Version de l'app : doit rester alignée avec CACHE_NAME dans sw.js. Affichée dans Réglages et
    jointe aux retours bêta, pour savoir en un coup d'oeil quelle version tourne chez un testeur. */
-const APP_VERSION = "rdc39-2026-10-07.1";
+const APP_VERSION = "rdc39-2026-10-08.1";
 function currentLang(){ return localStorage.getItem("rdc39_lang") || "fr"; }
 function setLang(l){ localStorage.setItem("rdc39_lang", l); }
 function t(key){
@@ -1536,6 +1572,8 @@ function createZipBuilder(opts){
    - audio INCLUS : entr\u00e9e { type:"audio", audio:{ mime, base64, duree } } ;
    - chaque entr\u00e9e porte son id et, pour une dict\u00e9e, source:"dictee" (texte non relu) ;
    - plus de category ni de syntheseIA ; ajout de dossier, tags, corbeille, appareil.
+   - entries[].theme (facultatif) : code du rep\u00e8re ("HYD"...), repere = "CODE_nom" ; absent si \u00ab Sans code \u00bb.
+   - entr\u00e9es audio : id d\u00e9terministe "rec_<recId>" (une m\u00eame prise ne peut plus donner deux entr\u00e9es).
    Pour la synchro, une visite est envoy\u00e9e en morceaux : un manifeste (m\u00e9tadonn\u00e9es + liste
    des entr\u00e9es) et un objet par entr\u00e9e. Le digest complet (manifeste + entries) est
    r\u00e9assembl\u00e9 par la page d'administration, ou produit directement par l'export manuel.
@@ -1552,6 +1590,7 @@ async function entryToDigest(e){
     type: e.kind,
     horodatage: new Date(e.timestamp).toISOString(),
     repere: e.label || null,
+    ...(e.theme ? { theme: e.theme } : {}),
     position: e.location || null,
     texte: e.text || null
   };
@@ -1602,6 +1641,103 @@ async function buildDigest(v){
   const digestEntries = [];
   for(const e of entries) digestEntries.push(await entryToDigest(e));
   return Object.assign(manifest, { syntheseBrute: buildReportText(v, entries, "landmark"), entries: digestEntries });
+}
+
+/* ============================================================
+   RDC39 — Codes de thème des repères
+   ------------------------------------------------------------
+   Liste du projet, écrite dans l'app (rdc39 n'a pas de projet.json ; elle passera dans
+   "themes" à la migration vers le noyau Terrainnotes). Enregistrement :
+     entries[].repere = "CODE_nom" (ou "CODE" sans nom), entries[].theme = "CODE" ;
+     « Sans code » : repere = nom libre, PAS de champ theme.
+   Champ facultatif : schemaVersion reste 2, les anciennes entrées (sans theme) restent valides.
+   ============================================================ */
+const THEME_CODES = [
+  { code: "HYD",  fr: "Hydrologie",                 en: "Hydrology",               sw: "Haidrolojia" },
+  { code: "RIV",  fr: "Rivière, lit",               en: "River, bed",              sw: "Mto, kitanda cha mto" },
+  { code: "ERO",  fr: "Érosion",                    en: "Erosion",                 sw: "Mmomonyoko wa udongo" },
+  { code: "OCC",  fr: "Occupation du sol",          en: "Land use",                sw: "Matumizi ya ardhi" },
+  { code: "ACC",  fr: "Accès",                      en: "Access",                  sw: "Njia ya kufikia" },
+  { code: "TRAV", fr: "Traversée, franchissement",  en: "Crossing",                sw: "Kivuko" },
+  { code: "FONC", fr: "Foncier",                    en: "Land tenure",             sw: "Umiliki wa ardhi" },
+  { code: "SOC",  fr: "Social, communauté",         en: "Social, community",       sw: "Jamii" },
+  { code: "EMP",  fr: "Emprise (ouvrage)",          en: "Footprint (structure)",   sw: "Eneo la ujenzi (kazi)" },
+  { code: "ACT",  fr: "Activités économiques",      en: "Economic activities",     sw: "Shughuli za kiuchumi" }
+];
+function themeLabel(code){
+  const th = THEME_CODES.find(x => x.code === code);
+  return th ? (th[currentLang()] || th.fr) : code;
+}
+/* Coupure au PREMIER "_" : le nom peut lui-même contenir des "_". */
+function composeRepere(theme, name){
+  name = (name || "").trim();
+  return theme ? (name ? theme + "_" + name : theme) : name;
+}
+function splitRepere(entry){
+  const label = (entry && entry.label) || "";
+  const th = entry && entry.theme;
+  if(th && label === th) return { theme: th, name: "" };
+  if(th && label.indexOf(th + "_") === 0) return { theme: th, name: label.slice(th.length + 1) };
+  return { theme: th || null, name: label };
+}
+/* Dernier code choisi DANS LA VISITE (présélectionné ensuite) : "" = « Sans code ». */
+function lastThemeOfVisit(visitUid){
+  try{ const m = JSON.parse(localStorage.getItem("rdc39_last_theme") || "{}"); return Object.prototype.hasOwnProperty.call(m, visitUid) ? m[visitUid] : null; }
+  catch(e){ return null; }
+}
+function rememberThemeOfVisit(visitUid, theme){
+  try{
+    const m = JSON.parse(localStorage.getItem("rdc39_last_theme") || "{}");
+    delete m[visitUid]; m[visitUid] = theme || "";
+    const keys = Object.keys(m); while(keys.length > 100) delete m[keys.shift()];
+    localStorage.setItem("rdc39_last_theme", JSON.stringify(m));
+  }catch(e){}
+}
+/* Fenêtre de nommage (point et bouton repère). Résout { label, theme } ou null (Annuler :
+   rien n'est enregistré). Toucher à côté ne ferme PAS la fenêtre (un point n'est pas perdu
+   par un geste maladroit) : seul Annuler annule. */
+function chooseRepere(opts){
+  return new Promise(resolve => {
+    const entry = opts.entry || null;
+    let selected = null, name = "";
+    if(entry && (entry.label || entry.theme)){ const sp = splitRepere(entry); selected = sp.theme || ""; name = sp.name; }
+    else { const last = lastThemeOfVisit(opts.visitUid); if(last !== null && (last === "" || THEME_CODES.some(x => x.code === last))) selected = last; }
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.innerHTML = `<div class="modal-sheet theme-sheet">
+      <h3>${escapeHtml(opts.title)}</h3>
+      ${opts.info ? `<p class="capture-hint" style="margin:0 0 10px 0;">${escapeHtml(opts.info)}</p>` : ""}
+      <div class="theme-grid">
+        ${THEME_CODES.map(th => `<button class="theme-btn" data-code="${th.code}"><b>${th.code}</b><span>${escapeHtml(themeLabel(th.code))}</span></button>`).join("")}
+        <button class="theme-btn none" data-code=""><b>${escapeHtml(t("themeNone"))}</b></button>
+      </div>
+      <label class="capture-hint" for="thName" style="display:block; margin:0 0 4px 0;">${escapeHtml(t("themeNameLabel"))}</label>
+      <input id="thName" class="theme-name" autocomplete="off" placeholder="${escapeHtml(t("themeNamePh"))}">
+      <p class="theme-preview" id="thPreview"></p>
+      <button class="btn primary" id="thOk">${escapeHtml(t("themeSave"))}</button>
+      <button class="btn" id="thCancel">${escapeHtml(t("cancel"))}</button>
+    </div>`;
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector("#thName"), ok = overlay.querySelector("#thOk"), preview = overlay.querySelector("#thPreview");
+    input.value = name;
+    function refresh(){
+      overlay.querySelectorAll(".theme-btn").forEach(b => b.classList.toggle("selected", selected !== null && b.dataset.code === selected));
+      ok.disabled = selected === null;
+      const rp = selected === null ? "" : composeRepere(selected, input.value);
+      preview.textContent = selected === null ? t("themeChoose") : t("themePreview") + " " + (rp || "—");
+    }
+    overlay.querySelectorAll(".theme-btn").forEach(b => b.addEventListener("click", () => { selected = b.dataset.code; refresh(); }));
+    input.addEventListener("input", refresh);
+    input.addEventListener("keydown", (e) => { if(e.key === "Enter" && !ok.disabled) ok.click(); });
+    const done = (v) => { overlay.remove(); resolve(v); };
+    overlay.querySelector("#thCancel").addEventListener("click", () => done(null));
+    ok.addEventListener("click", () => {
+      if(selected === null) return;
+      rememberThemeOfVisit(opts.visitUid, selected);
+      done({ label: composeRepere(selected, input.value), theme: selected || null });
+    });
+    refresh();
+  });
 }
 
 /* ============================================================
@@ -2520,6 +2656,15 @@ const REC_BITRATE = 32000;           // ~32 kbit/s : environ 2,4 Mo pour 10 minu
 // parole \u2248 0,02-0,3. \u00c0 calibrer sur t\u00e9l\u00e9phone r\u00e9el (cf. README).
 const REC_SILENCE_THRESHOLD = 0.008;
 const activeRecIds = new Set();      // enregistrements en cours dans CETTE page (jamais "orphelins")
+/* Garde-fous de dur\u00e9e (d\u00e9cision du 8 octobre 2026) : rappel \u00e0 15 min (vibration + bandeau
+   Continuer / Arr\u00eater) ; sans r\u00e9ponse, arr\u00eat AVEC sauvegarde 15 min plus tard (30 min apr\u00e8s le
+   d\u00e9but ou la derni\u00e8re r\u00e9ponse) ; alerte apr\u00e8s 3 min de silence continu. */
+const REC_REMIND_MS = 15 * 60 * 1000;
+const REC_AUTOSTOP_MS = 30 * 60 * 1000;
+const REC_SILENCE_ALERT_MS = 3 * 60 * 1000;
+const REC_ALIVE_MS = 30 * 1000;      // un enregistrement dont les morceaux arrivent encore est "vivant"
+const REC_MIN_STOP_MS = 1000;        // un appui sur Arr\u00eater dans la 1re seconde est ignor\u00e9 (double appui)
+function recTiming(){ return Object.assign({ remind: REC_REMIND_MS, autostop: REC_AUTOSTOP_MS, silence: REC_SILENCE_ALERT_MS }, window.__rdc39RecTiming || {}); }
 const EXIF_GPS_MAX_SKEW_MS = 2 * 60 * 1000; // GPS d'une photo : accept\u00e9 s'il date de la prise de vue (\u00b1 2 min)
 const POINT_GOOD_ACCURACY_M = 5;     // Point GPS : on s'arr\u00eate d\u00e8s \u00b1 5 m...
 const POINT_MAX_WAIT_MS = 30000;     // ...ou au bout de 30 s, avec la meilleure mesure obtenue
@@ -2543,48 +2688,103 @@ function fmtDuration(sec){
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s2 = sec % 60;
   return (h ? h + ":" + String(m).padStart(2, "0") : String(m).padStart(2, "0")) + ":" + String(s2).padStart(2, "0");
 }
-/* Assemble les morceaux d'un enregistrement en UNE entr\u00e9e audio, puis efface les morceaux.
-   Renvoie l'entr\u00e9e cr\u00e9\u00e9e, ou null s'il n'y avait aucun son. */
-async function finalizeRecording(recId, durationSec, recovered){
+/* Assemble les morceaux d'un enregistrement en UNE entrée audio, puis efface les morceaux.
+   Renvoie l'entrée, ou null s'il n'y avait aucun son.
+   Sans doublon possible (constat du 8 octobre 2026) :
+   - identifiant DÉTERMINISTE "rec_<recId>" : une seconde finalisation retrouve la même entrée
+     (et la même clé côté relais) au lieu d'en créer une autre ;
+   - création de l'entrée + effacement des morceaux + effacement des métadonnées dans UNE seule
+     transaction : tout ou rien, même si l'app est tuée au milieu ;
+   - verrou entre onglets (navigator.locks) ; la récupération ignore un enregistrement encore
+     vivant dans une autre instance de l'app (verrou tenu, ou morceaux récents). */
+function withRecLock(fn){
+  if(navigator.locks && navigator.locks.request) return navigator.locks.request("rdc39-rec-finalize", fn);
+  return fn();
+}
+function idbFinalizeAtomic(entry, chunkIds, recId){
+  return openDB().then(db => new Promise((resolve, reject) => {
+    const t = db.transaction(["entries", "audioChunks", "recordings"], "readwrite");
+    if(entry) t.objectStore("entries").put(entry);
+    const cs = t.objectStore("audioChunks");
+    for(const id of chunkIds) cs.delete(id);
+    if(recId) t.objectStore("recordings").delete(recId);
+    t.oncomplete = () => resolve();
+    t.onerror = () => reject(t.error);
+    t.onabort = () => reject(t.error || new Error("transaction annulée"));
+  }));
+}
+async function recordingAliveElsewhere(meta){
+  // Verrou disponible : r\u00e9ponse exacte (il est lib\u00e9r\u00e9 d\u00e8s que l'instance qui enregistre meurt).
+  if(navigator.locks && navigator.locks.query){
+    try{
+      const q = await navigator.locks.query();
+      return (q.held || []).some(l => l.name === "rdc39-rec-" + meta.recId);
+    }catch(e){}
+  }
+  // Repli (navigateur sans verrous) : des morceaux arriv\u00e9s il y a moins de 30 s.
+  return !!(meta.aliveAt && Date.now() - meta.aliveAt < REC_ALIVE_MS);
+}
+async function finalizeRecordingUnlocked(recId, durationSec, recovered){
   const meta = await idbGet("recordings", recId);
   const chunks = (await idbGetByIndex("audioChunks", "recId", recId)).sort((a, b) => a.seq - b.seq);
-  let entry = null;
+  const entryId = "rec_" + recId;
+  let entry = null, created = false;
   if(meta && chunks.length){
-    const total = chunks.reduce((n, c) => n + c.data.byteLength, 0);
-    const out = new Uint8Array(total);
-    let off = 0;
-    for(const c of chunks){ out.set(new Uint8Array(c.data), off); off += c.data.byteLength; }
-    let visit = await idbGet("visits", meta.visitUid);
-    if(!visit){
-      // Visite supprim\u00e9e entre-temps : on ne jette jamais un enregistrement, on recr\u00e9e une visite.
-      visit = { uid: meta.visitUid, tag: t("recRecoveredLabel"), date: new Date(meta.startedAt).toISOString(),
-        folderId: null, tags: [], trashedAt: null, createdAt: new Date().toISOString() };
-      await idbPut("visits", visit);
+    entry = await idbGet("entries", entryId); // déjà finalisé : on ne recrée rien
+    if(!entry){
+      const total = chunks.reduce((n, c) => n + c.data.byteLength, 0);
+      const out = new Uint8Array(total);
+      let off = 0;
+      for(const c of chunks){ out.set(new Uint8Array(c.data), off); off += c.data.byteLength; }
+      const visit = await idbGet("visits", meta.visitUid);
+      if(!visit){
+        // Visite supprimée entre-temps : on ne jette jamais un enregistrement, on recrée une visite.
+        await idbPut("visits", { uid: meta.visitUid, tag: t("recRecoveredLabel"), date: new Date(meta.startedAt).toISOString(),
+          folderId: null, tags: [], trashedAt: null, createdAt: new Date().toISOString() });
+      }
+      entry = {
+        id: entryId, visitUid: meta.visitUid, kind: "audio", data: out.buffer, mime: meta.mime || "audio/webm",
+        text: "", label: recovered ? t("recRecoveredLabel") : "", location: meta.location || null,
+        timestamp: meta.startedAt,
+        duration: durationSec != null ? durationSec : Math.round(chunks.length * REC_TIMESLICE_MS / 1000),
+        recovered: !!recovered, syncState: "pending", syncRev: 1
+      };
+      if(!meta.location) entry.positionMotif = recovered ? "indisponible" : currentGeoMotif();
+      created = true;
     }
-    entry = {
-      id: uid(), visitUid: meta.visitUid, kind: "audio", data: out.buffer, mime: meta.mime || "audio/webm",
-      text: "", label: recovered ? t("recRecoveredLabel") : "", location: meta.location || null,
-      positionMotif: meta.location ? undefined : (recovered ? "indisponible" : currentGeoMotif()),
-      timestamp: meta.startedAt,
-      duration: durationSec != null ? durationSec : Math.round(chunks.length * REC_TIMESLICE_MS / 1000),
-      recovered: !!recovered
-    };
-    await idbPut("entries", entry);
   }
-  for(const c of chunks) await idbDeleteRaw("audioChunks", c.id);
-  if(meta) await idbDeleteRaw("recordings", recId);
+  await idbFinalizeAtomic(created ? entry : null, chunks.map(c => c.id), meta ? recId : null);
+  if(created){ await markVisitPending(entry.visitUid); scheduleSync(); }
   return entry;
 }
-/* Au lancement : enregistrements interrompus (app tu\u00e9e, batterie, appel entrant...). */
+function finalizeRecording(recId, durationSec, recovered){
+  return withRecLock(() => finalizeRecordingUnlocked(recId, durationSec, recovered));
+}
+/* Au lancement : enregistrements interrompus (app tuée, batterie, appel entrant...). */
+let recoverRetryTimer = null;
 async function recoverOrphanRecordings(){
-  let n = 0;
+  let n = 0, skipped = 0;
   try{
     const metas = await idbGetAll("recordings");
     for(const m of metas){
       if(activeRecIds.has(m.recId)) continue;
-      if(await finalizeRecording(m.recId, null, true)) n++;
+      const res = await withRecLock(async () => {
+        const fresh = await idbGet("recordings", m.recId);
+        if(!fresh) return null;                                   // déjà traité par une autre instance
+        if(await recordingAliveElsewhere(fresh)) return "alive"; // encore en cours ailleurs : on n'y touche pas
+        return finalizeRecordingUnlocked(m.recId, null, true);
+      });
+      if(res === "alive") skipped++;
+      else if(res) n++;
     }
   }catch(e){ /* ne bloque jamais l'ouverture */ }
+  // Enregistrement vu "vivant" : nouvel essai plus tard (s'il s'est arrêté sans être finalisé).
+  if(skipped && !recoverRetryTimer){
+    recoverRetryTimer = setTimeout(() => {
+      recoverRetryTimer = null;
+      recoverOrphanRecordings().then(k => { if(k) showToast(k + " " + t("recRecoveredToast")); });
+    }, REC_ALIVE_MS + 5000);
+  }
   return n;
 }
 
@@ -3792,8 +3992,12 @@ async function renderVisitDetail(uidVal){
         refreshEntries(); refreshWeight();
       });
       card.querySelector('[data-act="label"]').addEventListener("click", async () => {
-        const val = prompt(t("entryLabelPrompt"), entry.label || "");
-        if(val !== null){ entry.label = val.trim(); await migrateEntryIfLegacy(entry); await idbPut("entries", entry); refreshEntries(); }
+        const choice = await chooseRepere({ title: t("repereTitle"), entry, visitUid: visit.uid });
+        if(choice){
+          entry.label = choice.label;
+          if(choice.theme) entry.theme = choice.theme; else delete entry.theme;
+          await migrateEntryIfLegacy(entry); await idbPut("entries", entry); refreshEntries();
+        }
       });
       card.querySelectorAll('[data-act="position"]').forEach(btn => btn.addEventListener("click", async () => {
         // Sans position : on propose directement la position actuelle (si une mesure r\u00e9cente existe).
@@ -3903,9 +4107,11 @@ async function renderVisitDetail(uidVal){
     // Sans relev\u00e9 frais obtenu apr\u00e8s l'appui : point enregistr\u00e9 SANS position, avec son motif
     // (jamais une position ancienne ou reprise d'une autre entr\u00e9e).
     const motif = p.best ? null : (p.motif || (geoState === "denied" ? "refusee" : "delai_depasse"));
-    const name = prompt(t("pointNamePrompt") + (p.best ? " (\u00b1 " + p.best.accuracy + " m)" : " \u2014 " + t("pointNoFixSaved")), "");
-    if(name === null) return; // annul\u00e9 : on n'enregistre rien
-    const entry = { id: uid(), visitUid: visit.uid, kind: "point", text: "", label: name.trim(), location: null, timestamp: p.startedAt };
+    const choice = await chooseRepere({ title: t("pointNameTitle"), visitUid: visit.uid,
+      info: p.best ? t("pointAccuracy").replace("{m}", p.best.accuracy) : t("pointNoFixSaved") });
+    if(!choice) return; // annul\u00e9 : on n'enregistre rien
+    const entry = { id: uid(), visitUid: visit.uid, kind: "point", text: "", label: choice.label, location: null, timestamp: p.startedAt };
+    if(choice.theme) entry.theme = choice.theme;
     if(p.best){ entry.location = p.best; usedFixTs.add(p.best.fixTs); }
     else entry.positionMotif = motif;
     await idbPut("entries", entry);
@@ -4008,9 +4214,18 @@ async function renderVisitDetail(uidVal){
      - Jamais en même temps que Dicter (conflit micro).
      ============================================================ */
   let rec = null;
+  let recStarting = false; // micro en cours d'ouverture : un second appui est ignor\u00e9 (double appui = 2 enregistreurs, constat du 8 octobre)
+  let viewClosed = false;  // \u00e9cran quitt\u00e9 pendant l'ouverture du micro : le d\u00e9marrage est abandonn\u00e9
   async function toggleRecording(){
-    if(rec){ stopRecording(); return; }
-    if(dict) return;
+    if(rec){ if(Date.now() - rec.startedAt >= REC_MIN_STOP_MS) stopRecording(); return; } // 2e appui d'un double appui : ignor\u00e9
+    if(dict || recStarting) return;
+    recStarting = true;
+    const b = addRow.querySelector("#btnRec");
+    b.disabled = true;
+    try{ await startRecording(); }
+    finally{ recStarting = false; b.disabled = !!dict; }
+  }
+  async function startRecording(){
     if(!confirmStorageSync()) return;
     const btn = addRow.querySelector("#btnRec");
     if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder){ showError(t("micUnavailable")); return; }
@@ -4021,6 +4236,8 @@ async function renderVisitDetail(uidVal){
     let stream;
     try{ stream = await navigator.mediaDevices.getUserMedia({ audio: true }); }
     catch(err){ if(audioCtx) audioCtx.close().catch(() => {}); showError(t("micDenied")); return; }
+    const abandon = () => { stream.getTracks().forEach(tr => tr.stop()); if(audioCtx) audioCtx.close().catch(() => {}); };
+    if(viewClosed || dict){ abandon(); return; }
     const mime = bestAudioMime();
     let mr;
     try{ mr = new MediaRecorder(stream, Object.assign({ audioBitsPerSecond: REC_BITRATE }, mime ? { mimeType: mime } : {})); }
@@ -4034,17 +4251,26 @@ async function renderVisitDetail(uidVal){
       showError(t("recStartFailed").replace("{err}", (err && (err.name || err.message)) || "?"));
       return;
     }
+    if(viewClosed || dict){ abandon(); await idbDeleteRaw("recordings", recId).catch(() => {}); return; }
     if(!meta.location) tryGetPosition().then(loc => { if(loc && !meta.location){ meta.location = loc; idbPutRaw("recordings", meta).catch(() => {}); } });
 
-    const r = rec = { mr, stream, recId, seq: 0, bytes: 0, savedChunks: 0, failedChunks: 0, startedAt: Date.now(), audioCtx, peak: 0, writes: [], wakeLock: null, leftApp: false, stopping: false };
+    const now0 = Date.now();
+    const r = rec = { mr, stream, recId, seq: 0, bytes: 0, savedChunks: 0, failedChunks: 0, startedAt: now0, audioCtx, peak: 0, writes: [], wakeLock: null, leftApp: false, stopping: false,
+      ackAt: now0, lastSoundAt: now0, prompt: null, silenceAlerted: false, autoStopped: false, lastBeat: 0, releaseLock: null };
     activeRecIds.add(recId);
+    // Verrou tenu tant que l'enregistrement vit dans CETTE instance : une autre instance (onglet,
+    // fen\u00eatre) ne le "r\u00e9cup\u00e8re" pas pendant qu'il tourne. Lib\u00e9r\u00e9 automatiquement si l'app meurt.
+    if(navigator.locks && navigator.locks.request){
+      const held = new Promise(res => { r.releaseLock = res; });
+      navigator.locks.request("rdc39-rec-" + recId, () => held).catch(() => {});
+    }
     mr.ondataavailable = (e) => {
       if(!e.data || e.data.size === 0) return;
       const seq = r.seq++;
       const size = e.data.size;
       r.writes.push(e.data.arrayBuffer()
         .then(buf => idbPutRaw("audioChunks", { id: recId + ":" + String(seq).padStart(6, "0"), recId, seq, data: buf }))
-        .then(() => { r.bytes += size; r.savedChunks++; })
+        .then(() => { r.bytes += size; r.savedChunks++; return recHeartbeat(r, meta); })
         .catch((err) => onChunkWriteFailed(r, err)));
     };
     mr.onstop = () => finishRecording(r);
@@ -4066,6 +4292,7 @@ async function renderVisitDetail(uidVal){
           for(let i = 0; i < buf.length; i++){ const v = (buf[i] - 128) / 128; sum += v * v; }
           const rms = Math.sqrt(sum / buf.length);
           if(rms > r.peak) r.peak = rms;
+          if(rms >= REC_SILENCE_THRESHOLD){ r.lastSoundAt = Date.now(); if(r.prompt === "silence") hideRecPrompt(r); r.silenceAlerted = false; }
           const bar = document.getElementById("levelBar");
           // \u00e9chelle racine : une voix normale remplit visiblement la barre, le silence la laisse vide
           if(bar) bar.style.width = Math.min(100, Math.round(Math.sqrt(rms) * 160)) + "%";
@@ -4084,7 +4311,9 @@ async function renderVisitDetail(uidVal){
         <div class="rec-line"><span class="rec-dot">●</span><span class="rec-timer" id="recTimer">00:00</span></div>
         <div class="level"><div class="level-bar" id="levelBar"></div></div>
         <div class="rec-keep">${t("recKeepOpen")}</div>
+        <div class="rec-alert" id="recAlert" hidden></div>
       </div>`;
+    r.watch = setInterval(() => recWatchTick(r), 1000);
     recordTimerInterval = setInterval(() => {
       setTextIfChanged(document.getElementById("recTimer"), fmtDuration((Date.now() - r.startedAt) / 1000) + " · " + fmtBytes(r.bytes) + " " + t("recSavedBytes"));
     }, 250);
@@ -4103,8 +4332,45 @@ async function renderVisitDetail(uidVal){
       else r.writeAlertShown = false; // on continue : une nouvelle panne sera de nouveau signal\u00e9e
     }, 0);
   }
-  function stopRecording(){
-    const r = rec;
+  /* \u00c9tat "vivant" pour les autres instances (repli quand navigator.locks manque) : au plus
+     une \u00e9criture des m\u00e9tadonn\u00e9es toutes les 10 s. */
+  function recHeartbeat(r, meta){
+    if(r.finished || Date.now() - r.lastBeat < 10000) return;
+    r.lastBeat = Date.now(); meta.aliveAt = r.lastBeat;
+    return idbPutRaw("recordings", meta).catch(() => {});
+  }
+  function recWatchTick(r){
+    if(r.finished || r.stopping) return;
+    const tm = recTiming(), now = Date.now();
+    if(now - r.ackAt >= tm.autostop){ r.autoStopped = true; hideRecPrompt(r); stopRecordingOf(r); return; }
+    if(now - r.ackAt >= tm.remind){ if(r.prompt !== "remind") showRecPrompt(r, "remind"); }
+    else if(r.peak >= 0 && now - r.lastSoundAt >= tm.silence && !r.silenceAlerted && !r.prompt){ r.silenceAlerted = true; showRecPrompt(r, "silence"); }
+  }
+  function showRecPrompt(r, kind){
+    r.prompt = kind;
+    const box = document.getElementById("recAlert");
+    if(box){
+      const tm = recTiming();
+      const msg = kind === "remind"
+        ? t("recRemind").replace("{min}", Math.round((Date.now() - r.startedAt) / 60000)).replace("{left}", Math.max(1, Math.round((r.ackAt + tm.autostop - Date.now()) / 60000)))
+        : t("recSilence").replace("{min}", Math.round(tm.silence / 60000));
+      box.innerHTML = `<p>${escapeHtml(msg)}</p><div class="row"><button class="btn primary" data-a="go">${t("recContinue")}</button><button class="btn danger" data-a="stop">${t("recStopNow")}</button></div>`;
+      box.hidden = false;
+      box.querySelector('[data-a="go"]').addEventListener("click", () => {
+        if(kind === "remind") r.ackAt = Date.now(); else { r.lastSoundAt = Date.now(); r.silenceAlerted = false; } // silence persistant : nouvelle alerte 3 min plus tard
+        hideRecPrompt(r);
+      });
+      box.querySelector('[data-a="stop"]').addEventListener("click", () => { hideRecPrompt(r); stopRecordingOf(r); });
+    }
+    try{ if(navigator.vibrate) navigator.vibrate([400, 200, 400]); }catch(e){}
+  }
+  function hideRecPrompt(r){
+    r.prompt = null;
+    const box = document.getElementById("recAlert");
+    if(box){ box.hidden = true; box.innerHTML = ""; }
+  }
+  function stopRecording(){ stopRecordingOf(rec); }
+  function stopRecordingOf(r){
     if(!r || r.stopping) return;
     r.stopping = true;
     try{ if(r.mr.state !== "inactive") r.mr.stop(); else finishRecording(r); }catch(e){ finishRecording(r); }
@@ -4116,6 +4382,7 @@ async function renderVisitDetail(uidVal){
     const durationSec = Math.round((Date.now() - r.startedAt) / 1000);
     clearInterval(recordTimerInterval);
     clearInterval(r.levelTimer);
+    clearInterval(r.watch);
     r.stream.getTracks().forEach(tr => tr.stop());
     if(r.audioCtx) r.audioCtx.close().catch(() => {});
     if(r.wakeLock) r.wakeLock.release().catch(() => {});
@@ -4131,15 +4398,18 @@ async function renderVisitDetail(uidVal){
       // Assemblage impossible (souvent : stockage plein) : les morceaux restent sur l'appareil et
       // seront r\u00e9cup\u00e9r\u00e9s au prochain lancement de l'app.
       activeRecIds.delete(r.recId);
+      if(r.releaseLock) r.releaseLock();
       alertError(t("recFinalizeFailed").replace("{err}", (err && (err.name || err.message)) || "?"));
       return;
     }
     if(entry && !entry.location) attachPositionLater(entry.id, entry.timestamp);
     activeRecIds.delete(r.recId);
+    if(r.releaseLock) r.releaseLock();
     if(!main.isConnected) return;
     refreshEntries(); refreshWeight();
     if(!entry){ showError(t("recEmpty")); return; }
-    showToast(t("recSaved") + " (" + fmtDuration(durationSec) + ")");
+    if(r.autoStopped) showToast(t("recAutoStopped").replace("{d}", fmtDuration(durationSec)), 8000);
+    else showToast(t("recSaved") + " (" + fmtDuration(durationSec) + ")");
     if(r.failedChunks) alertError(t("recPartial").replace("{n}", r.failedChunks));
     else if(r.peak >= 0 && r.peak < REC_SILENCE_THRESHOLD) alertError(t("recSilentWarning"));
     else if(r.leftApp) alertError(t("recBackgroundWarn"));
@@ -4339,6 +4609,7 @@ async function renderVisitDetail(uidVal){
 
   // Quitter l'écran arrête proprement une capture en cours (elle est sauvegardée) et retire les écouteurs.
   currentViewCleanup = () => {
+    viewClosed = true;
     media.clear();
     stopGeoWatch();
     geoListeners.delete(renderGeoLine);

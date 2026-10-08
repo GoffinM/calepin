@@ -58,6 +58,7 @@ Le format est dérivé du digest v1 de Calepin. Le Calepin personnel et son form
 { schemaVersion: 2, uid, tag, date, dossier, tags, corbeille, appareil, versionApp, genereLe,
   entries: [ { id, type: "audio"|"photo"|"texte"|"fichier"|"point", horodatage, repere, position, texte,
                // position = { lat, lng, accuracy?, altitude?, fixTs? }  fixTs = heure ISO du relevé GPS (absent si saisie manuelle)
+               theme?: "HYD"|"RIV"|"ERO"|"OCC"|"ACC"|"TRAV"|"FONC"|"SOC"|"EMP"|"ACT",  // code du repère, absent si « Sans code » ou ancienne entrée
                positionMotif?: "refusee"|"indisponible"|"delai_depasse"|"non_supportee",  // seulement si position = null
                source?: "dictee", recupere?: true,
                audio?:   { mime, base64, duree },   // NOUVEAU : audio inclus (webm/opus Android, mp4/aac iOS)
@@ -69,7 +70,13 @@ Changements par rapport à la v1 :
 - l'audio est **inclus** ;
 - chaque entrée porte un `id` ;
 - les champs `category` et `syntheseIA` sont retirés ;
-- les champs `dossier`, `tags`, `corbeille`, `appareil`, `versionApp` et `genereLe` sont ajoutés.
+- les champs `dossier`, `tags`, `corbeille`, `appareil`, `versionApp` et `genereLe` sont ajoutés ;
+- `entries[].theme` (facultatif, ajouté le 08/10/2026), avec `schemaVersion` inchangé (2) :
+  - **avec un code** : `repere` vaut `"CODE_nom"` (coupure au **premier** `_`, le nom peut contenir d'autres `_`), ou `"CODE"` sans nom ; `theme` vaut `"CODE"`, en majuscules ASCII ;
+  - **« Sans code »** : `repere` est un nom libre, sans champ `theme` ;
+  - **entrées antérieures** : pas de `theme`, et elles restent valides ;
+  - **liste des codes** (écrite dans l'app, elle passera dans `themes` de `projet.json` à la migration vers le noyau) : HYD Hydrologie, RIV Rivière, lit, ERO Érosion, OCC Occupation du sol, ACC Accès, TRAV Traversée, franchissement, FONC Foncier, SOC Social, communauté, EMP Emprise (ouvrage), ACT Activités économiques ;
+- l'identifiant d'une entrée audio est `rec_<identifiant de l'enregistrement>` (depuis le 08/10/2026), à la place d'un identifiant aléatoire : une même prise ne peut plus donner deux entrées.
 
 L'export manuel « Exporter (digest JSON) », dans chaque visite, produit le même format avec en plus `syntheseBrute`. Il sert de secours si la synchronisation échoue.
 
@@ -98,7 +105,31 @@ L'export manuel « Exporter (digest JSON) », dans chaque visite, produit le mê
 - **Suppression définitive** (corbeille, ou « Vider la corbeille ») : même fenêtre, et il faut en plus taper `SUPPRIMER` (`DELETE` en anglais).
 - **Entrée (✕)** : une confirmation est demandée, car une entrée supprimée ne passe pas par la corbeille.
 
+## Enregistreur : garde-fous (depuis le 08/10/2026)
+
+- **Rappel à 15 min** : vibration et bandeau « Continuer / Arrêter ». Sans réponse, l'enregistrement est **arrêté et sauvegardé** 15 min plus tard, soit 30 min après le début ou après la dernière réponse « Continuer ».
+- **3 min de silence continu** : alerte « Aucun son capté ». L'enregistrement continue ; l'alerte revient si le silence persiste.
+- **Double appui sur 🎤** : il ne démarre plus deux enregistreurs. C'était la cause du doublon du 8 octobre. Un appui sur Arrêter dans la première seconde est ignoré.
+- **Écran quitté pendant l'ouverture du micro** : aucun enregistreur fantôme.
+- **Récupération sans doublon** :
+  - l'identifiant d'une entrée audio est déterministe ;
+  - la création de l'entrée et l'effacement des morceaux se font dans une seule transaction ;
+  - un verrou entre onglets (`navigator.locks`) empêche deux récupérations simultanées ;
+  - un enregistrement encore en cours dans une autre fenêtre de l'app n'est jamais « récupéré » ;
+  - sur un navigateur sans verrou, on vérifie à la place que des morceaux sont arrivés il y a moins de 30 s.
+- **Taille** :
+  - Android enregistre à environ 32 kbit/s, soit environ 7,4 Mo pour 30 min, bien sous la limite de 24 Mo par valeur du relais ;
+  - le débit réel sur iPhone n'a **pas** été mesuré ;
+  - contrôle à faire : après 1 min d'enregistrement, la taille affichée doit rester sous 600 Ko.
+
 ## Tests effectués (Chromium headless, relais simulé exécutant le Worker sous Node)
+
+- **Version 2026-10-08.1**, 44 vérifications :
+  - codes de thème : point, note, photo, présélection, Annuler, « Sans code », nom contenant `_`, ancienne entrée, digest, relais, fr/en/sw ;
+  - rappel, arrêt automatique avec sauvegarde, alerte de silence ;
+  - double appui, écran quitté pendant le démarrage, deux récupérations simultanées, enregistrement en cours dans un autre onglet.
+  
+  Le doublon du 8 octobre est **reproduit sur la version précédente** : un double appui donne deux « Enregistrement récupéré » de même heure, même durée et même taille, aux octets différents. Il n'apparaît plus avec la nouvelle version.
 
 - Accès : code refusé puis accepté. Révocation (test de la version précédente, code inchangé).
 - Visite sans catégorie.
@@ -151,3 +182,7 @@ L'export manuel « Exporter (digest JSON) », dans chaque visite, produit le mê
 | App qui se charge en mode avion, carte hors ligne avec tuiles préchargées | Les deux |
 | Envoi interrompu puis repris sur réseau faible | Android |
 | Révocation du code d'accès | Android |
+| Nommer un point avec un code, puis renommer une photo, un audio et une note avec la même fenêtre | Android |
+| Laisser tourner un enregistrement 15 min : vibration et bandeau, puis arrêt et sauvegarde à 30 min sans réponse ; poser le téléphone micro couvert 3 min : alerte silence | Android (+ iPhone : pas de vibration sur iPhone) |
+| Taper deux fois très vite sur 🎤 : un seul enregistrement | Android + iPhone |
+| iPhone : taille affichée après 1 min d'enregistrement sous 600 Ko (sinon un enregistrement de 30 min dépasserait la limite du relais) | iPhone |
